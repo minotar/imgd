@@ -11,7 +11,7 @@ A Minotar is a global avatar that pulls your head off of your Minecraft.net skin
 
 ### Simple Heads
 Unlike the PayPal API, we keep things nice and simple. For basic usage just provide a username:
-	<img src="https://minotar.net/avatar/clone1018">
+	`<img src="https://minotar.net/avatar/clone1018">`
 
 You can also set a size. We use pixels and we only need the width. Just add it to the end.
 	<img src="https://minotar.net/avatar/clone1018/100">
@@ -28,7 +28,7 @@ Sometimes you want to display a helm too, that's fine with this endpoint:
 
 ### User's Skin
 You can even use Minotar's API to get a users skin. We're adding more soon!
-	<img src="https://minotar.net/skin/clone1018">`
+	<img src="https://minotar.net/skin/clone1018">
 
 You can also set the browser to download the image by using:
 	`https://minotar.net/download/clone1018`
