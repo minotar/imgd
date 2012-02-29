@@ -45,3 +45,6 @@ You can also set the browser to download the image by using:
 #### Random Skin
 Randomly generated head? We got that too.  
 `<img src="https://minotar.net/random/100.png">`
+
+
+Licensed under the SIMPL: http://simplaza.net/hax/SIMPL/
