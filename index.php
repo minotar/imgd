@@ -1,5 +1,5 @@
 <?php require 'klein.php';
-include 'wide/WideImage.php';
+include 'WideImage/WideImage.php';
 include 'Minotar.php';
 //error_reporting(0);
 
