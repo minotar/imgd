@@ -48,3 +48,6 @@ Randomly generated head? We got that too.
 
 
 Licensed under the SIMPL: http://simplaza.net/hax/SIMPL/
+
+### How to install?
+If you want to host this yourself you'll need to install this, http://wideimage.sourceforge.net/download/ , we recommend using the pear package.
