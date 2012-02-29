@@ -50,4 +50,4 @@ Randomly generated head? We got that too.
 Licensed under the SIMPL: http://simplaza.net/hax/SIMPL/
 
 ### How to install?
-If you want to host this yourself you'll need to install this, http://wideimage.sourceforge.net/download/ , we recommend using the pear package.
+If you want to host this yourself you'll need to install this, http://wideimage.sourceforge.net/download/ , we recommend using the pear package. You'll also need to add this to the main folder (where index.php is located) https://raw.github.com/chriso/klein.php/master/klein.php
