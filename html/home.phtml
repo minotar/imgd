@@ -1,51 +1,40 @@
 <!DOCTYPE html>
 <html>
-    <head>
-    
-        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <head>    
+        <meta charset="utf-8" />
         
         <title>Minotar - The Miner's Avatar</title>
         <link href="https://fonts.googleapis.com/css?family=Cabin+Sketch:bold" rel="stylesheet" type="text/css">
 		<link href='https://fonts.googleapis.com/css?family=Lobster' rel='stylesheet' type='text/css'>
 		
-        <link rel="stylesheet" type="text/css" href="style.css" />
-        <link rel="icon" type="image/png" href="https://minotar.net/avatar/clone1018/128.png" />
-        
-        <!-- Internet Explorer HTML5 enabling code: -->
+        <link rel="stylesheet" href="style.css" />
+        <link rel="icon" type="image/png" href="https://minotar.net/avatar/clone1018/128.png" />      
         
         <!--[if IE]>
-        <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-        
-        <style type="text/css">
-        .clear {
-          zoom: 1;
-          display: block;
-        }
-        </style>
-
+            <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>        
+            <style type="text/css">
+                .clear {
+                  zoom: 1;
+                  display: block;
+                }
+            </style>
         <![endif]-->
+
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
 
-        <script type="text/javascript">
-
-          var _gaq = _gaq || [];
-          _gaq.push(['_setAccount', 'UA-22574465-1']);
-          _gaq.push(['_trackPageview']);
-
-          (function() {
-            var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-            var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-          })();
-
+        <script>
+          var _gaq=[['_setAccount','UA-22574465-1'],['_trackPageview']];
+          (function(d,t){var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+          g.src=('https:'==location.protocol?'//ssl':'//www')+'.google-analytics.com/ga.js';
+          s.parentNode.insertBefore(g,s)}(document,'script'));
         </script>
     </head>
     
     <body>
     	
-    	<section id="page"> <!-- Defining the #page section with the section tag -->
+    	<section id="page">
     
-            <header> <!-- Defining the header section of the page with the appropriate tag -->
+            <header>
             
                 <hgroup>
                     <h1><a href="/">Minotar</a></h1>
@@ -56,8 +45,8 @@
                     <ul>
                         <li><a href="/">Home</a></li>
                         <li><a href="#api" title="Easy. Awesome. API.">API</a></li>
-                        <li><a href="#plugins" title="Beautiful, wondeful plugins!">Plugins</a></li>
-                        <li><a href="https://github.com/clone1018/Minotar" title="Bug and Stuff!">GitHub</a></li>
+                        <li><a href="#plugins" title="Beautiful, wonderful plugins!">Plugins</a></li>
+                        <li><a href="https://github.com/clone1018/Minotar" title="Bugs and Stuff!">GitHub</a></li>
                         <li><a href="https://twitter.com/#!/clone1018" title="Only because they wanted me to.">Twitter</a></li>
                     </ul>
                 </nav>
@@ -79,7 +68,7 @@
                     <div class="line"></div>
                     
                     <div class="articleBody clear">
-                        <p>A Minotar is a global avatar that pulls your head off of your Minecraft.net skin, and allows it for use on several thousand sites. See some uses below.</p>
+                        <p>A Minotar is a global avatar that pulls the head off your Minecraft.net skin, and allows it for use anywhere that you can embed an image. See some uses below.</p>
                         <div style="text-align: center;">
                             <img src="//minotar.net/avatar/clone1018/64">
                             <img src="//minotar.net/avatar/citricsquid/64">
@@ -95,7 +84,11 @@
                             <img src="//minotar.net/helm/wildhog101/64">
                             <img src="//minotar.net/helm/KakashiSuno/64">
                         </div><br>
-                        <p style="text-align: center">Minotar Build: <code><?php echo file_get_contents('./.git/refs/heads/master'); ?></code></p>
+                        <p style="text-align: center">Minotar Build:
+                            <code>
+                                <?php echo file_get_contents('./.git/refs/heads/master'); ?>
+                            </code>
+                        </p>
                     </div>
                 </article>
                 
@@ -115,13 +108,17 @@
                         <h4>Simple Heads</h4>                        
                         <p>Unlike the PayPal API, we keep things nice and simple. For basic usage just provide a username:</p>
                         <pre><code>HTML5: &#60;img src="https://minotar.net/avatar/<span style="color: #1E90FF;">clone1018</span>"&#62;</code></pre><br>
+
                         <p>You can also set a size. We use pixels and we only need the <span style="color: #DC143C;">width</span>. Just add it to the end. </p>
                         <pre><code>HTML5: &#60;img src="https://minotar.net/avatar/<span style="color: #1E90FF;">clone1018</span>/<span style="color: #DC143C;">100</span>"&#62;</code></pre><br>
+
                         <p>And since some services require an extension we've added simple support for it. Just add <span style="color: #00FF00">.png</span> to the end. </p>
                         <pre><code>HTML5: &#60;img src="https://minotar.net/avatar/<span style="color: #1E90FF;">clone1018</span>/<span style="color: #DC143C;">100</span><span style="color: #00FF00">.png</span>"&#62;</code></pre><br>
+
                         <h4>Avatar With Helm</h4>
                         <p>Sometimes you want to display a helm too, that's fine with this endpoint:</p>
                         <pre><code>HTML5: &#60;img src="https://minotar.net/helm/<span style="color: #1E90FF;">clone1018</span>/<span style="color: #DC143C;">100</span><span style="color: #00FF00">.png</span>"&#62;</code></pre><br>
+
                         <br>
                         <p style="text-align: center;"><button id="showmore">Advanced API GET!</button></p>
                         <div id="moreapi" style="display: none">
@@ -179,20 +176,27 @@
             </section>
 
         <footer> <!-- Marking the footer section -->
+           <div class="line"></div>           
+            <p>
+                <a href="http://axxim.net">Copyright 2011 - Axxim, LLC</a>
+            </p>
 
-           <div class="line"></div>
-           
-           <p><a href="http://axxim.net">Copyright 2011 - Axxim, LLC</a></p><br><br> <!-- Change the copyright notice -->
-           <p>This templated is a template, if you know where it came from <a href="mailto:luke@axxim.net">let me know</a> so I can give credit.</p>
-           
+            <br><br>
 
+            <p>
+                This templated is a template, if you know where it came from <a href="mailto:luke@axxim.net">let me know</a> so I can give credit.
+            </p>     
         </footer>
-        <!-- Git Build: <?php echo file_get_contents('./.git/refs/heads/master'); ?>-->
-		</section> <!-- Closing the #page section -->
+
+        </section> <!-- Closing the #page section -->
+
+        <!-- Git Build: <?=file_get_contents('./.git/refs/heads/master')?>-->
+        
         <script type="text/javascript">
             $("#showmore").click(function () {
               $("#moreapi").slideToggle("slow");
             });
         </script>
+
     </body>
 </html>
