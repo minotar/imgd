@@ -56,8 +56,6 @@ class Minotar {
 		return $tmp; 
 	} 
 
-
-
 	private function found($url) {
 		$handle = curl_init($url);
 		if (false === $handle) {
