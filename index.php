@@ -1,7 +1,7 @@
 <?php require 'klein.php';
 include 'WideImage/WideImage.php';
 include 'Minotar.php';
-//error_reporting(0);
+error_reporting(0);
 
 respond('/', function ($request, $response) {
     $response->render('html/home.phtml');
