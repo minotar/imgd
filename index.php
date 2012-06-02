@@ -7,7 +7,7 @@ respond('/', function ($request, $response) {
     $response->render('html/home.phtml');
 });
 
-respond('/avatar/[:username].[:format]?/[:size]?.[:formate]?', function ($request, $response) {
+respond('/[avatar|head]/[:username].[:format]?/[:size]?.[:formate]?', function ($request, $response) {
     $name = $request->param('username', 'char');
     $size = $request->param('size', 180);
     $ext  = $request->param('format', '.png');
