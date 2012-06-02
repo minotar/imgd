@@ -1,5 +1,5 @@
-minecraft/skins
-minecraft/heads
-minecraft/helm
+minecraft/skins/*
+minecraft/heads/*
+minecraft/helms/*
 wide
 klein.php
