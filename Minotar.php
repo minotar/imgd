@@ -6,18 +6,19 @@ class Minotar {
 	
 	public function get($username) {
 		if(!file_exists('./minecraft/skins/'.strtolower($username).'.png')) {
-			if(!Minotar::found("http://s3.amazonaws.com/MinecraftSkins/$username.png")) {
+			$contents = self::fetch('http://s3.amazonaws.com/MinecraftSkins/'.$username.'.png');
+			if($contents === false) {
 				$img = WideImage::load("http://s3.amazonaws.com/MinecraftSkins/char.png");
 				$img->saveToFile("./minecraft/skins/char.png");
 				header("Status: 404 Not Found");
 				return 'char';
 			} else {
-				$img = WideImage::load("http://s3.amazonaws.com/MinecraftSkins/$username.png");
+				$img = WideImage::load($contents);
 				$img->saveToFile('./minecraft/skins/'.strtolower($username).'.png');
-				$helm = WideImage::load("./minecraft/skins/$username.png")->crop(40,8,8,8);
-				$helm->saveToFile('./minecraft/helms/'.strtolower($username).'.png');
-				$head = WideImage::load("./minecraft/skins/$username.png")->crop(8,8,8,8);
-				$head->saveToFile('./minecraft/heads/'.strtolower($username).'.png');
+				$helm = clone $img;
+				$helm->crop(40,8,8,8)->saveToFile('./minecraft/helms/'.strtolower($username).'.png');
+				$head = clone $img;
+				$head->crop(8,8,8,8)->saveToFile('./minecraft/heads/'.strtolower($username).'.png');
 				return strtolower($username);
 			}
 		} else {
@@ -69,6 +70,20 @@ class Minotar {
 		$connectable = curl_exec($handle);
 		curl_close($handle);
 		return $connectable;
+	}
+
+	private function fetch($url) {
+		$handle = curl_init($url);
+		if (false === $handle) {
+			return false;
+		}
+		curl_setopt($handle, CURLOPT_HEADER, false);
+		curl_setopt($handle, CURLOPT_FAILONERROR, true);  // this works
+		curl_setopt($handle, CURLOPT_HTTPHEADER, Array("User-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.15) Gecko/20080623 Firefox/2.0.0.15")); // request as if Firefox    
+		curl_setopt($handle, CURLOPT_RETURNTRANSFER, true);
+		$contents = curl_exec($handle);
+		curl_close($handle);
+		return $contents;
 	}
 
 }
