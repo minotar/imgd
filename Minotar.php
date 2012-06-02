@@ -5,7 +5,7 @@ $config['caching'] = true;
 class Minotar {
 	
 	public function get($username) {
-		if(!file_exists('./minecraft/skins/'.$username.'.png')) {
+		if(!file_exists('./minecraft/skins/'.strtolower($username).'.png')) {
 			if(!Minotar::found("http://s3.amazonaws.com/MinecraftSkins/$username.png")) {
 				$img = WideImage::load("http://s3.amazonaws.com/MinecraftSkins/char.png");
 				$img->saveToFile("./minecraft/skins/char.png");
@@ -13,15 +13,15 @@ class Minotar {
 				return 'char';
 			} else {
 				$img = WideImage::load("http://s3.amazonaws.com/MinecraftSkins/$username.png");
-				$img->saveToFile("./minecraft/skins/$username.png");
+				$img->saveToFile('./minecraft/skins/'.strtolower($username).'.png');
 				$helm = WideImage::load("./minecraft/skins/$username.png")->crop(40,8,8,8);
-				$helm->saveToFile("./minecraft/helms/$username.png");
+				$helm->saveToFile('./minecraft/helms/'.strtolower($username).'.png');
 				$head = WideImage::load("./minecraft/skins/$username.png")->crop(8,8,8,8);
-				$head->saveToFile("./minecraft/heads/$username.png");
-				return $username;
+				$head->saveToFile('./minecraft/heads/'.strtolower($username).'.png');
+				return strtolower($username);
 			}
 		} else {
-			return $username;
+			return strtolower($username);
 		}
 	}
 
