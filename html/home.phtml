@@ -1,209 +1,163 @@
 <!DOCTYPE html>
-<html>
-	<head>    
+<html lang="en">
+	<head>
 		<meta charset="utf-8">
-		
 		<title>Minotar - The Miner's Avatar</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="">
+		<meta name="author" content="">
 
-		<link rel="stylesheet" href="style.css">
-		<link rel="icon" type="image/png" href="https://minotar.net/avatar/clone1018/128.png">
-		<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Cabin+Sketch:bold|Lobster">      
-		
-		<!--[if IE]>
-			<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>     
-			<style>.clear{zoom:1;display:block}</style>
+		<!-- Le styles -->
+		<link href="./style.css" rel="stylesheet">
+		<style type="text/css">
+		h1 {
+			font-family: 'Cabin Sketch', cursive;
+			font-size: 150px;
+			text-align: center;
+
+			margin-top: 63px;
+			padding-bottom: 60px;
+		}
+		h1 a,a:hover {
+			text-decoration: none;
+			color: #000;
+		}
+		.center {
+			text-align: center;
+		}
+		.green {
+			color: #00FF00;
+		}
+		.red {
+			color: #DC143C;
+		}
+		.blue {
+			color: #1E90FF;
+		}
+		</style>
+
+		<!--[if lt IE 9]>
+			<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
 		<![endif]-->
 
-		<script>
-		  var _gaq=[['_setAccount','UA-22574465-1'],['_trackPageview']];
-		  (function(d,t){var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
-		  g.src=('https:'==location.protocol?'//ssl':'//www')+'.google-analytics.com/ga.js';
-		  s.parentNode.insertBefore(g,s)}(document,'script'));
+		<link rel="shortcut icon" href="https://minotar.net/avatar/clone1018/128.png">
+
+		<script type="text/javascript">
+
+			var _gaq = _gaq || [];
+			_gaq.push(['_setAccount', 'UA-22574465-1']);
+			_gaq.push(['_trackPageview']);
+
+			(function() {
+				var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+				ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+				var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+			})();
+
 		</script>
 	</head>
-	
-	<body>    	
-		<section id="page">
-	
-			<header>            
-				<hgroup>
+
+	<body>
+
+		<div class="container">
+			<div class="row-fluid">
+				<div class="span9 content">
 					<h1><a href="/">Minotar</a></h1>
-					<h3>The Miner's Avatar</h3>
-				</hgroup>
-								
-				<nav class="clear">
-					<ul>
-						<li><a href="/">Home</a></li>
-						<li><a href="#api" title="Easy. Awesome. API.">API</a></li>
-						<li><a href="#plugins" title="Beautiful, wonderful plugins!">Plugins</a></li>
-						<li><a href="https://github.com/Axxim/Minotar/" title="Bugs and Stuff!">GitHub</a></li>
-						<li><a href="https://twitter.com/#!/clone1018/" title="Only because they wanted me to.">Twitter</a></li>
-					</ul>
-				</nav>            
-			</header>
-			
-			<section id="articles">
+					<p>A Minotar is a global avatar that pulls your head off of your Minecraft.net skin, and allows it for use on thousands of sites. See some uses below.</p>
 
-				<hr>  <!-- Dividing line -->
-				
-				<h2 class="center">Minotar is moving to HTTPS!</h2>
-				
-				<hr>
-				
-				<article id="article1"> <!-- The new article tag. The id is supplied so it can be scrolled into view. -->
-					<h2>What's a Minotar?</h2>
+					<p class="center hidden-phone">
+						<img src="https://minotar.net/avatar/clone1018/64" alt="clone1018"> 
+						<img src="https://minotar.net/avatar/citricsquid/64" alt="citricsquid"> 
+						<img src="https://minotar.net/avatar/Raitsui/64" alt="Raitsui"> 
+						<img src="https://minotar.net/avatar/runforthefinish/64" alt="runforthefinish"> 
+						<img src="https://minotar.net/avatar/NoMercyJon/64" alt="NoMercyJon"> 
+						<img src="https://minotar.net/avatar/Nautika/64" alt="Nautika"> 
+						<img src="https://minotar.net/avatar/Notch/64" alt="Notch"> 
+						<img src="https://minotar.net/helm/NiteAngel/64" alt="NiteAngel"> 
+						<img src="https://minotar.net/helm/hyp3rdriv3/64" alt="hyp3rdriv3"> 
+						<img src="https://minotar.net/helm/S1NZ/64" alt="S1NZ"> 
+						<img src="https://minotar.net/helm/drupal/64" alt="drupal"> 
+						<img src="https://minotar.net/helm/wildhog101/64" alt="wildhog101"> 
+						<img src="https://minotar.net/helm/KakashiSuno/64" alt="KakashiSuno">
+					</p>
+
+					<h2>Sweet and Simple API</h2><br>
+
+					<h4>Simple Heads</h4>
+					<p>Unlike the PayPal API, we keep things nice and simple. For basic usage just provide a username:</p>
+					<pre>&#60;img src="https://minotar.net/avatar/<span class="blue">clone1018</span>"&#62;</pre>
 					
-					<hr>
+					<p>You can also set a size. We use pixels and we only need the <span class="red">width</span>. Just add it to the end.</p>
+					<pre>&#60;img src="https://minotar.net/avatar/<span class="blue">clone1018</span>/<span class="red">100</span>"&#62;</pre>
 					
-					<div class="articleBody clear">
-						<p>A Minotar is a global avatar that pulls the head off your Minecraft.net skin, and allows it for use anywhere that you can embed an image.</p>
-						<div class="center">
-							<img width="64" height="64" src="//minotar.net/avatar/clone1018/64">
-							<img width="64" height="64" src="//minotar.net/avatar/citricsquid/64">
-							<img width="64" height="64" src="//minotar.net/avatar/Raitsui/64">
-							<img width="64" height="64" src="//minotar.net/avatar/runforthefinish/64">
-							<img width="64" height="64" src="//minotar.net/avatar/NoMercyJon/64">
-							<img width="64" height="64" src="//minotar.net/avatar/Nautika/64">
-							<img width="64" height="64" src="//minotar.net/avatar/Notch/64">
-							<img width="64" height="64" src="//minotar.net/helm/NiteAngel/64">
-							<img width="64" height="64" src="//minotar.net/helm/hyp3rdriv3/64">
-							<img width="64" height="64" src="//minotar.net/helm/S1NZ/64">
-							<img width="64" height="64" src="//minotar.net/helm/drupal/64">
-							<img width="64" height="64" src="//minotar.net/helm/wildhog101/64">
-							<img width="64" height="64" src="//minotar.net/helm/KakashiSuno/64">
-						</div><br>
-						<p class="center"><strong>Minotar Build:</strong>
-							<code><?=file_get_contents('./.git/refs/heads/master')?></code>
-						</p>
-					</div>
-				</article>
+					<p>And because some services require an extension, we've added simple support for it. Just add <span class="green">.png</span> to the end.</p>
+					<pre>&#60;img src="https://minotar.net/avatar/<span class="blue">clone1018</span>/<span class="red">100</span><span class="green">.png</span>"&#62;</pre><br>
 
-				<hr>
+					<h4>Avatar With Helm</h4>
+					<p>Sometimes you want to display a helm too, that's fine with this endpoint:</p>
+					<pre>&#60;img src="https://minotar.net/helm/<span class="blue">clone1018</span>/<span class="red">100</span><span class="green">.png</span>"&#62;</pre><br>
 
-				<a id="api"></a>
+					<h4>User's Skin</h4>
+					<p>You can even use Minotar's API to get a users skin. <em>We're adding more soon!</em></p>
+					<pre>&#60;img src="https://minotar.net/skin/<span class="blue">clone1018</span>"&#62;</pre>
 
-				<article id="article2">
-					<h2>Sweet and Simple API</h2>
-					
-					<hr>
-					
-					<div class="articleBody clear">
-						
-						<h4>Simple Heads</h4>                        
-						<p>Unlike the PayPal API, we keep things nice and simple. For basic usage just provide a username:</p>
-						<pre><code>&#60;img src="https://minotar.net/avatar/<span style="color:#1E90FF;">clone1018</span>"&#62;</code></pre>
+					<p>You can also set the browser to download the image by using:</p>
+					<pre>https://minotar.net/download/<span class="blue">clone1018</span></pre><br>
 
-						<br>
+					<h4>Random Skin</h4>
+					<p>Randomly generated head? We got that too.</p>
+					<pre>&#60;img src="https://minotar.net/random/<span class="red">100</span><span class="green">.png</span>"&#62;</pre>
+					<br>
 
-						<p>You can also set a size. We use pixels and we only need the <span style="color:#DC143C;">width</span>. Just add it to the end.</p>
-						<pre><code>&#60;img src="https://minotar.net/avatar/<span style="color:#1E90FF;">clone1018</span>/<span style="color: #DC143C;">100</span>"&#62;</code></pre>
+					<p><a href="http://axxim.net">Copyright 2012 - Axxim, LLC</a></p>
+					<p>Bandwidth Provided by <a href="http://vpsno.de">VPSNode</a></p>
 
-						<br>
+				</div>
+				<div class="span3 hidden-phone center" id="right">
+					<img src="https://minotar.net/avatar/clone1018/250.png">
+					<h2>Who Uses Minotar?</h2><br>
 
-						<p>And because some services require an extension, we've added simple support for it. Just add <span style="color:#00FF00">.png</span> to the end.</p>
-						<pre><code>&#60;img src="https://minotar.net/avatar/<span style="color:#1E90FF;">clone1018</span>/<span style="color:#DC143C;">100</span><span style="color:#00FF00">.png</span>"&#62;</code></pre>
+					<p>
+						<strong><a href="http://sushigaming.com/">Sushigaming</a></strong><br>
+						Awesome sponsors of Minotar.net!
+					</p>
+					<p>
+						<a href="http://www.enjin.com/">Enjin</a><br>
+						Guild Website Hosting.
+					</p>
+					<p>
+						<a href="http://forums.bukkit.org/threads/econ-web-virtualshop-v2-3-fight-communism-with-free-market-1-shop-plugin-now-with-webui-1000.18948/">VirtualShop</a><br>
+						Virtual Store plugin for Bukkit.
+					</p>
+					<p>
+						<a href="http://minecraft-skins.com/">Minecraft Skins</a><br>
+						Largest skin browsing site.
+					</p>
+					<p>
+						<a href="http://yeahwh.at/">YEAHWH.AT?!</a><br>
+						Large Minecraft Server
+					</p>
+					<p>
+						<a href="http://massivecraft.com/">MassiveCraft</a><br>
+						Massivecraft is a medieval fantasy role-playing Minecraft server.
+					</p>
+					<br>
+					<p>Want to be added to the list? Email me at <a href="mailto:luke@axxim.net">luke@axxim.net</a></p><br>
 
-						<br>
+					<h2>Plugins</h2><br>
+					<p>
+						<a href="http://ge.tt/3V2oBuF">IP.Board Plugin</a>
+					</p>
+					<p>
+						<a href="http://wordpress.org/extend/plugins/minotar-minecraft-avatars/">WordPress Plugin</a>
+					</p>
+					<p>
+						<a href="http://vanillaforums.org/addon/minecraftatar-plugin/">Vanilla Forum Plugin</a>
+					</p>
+				</div>
+			</div>
+		</div>
 
-						<h4>Avatar With Helm</h4>
-						<p>Sometimes you want to display a helm too, that's fine with this endpoint:</p>
-						<pre><code>&#60;img src="https://minotar.net/helm/<span style="color:#1E90FF;">clone1018</span>/<span style="color:#DC143C;">100</span><span style="color:#00FF00">.png</span>"&#62;</code></pre>
-
-						<br>
-
-						<br>
-
-						<p class="center">
-							<button id="showmore">Advanced API GET!</button>
-						</p>
-						<div id="moreapi" style="display:none">
-							<h4>User's Skin</h4>
-							<p>You can even use Minotar's API to get a users skin. <em>We're adding more soon!</em></p>
-							<pre><code>&#60;img src="https://minotar.net/skin/<span style="color: #1E90FF;">clone1018</span>"&#62;</code></pre>
-
-							<br>
-
-							<p>You can also set the browser to download the image by using:</p>
-							<pre><code>https://minotar.net/download/<span style="color: #1E90FF;">clone1018</span></code></pre>
-
-							<br>
-
-							<h4>Random Skin</h4>
-							<p>Randomly generated head? We got that too.</p>
-							<pre><code>&#60;img src="https://minotar.net/random/<span style="color: #DC143C;">100</span><span style="color: #00FF00">.png</span>"&#62;"&#62;</code></pre>
-
-							<br>
-
-						</div>
-					</div>
-				</article>
-
-				<hr>
-
-				<a id="plugins"></a>
-				<article id="article3">
-					<h2>Plugins</h2>
-					
-					<hr>
-					
-					<div class="articleBody clear">
-						<p><strong><a href="http://ge.tt/3V2oBuF">IP.Board Plugin</a></strong> - At the moment this plugin overwrites all avatar functions making them go to Minotar. The username is based on your forum display name. </p>
-						<p><strong><a href="http://wordpress.org/extend/plugins/minotar-minecraft-avatars/">WordPress Plugin</a></strong> - Fully supported avatar replacer. Based on the persons name field.</p>
-						<p><strong><a href="http://vanillaforums.org/addon/minecraftatar-plugin/">Vanilla Forum Plugin</a></strong> - Replace all avatars, or allow custom ones with Minotar fallback.</p>
-					</div>
-				</article>
-
-				<hr>
-				
-				<article id="article4">
-					<h2>Who Uses Minotar?</h2>
-					
-					<hr>
-					
-					<div class="articleBody clear">
-						<p>Tons of programs and websites use Minotar; here are some examples.</p>
-
-						<p>
-							<strong><a href="http://sushigaming.com/">Sushigaming</a></strong>
-							- Awesome sponsors of Minotar.net!
-						</p>
-						<p>
-							<strong><a href="http://forums.bukkit.org/threads/misc-bananamaprender-1-6-generate-a-flatmap-image-render-of-your-world-1000.19775/">BananaMapRender</a></strong> - Flat map generator for Bukkit.
-						</p>
-						<p>
-							<strong><a href="http://forums.bukkit.org/threads/econ-web-virtualshop-v2-3-fight-communism-with-free-market-1-shop-plugin-now-with-webui-1000.18948/">VirtualShop</a></strong> - This plugin allows you to put items up for sale in a virtual store with a command, and get paid via iConomy when someone buys them.
-						</p>
-						<p>
-							<strong><a href="http://minecraft-skins.com/">Minecraft Skins</a></strong> - A Skin Database packed with 350+ free &amp; unique Minecraft skins for you to choose from.
-						</p>
-						<p>
-							<strong><a href="http://redstonepowered.com/">RedstonePowered</a></strong> - The number one website for downloading Minecraft mods and texture-packs.
-						</p>
-						<p>
-							<strong><a href="http://massivecraft.com/">MassiveCraft</a></strong> - Massivecraft is a medieval fantasy role-playing Minecraft server.
-						
-						<p>Want to be added to the list? Email me at <a href="mailto:luke@axxim.net">luke@axxim.net</a>.</p>
-					</div>
-				</article>
-
-			</section>
-
-		<footer>
-			<hr>
-			<p><a href="http://axxim.net">Copyright 2012 - Axxim, LLC</a></p>
-			<p>Bandwidth Provided by <a href="http://vpsno.de">VPSNode</a></p>
-		</footer>
-
-		</section> <!-- close #page -->
-		
-		<!-- jquery for a single use? perhaps a bit heavy. pure js solution en route. -->
-		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
-
-		<script>
-			$("#showmore").click(function () {
-				$("#moreapi").slideToggle(250);
-			});
-		</script>
 
 	</body>
 </html>
