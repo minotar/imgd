@@ -63,6 +63,7 @@
 			<div class="row-fluid">
 				<div class="span9 content">
 					<h1><a href="/">Minotar</a></h1>
+
 					<p>A Minotar is a global avatar that pulls your head off of your Minecraft.net skin, and allows it for use on thousands of sites. See some uses below.</p>
 
 					<p class="center hidden-phone">
@@ -73,11 +74,9 @@
 						<img src="https://minotar.net/avatar/NoMercyJon/64" alt="NoMercyJon"> 
 						<img src="https://minotar.net/avatar/Nautika/64" alt="Nautika"> 
 						<img src="https://minotar.net/avatar/Notch/64" alt="Notch"> 
-						<img src="https://minotar.net/helm/NiteAngel/64" alt="NiteAngel"> 
-						<img src="https://minotar.net/helm/hyp3rdriv3/64" alt="hyp3rdriv3"> 
+						<img src="https://minotar.net/helm/NiteAngel/64" alt="NiteAngel">
 						<img src="https://minotar.net/helm/S1NZ/64" alt="S1NZ"> 
-						<img src="https://minotar.net/helm/drupal/64" alt="drupal"> 
-						<img src="https://minotar.net/helm/wildhog101/64" alt="wildhog101"> 
+						<img src="https://minotar.net/helm/drupal/64" alt="drupal">
 						<img src="https://minotar.net/helm/KakashiSuno/64" alt="KakashiSuno">
 					</p>
 
@@ -114,7 +113,13 @@
 
 				</div>
 				<div class="span3 hidden-phone center" id="right">
+
 					<img src="https://minotar.net/avatar/clone1018/250.png">
+
+					<h2>Requests</h2>
+					<h3 id="pageviews"><?php echo file_get_contents('count'); ?></h3><br>
+					<!-- this is NOT real time, but emulated, base number is updated often -->
+
 					<h2>Who Uses Minotar?</h2><br>
 
 					<p>
@@ -158,6 +163,20 @@
 			</div>
 		</div>
 
+		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.3/jquery.min.js"></script>
+		<script type="text/javascript">
+			$(function(){
 
+				setInterval(update, 100);
+
+				function update(){
+					var incrementBy = 1251;
+					var curnum = parseInt($("#pageviews").html(),10)
+						curnum = curnum + incrementBy;
+					$("#pageviews").html(curnum);
+				}
+
+			});
+		</script>
 	</body>
 </html>
