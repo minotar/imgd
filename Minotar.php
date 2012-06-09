@@ -5,15 +5,22 @@ $config['caching'] = true;
 class Minotar {
 	const DEFAULT_SKIN = 'char';
 
+	public static $expires = 60 * 60 * 24; // seconds
+
 
 	public static function get($username) {
 		$lowercase = strtolower($username);
 		
 		$skin = './minecraft/skins/'.$lowercase.'.png';
-		if(file_exists($skin)) return $lowercase;
+		if(file_exists($skin)) {
+			if(time() - filemtime($skin) < self::$expires) return $lowercase;
+			$cached = true;
+		}
 
 		$binary = self::fetch('http://s3.amazonaws.com/MinecraftSkins/'.$username.'.png');
 		if($binary === false) {
+			if($cached) return $lowercase;
+			
 			header('Status: 404 Not Found');
 			return ($username == self::DEFAULT_SKIN)
 				? $lowercase
@@ -31,10 +38,25 @@ class Minotar {
 
 		$head = clone $img;
 		$head->cropImage(8, 8, 8, 8);
-		$head->writeImage('./minecraft/heads/'.strtolower($username).'.png');
+		$head->writeImage('./minecraft/heads/'.$lowercase.'.png');
 
 		return $lowercase;
 	}
+
+	private static function fetch($url) {
+		$handle = curl_init($url);
+		if (false === $handle) {
+			return false;
+		}
+		curl_setopt($handle, CURLOPT_HEADER, false);
+		curl_setopt($handle, CURLOPT_FAILONERROR, true);  // this works
+		curl_setopt($handle, CURLOPT_HTTPHEADER, Array("User-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.15) Gecko/20080623 Firefox/2.0.0.15")); // request as if Firefox    
+		curl_setopt($handle, CURLOPT_RETURNTRANSFER, true);
+		$contents = curl_exec($handle);
+		curl_close($handle);
+		return $contents;
+	}
+
 
 	public static function getFilesFromDir($dir) { 
 		$files = array(); 
@@ -66,19 +88,5 @@ class Minotar {
 
 		return $tmp; 
 	} 
-
-	private static function fetch($url) {
-		$handle = curl_init($url);
-		if (false === $handle) {
-			return false;
-		}
-		curl_setopt($handle, CURLOPT_HEADER, false);
-		curl_setopt($handle, CURLOPT_FAILONERROR, true);  // this works
-		curl_setopt($handle, CURLOPT_HTTPHEADER, Array("User-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.15) Gecko/20080623 Firefox/2.0.0.15")); // request as if Firefox    
-		curl_setopt($handle, CURLOPT_RETURNTRANSFER, true);
-		$contents = curl_exec($handle);
-		curl_close($handle);
-		return $contents;
-	}
 
 }
