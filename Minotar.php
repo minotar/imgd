@@ -5,7 +5,7 @@ $config['caching'] = true;
 class Minotar {
 	const DEFAULT_SKIN = 'char';
 
-	public static $expires = 60 * 60 * 24; // seconds
+	public static $expires = 86400; // 24 hours in seconds
 
 
 	public static function get($username) {
@@ -20,7 +20,7 @@ class Minotar {
 		$binary = self::fetch('http://s3.amazonaws.com/MinecraftSkins/'.$username.'.png');
 		if($binary === false) {
 			if($cached) return $lowercase;
-			
+
 			header('Status: 404 Not Found');
 			return ($username == self::DEFAULT_SKIN)
 				? $lowercase
