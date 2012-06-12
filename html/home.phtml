@@ -117,7 +117,7 @@
 					<img src="https://minotar.net/avatar/clone1018/250.png">
 
 					<h2>Requests</h2>
-					<h3 id="pageviews"><?php echo file_get_contents('count'); ?></h3><br>
+					<h3 id="pageviews"><?php echo file_get_contents('count'); ?></h3>Since: <?php echo date('r', filectime('count')); ?><br><br>
 					<!-- this is NOT real time, but emulated, base number is updated often -->
 
 					<h2>Who Uses Minotar?</h2><br>
