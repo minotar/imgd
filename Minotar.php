@@ -56,7 +56,7 @@ class Minotar {
 
 			// draw helm
 			$helm = $skin->getImageRegion(8, 8, 40, 8);
-			$head->compositeImage($helm, Imagick::COMPOSITE_DEFAULT, 4, 0);
+			$head->compositeImage($helm, Imagick::COMPOSITE_DEFAULT, 0, 0);
 			break;
 		}
 
