@@ -40,11 +40,11 @@ class Minotar {
 	}
 
 
-	protected static function _getHead($skin) {
+	protected static function _getHead(Imagick $skin) {
 		return $skin->getImageRegion(8, 8, 8, 8);
 	}
 
-	protected static function _getHelm($skin) {
+	protected static function _getHelm(Imagick $skin) {
 		$head = self::_getHead($skin);
 
 		// detect helm
@@ -63,7 +63,7 @@ class Minotar {
 		return $head;
 	}
 
-	protected static function _getPlayer($skin) {
+	protected static function _getPlayer(Imagick $skin) {
 		$player = new Imagick();
 		$player->newImage(16, 32, 'transparent', 'png');
 
