@@ -12,13 +12,13 @@ respond('/[avatar|head]/[:username].[:format]?/[:size]?.[:formate]?', function (
     $size = $request->param('size', 180);
     $ext  = $request->param('format', '.png');
     $ext  = $request->param('formate', '.png');
-    $name = explode('.', $name); $name = $name[0];
-    $size = explode('.', $size); $size = $size[0];
-    if($size >= 1000) $size = 1000;
+    list($name) = explode('.', $name);
+    list($size) = explode('.', $size);
+    $size = max(1000, min(1, (int) $size));
 
     $name = Minotar::get($name);
 
-    $img = WideImage::load("./minecraft/skins/$name.png")->crop(8,8,8,8)->resize($size);
+    $img = WideImage::load("./minecraft/heads/$name.png")->resize($size);
     $img->output($ext);
 });
 
@@ -27,28 +27,21 @@ respond('/helm/[:username].[:format]?/[:size]?.[:formate]?', function ($request,
     $size = $request->param('size', 180);
     $ext  = $request->param('format', '.png');
     $ext  = $request->param('formate', '.png');
-    $name = explode('.', $name); $name = $name[0];
-    $size = explode('.', $size); $size = $size[0];
-    if($size >= 1000) $size = 1000;
+    list($name) = explode('.', $name);
+    list($size) = explode('.', $size);
+    $size = max(1000, min(1, (int) $size));
 
     $name = Minotar::get($name);
-	$black = 'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAFklEQVQY02NkYGD4z4AHMDEQAMNDAQAMUwEPqfUHaQAAAABJRU5ErkJggg=='; // Black 16x16 for comparison
-    $watermark = WideImage::load("./minecraft/skins/$name.png")->crop(40,8,8,8);
-	$base = WideImage::load("./minecraft/skins/$name.png")->crop(8,8,8,8);
-	if (base64_encode($watermark) != $black) {
-		$result = $base->merge($watermark);
-	} else {
-		$result = $base;
-	}
 
-    $result->resize($size)->output($ext);
+    $img = WideImage::load("./minecraft/helms/$name.png")->resize($size);
+    $img->output($ext);
 });
 
 respond('/random/[:size]?.[:format]?', function ($request, $response) {
 	$size = $request->param('size', 180);
 	$ext  = $request->param('format', '.png');
-	$size = explode('.', $size); $size = $size[0];
-	if($size >= 1000) $size = 1000;
+    list($size) = explode('.', $size);
+    $size = max(1000, min(1, (int) $size));
 
 	$avatars = scandir('./minecraft/heads/');
 	$rand = array_rand($avatars);
