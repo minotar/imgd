@@ -37,6 +37,21 @@ respond('/helm/[:username].[:format]?/[:size]?.[:formate]?', function ($request,
 	$img->output($ext);
 });
 
+respond('/[player|body]/[:username].[:format]?/[:size]?.[:formate]?', function ($request, $response) {
+	$name = $request->param('username', 'char');
+	$size = $request->param('size', 180);
+	$ext  = $request->param('format', '.png');
+	$ext  = $request->param('formate', '.png');
+	list($name) = explode('.', $name);
+	list($size) = explode('.', $size);
+	$size = max(1000, min(1, (int) $size));
+
+	$name = Minotar::get($name);
+
+	$img = WideImage::load("./minecraft/players/$name.png")->resize($size);
+	$img->output($ext);
+});
+
 respond('/random/[:size]?.[:format]?', function ($request, $response) {
 	$size = $request->param('size', 180);
 	$ext  = $request->param('format', '.png');
