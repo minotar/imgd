@@ -4,44 +4,44 @@ include 'Minotar.php';
 error_reporting(0);
 
 respond('/', function ($request, $response) {
-    $response->render('html/home.phtml');
+	$response->render('html/home.phtml');
 });
 
 respond('/[avatar|head]/[:username].[:format]?/[:size]?.[:formate]?', function ($request, $response) {
-    $name = $request->param('username', 'char');
-    $size = $request->param('size', 180);
-    $ext  = $request->param('format', '.png');
-    $ext  = $request->param('formate', '.png');
-    list($name) = explode('.', $name);
-    list($size) = explode('.', $size);
-    $size = max(1000, min(1, (int) $size));
+	$name = $request->param('username', 'char');
+	$size = $request->param('size', 180);
+	$ext  = $request->param('format', '.png');
+	$ext  = $request->param('formate', '.png');
+	list($name) = explode('.', $name);
+	list($size) = explode('.', $size);
+	$size = max(1000, min(1, (int) $size));
 
-    $name = Minotar::get($name);
+	$name = Minotar::get($name);
 
-    $img = WideImage::load("./minecraft/heads/$name.png")->resize($size);
-    $img->output($ext);
+	$img = WideImage::load("./minecraft/heads/$name.png")->resize($size);
+	$img->output($ext);
 });
 
 respond('/helm/[:username].[:format]?/[:size]?.[:formate]?', function ($request, $response) {
-    $name = $request->param('username', 'char');
-    $size = $request->param('size', 180);
-    $ext  = $request->param('format', '.png');
-    $ext  = $request->param('formate', '.png');
-    list($name) = explode('.', $name);
-    list($size) = explode('.', $size);
-    $size = max(1000, min(1, (int) $size));
+	$name = $request->param('username', 'char');
+	$size = $request->param('size', 180);
+	$ext  = $request->param('format', '.png');
+	$ext  = $request->param('formate', '.png');
+	list($name) = explode('.', $name);
+	list($size) = explode('.', $size);
+	$size = max(1000, min(1, (int) $size));
 
-    $name = Minotar::get($name);
+	$name = Minotar::get($name);
 
-    $img = WideImage::load("./minecraft/helms/$name.png")->resize($size);
-    $img->output($ext);
+	$img = WideImage::load("./minecraft/helms/$name.png")->resize($size);
+	$img->output($ext);
 });
 
 respond('/random/[:size]?.[:format]?', function ($request, $response) {
 	$size = $request->param('size', 180);
 	$ext  = $request->param('format', '.png');
-    list($size) = explode('.', $size);
-    $size = max(1000, min(1, (int) $size));
+	list($size) = explode('.', $size);
+	$size = max(1000, min(1, (int) $size));
 
 	$avatars = scandir('./minecraft/heads/');
 	$rand = array_rand($avatars);
@@ -88,15 +88,15 @@ respond('/wallpaper/[:width]/[:height]?', function ($request, $response) {
 	$files = array_slice($files, 500);
 
 	//list($width, $height) = getimagesize($_GET['image']);
-    $image_p = imagecreatetruecolor($width, $height);
-    $count = 1;
-    foreach($files as $avatar) {
-    	$image = imagecreatefrompng($avatar);
-    	imagecopyresampled($image_p, $image, $width * $count, $height * $count, 0, 0, $width, $height, 42, 42);
-    	$count++;
-    }
-    header('Content-type: image/png');
-    imagejpeg($image_p, null, 100);
+	$image_p = imagecreatetruecolor($width, $height);
+	$count = 1;
+	foreach($files as $avatar) {
+		$image = imagecreatefrompng($avatar);
+		imagecopyresampled($image_p, $image, $width * $count, $height * $count, 0, 0, $width, $height, 42, 42);
+		$count++;
+	}
+	header('Content-type: image/png');
+	imagejpeg($image_p, null, 100);
 });
 
 dispatch(); 
