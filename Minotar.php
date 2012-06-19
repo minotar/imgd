@@ -106,7 +106,7 @@ class Minotar {
 		$files = array(); 
 		if ($handle = opendir($dir)) { 
 			while (false !== ($file = readdir($handle))) { 
-				if ($file != "." && $file != ".." && $file != "Thumbs.db") { 
+				if ($file[0] != "." && $file != "Thumbs.db") { 
 					if(is_dir($dir.'/'.$file)) { 
 						$dir2 = $dir.'/'.$file; 
 						$files[] = getFilesFromDir($dir2); 
