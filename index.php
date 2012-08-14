@@ -1,7 +1,6 @@
 <?php require 'klein.php';
 include 'WideImage/WideImage.php';
 include 'Minotar.php';
-error_reporting(0);
 
 respond('/', function ($request, $response) {
 	$response->render('html/home.phtml');
@@ -58,8 +57,9 @@ respond('/random/[:size]?.[:format]?', function ($request, $response) {
 	list($size) = explode('.', $size);
 	$size = min(1000, max(1, (int) $size));
 
-	$avatars = scandir('./minecraft/heads/');
+	$avatars = array_diff(scandir('./minecraft/heads/'), array('..', '.'));
 	$rand = array_rand($avatars);
+
 	$avatar = $avatars[$rand];
 
 	$name = str_replace('.png', '', $avatar);
@@ -112,6 +112,10 @@ respond('/wallpaper/[:width]/[:height]?', function ($request, $response) {
 	}
 	header('Content-type: image/png');
 	imagejpeg($image_p, null, 100);
+});
+
+respond('404', function ($request, $response) {
+        $response->render('html/404.phtml');
 });
 
 dispatch(); 
