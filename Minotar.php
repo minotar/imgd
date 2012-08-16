@@ -17,11 +17,11 @@ class Minotar {
                 $helm->crop(40, 8, 8, 8)->saveToFile('./minecraft/helms/char.png');
                 $head = clone $img;
                 $head->crop(8, 8, 8, 8)->saveToFile('./minecraft/heads/char.png');
-                
+
                 $head->destory();
                 $helm->destory();
                 $img->destory();
-                
+
                 header("Status: 404 Not Found");
                 return 'char';
             } else {
@@ -31,11 +31,11 @@ class Minotar {
                 $helm->crop(40, 8, 8, 8)->saveToFile('./minecraft/helms/' . strtolower($username) . '.png');
                 $head = clone $img;
                 $head->crop(8, 8, 8, 8)->saveToFile('./minecraft/heads/' . strtolower($username) . '.png');
-                
+
                 $head->destory();
                 $helm->destory();
                 $img->destory();
-                
+
                 return strtolower($username);
             }
         } else {
