@@ -67,17 +67,17 @@
                     <p>A Minotar is a global avatar that pulls your head off of your Minecraft.net skin, and allows it for use on thousands of sites. See some uses below.</p>
 
                     <p class="center hidden-phone">
-                        <img src="https://minotar.net/avatar/clone1018/64" alt="clone1018"> 
-                        <img src="https://minotar.net/avatar/citricsquid/64" alt="citricsquid"> 
-                        <img src="https://minotar.net/avatar/Raitsui/64" alt="Raitsui"> 
-                        <img src="https://minotar.net/avatar/runforthefinish/64" alt="runforthefinish"> 
-                        <img src="https://minotar.net/avatar/NoMercyJon/64" alt="NoMercyJon"> 
-                        <img src="https://minotar.net/avatar/Nautika/64" alt="Nautika"> 
-                        <img src="https://minotar.net/avatar/Notch/64" alt="Notch"> 
-                        <img src="https://minotar.net/helm/NiteAngel/64" alt="NiteAngel">
-                        <img src="https://minotar.net/helm/S1NZ/64" alt="S1NZ"> 
-                        <img src="https://minotar.net/helm/drupal/64" alt="drupal">
-                        <img src="https://minotar.net/helm/KakashiSuno/64" alt="KakashiSuno">
+                        <img src="/avatar/clone1018/64" alt="clone1018"> 
+                        <img src="/avatar/citricsquid/64" alt="citricsquid"> 
+                        <img src="/avatar/Raitsui/64" alt="Raitsui"> 
+                        <img src="/avatar/runforthefinish/64" alt="runforthefinish"> 
+                        <img src="/avatar/NoMercyJon/64" alt="NoMercyJon"> 
+                        <img src="/avatar/Nautika/64" alt="Nautika"> 
+                        <img src="/avatar/Notch/64" alt="Notch"> 
+                        <img src="/helm/NiteAngel/64" alt="NiteAngel">
+                        <img src="/helm/S1NZ/64" alt="S1NZ"> 
+                        <img src="/helm/drupal/64" alt="drupal">
+                        <img src="/helm/KakashiSuno/64" alt="KakashiSuno">
                     </p>
 
                     <h2>Sweet and Simple API</h2><br>
@@ -115,10 +115,6 @@
                 <div class="span3 hidden-phone center" id="right">
 
                     <img src="https://minotar.net/avatar/clone1018/250.png">
-
-                    <h2>Requests</h2>
-                    <h3 id="pageviews"><?php echo file_get_contents('count'); ?></h3>Since: <?php echo date('r', filectime('count')); ?><br><br>
-                    <!-- this is NOT real time, but emulated, base number is updated often -->
 
                     <h2>Who Uses Minotar?</h2><br>
 
@@ -162,21 +158,5 @@
                 </div>
             </div>
         </div>
-
-        <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.3/jquery.min.js"></script>
-        <script type="text/javascript">
-            $(function(){
-
-                setInterval(update, 100);
-
-                function update(){
-                    var incrementBy = 124;
-                    var curnum = parseInt($("#pageviews").html(),10)
-                    curnum = curnum + incrementBy;
-                    $("#pageviews").html(curnum);
-                }
-
-            });
-        </script>
     </body>
 </html>
