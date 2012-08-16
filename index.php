@@ -34,9 +34,17 @@ respond('/helm/[:username].[:format]?/[:size]?.[:formate]?', function ($request,
     $size = min(1000, max(1, (int) $size));
 
     $name = Minotar::get($name);
-
-    $img = WideImage::load("./minecraft/helms/$name.png")->resize($size);
-    $img->output($ext);
+    
+    $head = WideImage::load("./minecraft/heads/$name.png")->resize($size);
+    $helm = WideImage::load("./minecraft/helms/$name.png")->resize($size);
+    $pixel = $helm->getColorAt(1,1);
+    $black = array('red' => 0, 'green' => 0, 'blue' => 0, 'alpha' => 0);
+    if($helm->getColorRGB($pixel) == $black)
+        $result = clone $head;
+    else
+        $result = $head->merge($helm);
+    
+    $result->output($ext);
 });
 
 respond('/[player|body]/[:username].[:format]?/[:size]?.[:formate]?', function ($request, $response) {
