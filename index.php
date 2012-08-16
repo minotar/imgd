@@ -16,7 +16,7 @@ respond('/[avatar|head]/[:username].[:format]?/[:size]?.[:formate]?', function (
     $ext = $request->param('formate', '.png');
     list($name) = explode('.', $name);
     list($size) = explode('.', $size);
-    $size = min(1000, max(1, (int) $size));
+    $size = min(1000, max(16, (int) $size));
 
     $name = Minotar::get($name);
 
@@ -31,7 +31,7 @@ respond('/helm/[:username].[:format]?/[:size]?.[:formate]?', function ($request,
     $ext = $request->param('formate', '.png');
     list($name) = explode('.', $name);
     list($size) = explode('.', $size);
-    $size = min(1000, max(1, (int) $size));
+    $size = min(1000, max(16, (int) $size));
 
     $name = Minotar::get($name);
     
@@ -54,7 +54,7 @@ respond('/[player|body]/[:username].[:format]?/[:size]?.[:formate]?', function (
     $ext = $request->param('formate', '.png');
     list($name) = explode('.', $name);
     list($size) = explode('.', $size);
-    $size = min(1000, max(1, (int) $size));
+    $size = min(1000, max(16, (int) $size));
 
     $name = Minotar::get($name);
 
@@ -66,7 +66,7 @@ respond('/random/[:size]?.[:format]?', function ($request, $response) {
     $size = $request->param('size', 180);
 	$ext  = $request->param('format', '.png');
     list($size) = explode('.', $size);
-    $size = min(1000, max(1, (int) $size));
+    $size = min(1000, max(16, (int) $size));
 
     $avatars = array_diff(scandir('./minecraft/heads/'), array('..', '.', '.gitignore'));
     $rand = array_rand($avatars);
