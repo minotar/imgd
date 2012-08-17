@@ -18,9 +18,9 @@ class Minotar {
                 $head = clone $img;
                 $head->crop(8, 8, 8, 8)->saveToFile('./minecraft/heads/char.png');
 
-                $head->destory();
-                $helm->destory();
-                $img->destory();
+                $head->destroy();
+                $helm->destroy();
+                $img->destroy();
 
                 header("Status: 404 Not Found");
                 return 'char';
@@ -32,9 +32,9 @@ class Minotar {
                 $head = clone $img;
                 $head->crop(8, 8, 8, 8)->saveToFile('./minecraft/heads/' . strtolower($username) . '.png');
 
-                $head->destory();
-                $helm->destory();
-                $img->destory();
+                $head->destroy();
+                $helm->destroy();
+                $img->destroy();
 
                 return strtolower($username);
             }
