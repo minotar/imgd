@@ -25,7 +25,12 @@ class Minotar {
                 header("Status: 404 Not Found");
                 return 'char';
             } else {
-                $img = WideImage::load($contents);
+                try {
+                    $img = WideImage::load($contents);
+                } catch (Exception $e) {
+                    return 'char';
+                }
+                
                 $img->saveToFile('./minecraft/skins/' . strtolower($username) . '.png');
                 $helm = clone $img;
                 $helm->crop(40, 8, 8, 8)->saveToFile('./minecraft/helms/' . strtolower($username) . '.png');
