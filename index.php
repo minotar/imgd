@@ -98,10 +98,23 @@ respond('/skin/[:username]', function ($request, $response) {
     $img->output('.png');
 });
 
-respond('/all/[:type]?', function ($request, $response) {
-    $type = $request->param('type', 'heads');
-    $files = Minotar::getFilesFromDir("./minecraft/$type");
-    $response->render('html/all.phtml', array('files' => $files));
+respond('/all/[head|helm|skin:type]/[i:start]?', function ($request, $response) {
+    $type = $request->param('type', 'head');
+    $start = $request->param('start', 0);
+    $limit = 100;
+    $files = Minotar::getFilesFromDir("./minecraft/{$type}s");
+    
+    foreach(array_slice($files, $start, $limit) as $file) {
+        $segments = explode("/", $file);
+        $file_list[] = array_shift(array_values((explode(".", end($segments)))));
+    }
+    
+    if($files) {
+        $response->render('html/all.phtml', array('files' => $file_list, 'type' => $type, 'start' => $start, 'limit' => $limit, 'total' => count($files)));
+        return;
+    }
+    
+    $response->render('html/404.phtml');
 });
 
 respond('/wallpaper/[:width]/[:height]?', function ($request, $response) {
