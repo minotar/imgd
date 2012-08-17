@@ -7,8 +7,8 @@ class Minotar {
 
     public static $expires = 86400; // 24 hours in seconds
 
-    public static function get($username) {
-        if (!file_exists('./minecraft/skins/' . strtolower($username) . '.png')) {
+    public static function get($username, $clear = false) {
+        if (!file_exists('./minecraft/skins/' . strtolower($username) . '.png') || $clear) {
             $contents = self::fetch('http://s3.amazonaws.com/MinecraftSkins/' . $username . '.png');
             if ($contents === false) {
                 $img = WideImage::load("http://s3.amazonaws.com/MinecraftSkins/char.png");

@@ -140,6 +140,12 @@ respond('/wallpaper/[:width]/[:height]?', function ($request, $response) {
     imagejpeg($image_p, null, 100);
 });
 
+respond('/refresh/[:username]', function ($request, $response) {
+    $username = $request->param('username');
+    $name = Minotar::get($username, true);
+    Header("Location: ".URL."avatar/$username");
+});
+
 respond('404', function ($request, $response) {
     $response->render('html/404.phtml', array("title" => "404"));
 });
