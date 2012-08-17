@@ -1,79 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <title>Minotar - All <?php echo $this->type; ?></title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <!-- Style -->
-        <link href="../style.css" rel="stylesheet">
-        <style type="text/css">
-            h1 {
-                font-family: 'Cabin Sketch', cursive;
-                font-size: 150px;
-                text-align: center;
-
-                margin-top: 63px;
-                padding-bottom: 60px;
-            }
-            h1 a,a:hover {
-                text-decoration: none;
-                color: #000;
-            }
-            .center {
-                text-align: center;
-            }
-            
-            .heads{
-                margin:auto;
-                width:680px;
-            }
-            
-            .heads li{
-                display:block;
-                float:left;
-                padding:0 4px 4px 0;
-            }
-        </style>
-
-        <!--[if lt IE 9]>
-                <script src="https://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-        <![endif]-->
-
-        <script type="text/javascript">
-
-            var _gaq = _gaq || [];
-            _gaq.push(['_setAccount', 'UA-22574465-1']);
-            _gaq.push(['_trackPageview']);
-
-            (function() {
-                var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-                ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-                var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-            })();
-
-        </script>
-    </head>
-
-    <body>
+    <?php require "template/head.phtml"; ?> 
         <div class="container">
             <div class="row-fluid">
-                <div class="span9 content">
+                <div class="span12 content">
                     <h1><?php echo $this->type; ?></h1>
                     <p class="center">
-                        View all: <a href="http://minotar.net/all/head">heads</a> / <a href="http://minotar.net/all/skin">skins</a> / <a href="http://minotar.net/all/helm">helms</a> 
+                        View all: <a href="<?php echo URL; ?>all/head">heads</a> / <a href="<?php echo URL; ?>all/helm">helms</a> 
+                    </p>
+                    <p class="center">
+                        <?php if($this->start > 0) { ?><a href="<?php echo URL; ?>all/<?php echo $this->type; ?>/<?php echo ($this->start - $this->limit); ?>">&larr; Previous <?php echo $this->limit; ?></a><?php } ?>
+                        Viewing <?php echo $this->start; ?> - <?php echo ($this->start + $this->limit); ?> of <?php echo $this->total; ?>
+                        <?php if($this->start + $this->limit < $this->total ) { ?>&mdash; <a href="<?php echo URL; ?>all/<?php echo $this->type; ?>/<?php echo ($this->start + $this->limit); ?>">view next <?php echo $this->limit; ?> &rarr;</a><?php } ?>
                     </p>
                     <ul class="heads">
-                        <?php foreach($this->files as $file) { ?>
-                        <li><img src="http://minotar.net/<?php echo $this->type; ?>/<?php echo $file; ?>/64"/></li>
+                        <?php $urls = array("skin" => "skin/%username%", "head" => "head/%username%/64", "helm" => "helm/%username%/64"); ?>
+                        <?php foreach($this->files as $username) { ?>
+                        <li class="<?php echo $this->type; ?>"><img src="<?php echo URL; ?><?php echo str_replace("%username%", $username, $urls[$this->type]); ?>" alt="<?php echo $username; ?>" title="<?php echo $username; ?>"/></li>
                         <?php } ?>
                         <div style="clear:both"></div>
                     </ul>
-                    <p class="center">
-                        <?php if($this->start > 0) { ?><a href="http://minotar.net/all/<?php echo $this->type; ?>/<?php echo ($this->start - $this->limit); ?>">&larr; Previous <?php echo $this->limit; ?></a><?php } ?>
-                        Viewing <?php echo $this->start; ?> - <?php echo ($this->start + $this->limit); ?> of <?php echo $this->total; ?>
-                        <?php if($this->start + $this->limit < $this->total ) { ?>&mdash; <a href="http://minotar.net/all/<?php echo $this->type; ?>/<?php echo ($this->start + $this->limit); ?>">view next <?php echo $this->limit; ?> &rarr;</a><?php } ?>
-                    </p>
-                    <p class="center"><a href="http://minotar.net/">&larr; Return to minotar.net</a></p>
+                    <p class="center"><a href="<?php echo URL; ?>">&larr; Return to Minotar</a></p>
                 </div>
             </div>
         </div>
