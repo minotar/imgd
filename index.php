@@ -3,6 +3,7 @@ require 'klein.php';
 include 'WideImage/WideImage.php';
 include 'Minotar.php';
 
+define('URL', 'http://minotar.net/');
 error_reporting(0);
 
 respond('/', function ($request, $response) {
@@ -98,10 +99,23 @@ respond('/skin/[:username]', function ($request, $response) {
     $img->output('.png');
 });
 
-respond('/all/[:type]?', function ($request, $response) {
-    $type = $request->param('type', 'heads');
-    $files = Minotar::getFilesFromDir("./minecraft/$type");
-    $response->render('html/all.phtml', array('files' => $files));
+respond('/all/[head|helm|skin:type]/[i:start]?', function ($request, $response) {
+    $type = $request->param('type', 'head');
+    $start = $request->param('start', 0);
+    $limit = 85;
+    $files = Minotar::getFilesFromDir("./minecraft/{$type}s");
+    
+    foreach(array_slice($files, $start, $limit) as $file) {
+        $segments = explode("/", $file);
+        $file_list[] = array_shift(array_values((explode(".", end($segments)))));
+    }
+    
+    if($files) {
+        $response->render('html/all.phtml', array('files' => $file_list, 'type' => $type, 'start' => $start, 'limit' => $limit, 'total' => count($files), 'title' => "All {$type}s"));
+        return;
+    }
+    
+    $response->render('html/404.phtml', array("title" => "404"));
 });
 
 respond('/wallpaper/[:width]/[:height]?', function ($request, $response) {
@@ -126,8 +140,14 @@ respond('/wallpaper/[:width]/[:height]?', function ($request, $response) {
     imagejpeg($image_p, null, 100);
 });
 
+respond('/refresh/[:username]', function ($request, $response) {
+    $username = $request->param('username');
+    $name = Minotar::get($username, true);
+    Header("Location: ".URL."avatar/$username");
+});
+
 respond('404', function ($request, $response) {
-    $response->render('html/404.phtml');
+    $response->render('html/404.phtml', array("title" => "404"));
 });
 
 dispatch();

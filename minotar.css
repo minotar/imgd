@@ -1,0 +1,45 @@
+h1 {
+    font-family: 'Cabin Sketch', cursive;
+    font-size: 150px;
+    margin-top: 63px;
+    padding-bottom: 60px;
+    text-align: center;
+}
+h1 a,a:hover {
+    color: #000;
+    text-decoration: none;
+}
+.center {
+    text-align: center;
+}
+.green {
+    color: #00FF00;
+}
+.red {
+    color: #DC143C;
+}
+.blue {
+    color: #1E90FF;
+}
+
+.heads{
+    margin:auto;
+    width:100%;
+}
+
+.heads li.head, .heads li.helm{
+    background-image:url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAABnElEQVR42u3bO0vDUBjG8aRJTFW8TNZB0N1B3UtH8TLq7lDQwY8guiqKi4sgTo4WcdChU4fOOrgq1AtF7VAKpVrSJo1foHkCZuz/XZ/mcPj1hffk0JoLc2OhIcrvGbJsMyVzL/Bl7vuBzFMpvb5jWzIPQ71/vfoAFAAAAAAAAINcdtycjys/1AuMpodkPjFkyjww9Jyvtzz9fBjQAQAAAAAAAAAQcQ6I+8DJ7pbMXUfP+eH0uMzbP029AUt/R43vT5kf3RbpAAAAAAAAAADoX+b1/ra8OR9xXbnAr6ffxy1LP99oNmQ+m5mS+fvbMx0AAAAAAAAAAP+8D4ib8+t7ZzLfyB3LPJ+rJJrz5/cZmd+UT2VeONihAwAAAAAAAAAg4j7gMr8s7wMy0zP6IOFOyvyuVEq0wc2VrMyrHy8yr9TqdAAAAAAAAAAARIzxVlf/jq5T1e/zhfKDzFfnlxJt8PDiSuZr2UV90DEcOgAAAAAAAAAAIs4Br181+YFeL9kfCopPjzK3HDvR+q22Psd43Q4dAAAAAAAAAAD96w/H1lll7uUQSAAAAABJRU5ErkJggg==');
+    display:block;
+    float:left;
+    height:64px;
+    margin:0 4px 4px 0;
+    width:64px;
+}
+
+.heads li.skin{
+    display:block;
+    float:left;
+    height:32px;
+    margin:0 4px 4px 0;
+    width:64px;
+}
