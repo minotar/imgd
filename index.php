@@ -3,11 +3,14 @@ require 'klein.php';
 include 'WideImage/WideImage.php';
 include 'Minotar.php';
 
-define('URL', 'http://minotar.net/');
+define('URL', 'https://minotar.net/');
 error_reporting(0);
 
 respond('/', function ($request, $response) {
-    $response->render('html/home.phtml');
+
+    $response->layout('html/template/default.php');
+    $response->render('html/home.php');
+
 });
 
 respond('/[avatar|head]/[:username].[:format]?/[:size]?.[:formate]?', function ($request, $response) {
@@ -104,18 +107,21 @@ respond('/all/[head|helm|skin:type]/[i:start]?', function ($request, $response) 
     $start = $request->param('start', 0);
     $limit = 85;
     $files = Minotar::getFilesFromDir("./minecraft/{$type}s");
+
+    $response->layout('html/template/default.php');
     
     foreach(array_slice($files, $start, $limit) as $file) {
         $segments = explode("/", $file);
-        $file_list[] = array_shift(array_values((explode(".", end($segments)))));
+        $dir_list = array_values((explode(".", end($segments))));
+        $file_list[] = array_shift($dir_list);
     }
     
     if($files) {
-        $response->render('html/all.phtml', array('files' => $file_list, 'type' => $type, 'start' => $start, 'limit' => $limit, 'total' => count($files), 'title' => "All {$type}s"));
+        $response->render('html/all.php', array('files' => $file_list, 'type' => $type, 'start' => $start, 'limit' => $limit, 'total' => count($files), 'title' => "All {$type}s"));
         return;
     }
-    
-    $response->render('html/404.phtml', array("title" => "404"));
+
+    $response->render('html/404.php', array("title" => "404"));
 });
 
 respond('/wallpaper/[:width]/[:height]?', function ($request, $response) {
@@ -147,7 +153,8 @@ respond('/refresh/[:username]', function ($request, $response) {
 });
 
 respond('404', function ($request, $response) {
-    $response->render('html/404.phtml', array("title" => "404"));
+    $response->layout('html/template/default.php');
+    $response->render('html/404.php', array("title" => "404"));
 });
 
 dispatch();

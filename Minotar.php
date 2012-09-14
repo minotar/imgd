@@ -1,12 +1,33 @@
 <?php
 
+/**
+ *
+ */
 class Minotar {
 
+    /**
+     * The Default Skin
+     */
     const DEFAULT_SKIN = 'char';
+    /**
+     * Caching On or Off?
+     */
     const CACHING = true;
 
+    /**
+     * Cache expiration time
+     *
+     * @var int
+     */
     public static $expires = 86400; // 24 hours in seconds
 
+    /**
+     * Downloads a minecraft skin from Mojang
+     *
+     * @param string $username
+     * @param bool $clear
+     * @return string
+     */
     public static function get($username, $clear = false) {
         if (!file_exists('./minecraft/skins/' . strtolower($username) . '.png') || $clear) {
             $contents = self::fetch('http://s3.amazonaws.com/MinecraftSkins/' . $username . '.png');
@@ -48,7 +69,13 @@ class Minotar {
         }
     }
 
-    public function getFilesFromDir($dir) {
+    /**
+     * Gets the files from a directory
+     *
+     * @param $dir
+     * @return array
+     */
+    public static function getFilesFromDir($dir) {
         $files = array();
         if ($handle = opendir($dir)) {
             while (false !== ($file = readdir($handle))) {
@@ -66,9 +93,16 @@ class Minotar {
         return Minotar::array_flat($files);
     }
 
-    private function array_flat($array) {
+    /**
+     * Flattens an array
+     *
+     * @param array $array
+     * @return array
+     */
+    private static function array_flat($array) {
         foreach ($array as $a) {
             if (is_array($a)) {
+                $tmp = array();
                 $tmp = array_merge($tmp, array_flat($a));
             } else {
                 $tmp[] = $a;
@@ -78,6 +112,12 @@ class Minotar {
         return $tmp;
     }
 
+    /**
+     * Checks URL to make sure it exists
+     *
+     * @param string $url
+     * @return bool|mixed
+     */
     private function found($url) {
         $handle = curl_init($url);
         if (false === $handle) {
@@ -93,6 +133,12 @@ class Minotar {
         return $connectable;
     }
 
+    /**
+     * wget for PHP
+     *
+     * @param string $url
+     * @return bool|mixed
+     */
     private static function fetch($url) {
         $handle = curl_init($url);
         if (false === $handle) {
