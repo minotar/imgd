@@ -69,6 +69,7 @@
 
     <img src="https://minotar.net/avatar/clone1018/250.png">
     
+    <br/>
     <p>
         <iframe style="border: 0; margin: 0; padding: 0;" src="https://www.gittip.com/clone1018/widget.html" width="48pt" height="20pt"></iframe><br/>
         Like Minotar? Tip me!
