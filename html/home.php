@@ -5,7 +5,7 @@
 
     <hr>
 
-    <ul class="heads hidden-phone">
+    <ul class="heads hidden-phone offset-by-one">
         <li class="head"><img src="<?php echo URL; ?>avatar/clone1018/64" alt="clone1018"></li>
         <li class="head"><img src="<?php echo URL; ?>avatar/citricsquid/64" alt="citricsquid"></li>
         <li class="head"><img src="<?php echo URL; ?>avatar/Raitsui/64" alt="Raitsui"></li>
@@ -17,7 +17,6 @@
         <li class="head"><img src="<?php echo URL; ?>avatar/S1NZ/64" alt="S1NZ"></li>
         <li class="head"><img src="<?php echo URL; ?>avatar/drupal/64" alt="drupal"></li>
         <li class="head"><img src="<?php echo URL; ?>avatar/ez/64" alt="ez"></li>
-        <li class="head"><img src="<?php echo URL; ?>avatar/samuel/64" alt="samuel"></li>
     </ul>
 
      <br class="clear"><br>
