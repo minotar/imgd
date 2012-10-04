@@ -4,7 +4,7 @@ include 'WideImage/WideImage.php';
 include 'Minotar.php';
 
 define('URL', 'https://minotar.net/');
-error_reporting(0);
+//error_reporting(0);
 
 respond('/', function ($request, $response) {
 
@@ -38,7 +38,7 @@ respond('/helm/[:username].[:format]?/[:size]?.[:formate]?', function ($request,
     $size = min(1000, max(16, (int) $size));
 
     $name = Minotar::get($name);
-    
+
     $head = WideImage::load("./minecraft/heads/$name.png")->resize($size);
     $helm = WideImage::load("./minecraft/helms/$name.png")->resize($size);
     $pixel = $helm->getColorAt(1,1);
@@ -47,7 +47,7 @@ respond('/helm/[:username].[:format]?/[:size]?.[:formate]?', function ($request,
         $result = clone $head;
     else
         $result = $head->merge($helm);
-    
+
     $result->output($ext);
 });
 
@@ -109,13 +109,13 @@ respond('/all/[head|helm|skin:type]/[i:start]?', function ($request, $response) 
     $files = Minotar::getFilesFromDir("./minecraft/{$type}s");
 
     $response->layout('html/template/default.php');
-    
+
     foreach(array_slice($files, $start, $limit) as $file) {
         $segments = explode("/", $file);
         $dir_list = array_values((explode(".", end($segments))));
         $file_list[] = array_shift($dir_list);
     }
-    
+
     if($files) {
         $response->render('html/all.php', array('files' => $file_list, 'type' => $type, 'start' => $start, 'limit' => $limit, 'total' => count($files), 'title' => "All {$type}s"));
         return;
