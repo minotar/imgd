@@ -114,7 +114,7 @@
     </ul>
 
     <iframe style="border:0;margin:0;padding:0;" src="https://www.gittip.com/clone1018/widget.html" width="48" height="20"></iframe><br>
-    Like Minotar? Please tip me!
+    Like Minotar? Tip Me!
 
     <hr>
 
