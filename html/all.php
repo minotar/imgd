@@ -1,4 +1,4 @@
-<div class="span12 content">
+<div class="twelve columns content">
     <h1><?php echo $this->type; ?></h1>
     <p class="center">
         View all: <a href="<?php echo URL; ?>all/head">heads</a> / <a href="<?php echo URL; ?>all/helm">helms</a> / <a href="<?php echo URL; ?>all/skin">skins</a>
