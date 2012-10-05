@@ -19,7 +19,19 @@
         <li class="head"><img src="<?php echo URL; ?>avatar/ez/64" alt="ez"></li>
     </ul>
 
-     <br class="clear"><br>
+     <div style="text-align: center">
+        <script type="text/javascript"><!--
+            google_ad_client = "ca-pub-5632175804795221";
+            /* Minotar Top */
+            google_ad_slot = "4748997833";
+            google_ad_width = 728;
+            google_ad_height = 90;
+            //-->
+        </script>
+        <script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js"></script>
+    </div>
+
+    <br class="clear"><br>
 </div>
 <div class="eight columns content">
     <h2>Sweet and Simple API</h2>

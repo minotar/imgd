@@ -38,18 +38,6 @@
         <a href="https://github.com/axxim/minotar"><img class="fork" src="https://s3.amazonaws.com/github/ribbons/forkme_left_darkblue_121621.png" alt="Fork me on GitHub"></a>
         <div class="container">
             <div class="sixteen columns">
-                <div style="text-align: center">
-                    <script type="text/javascript"><!--
-                    google_ad_client = "ca-pub-5632175804795221";
-                    /* Minotar Top */
-                    google_ad_slot = "4748997833";
-                    google_ad_width = 728;
-                    google_ad_height = 90;
-                    //-->
-                    </script>
-                    <script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
-                </div>
-                </script>
                 <?php $this->yield(); ?>
             </div>
         </div>
