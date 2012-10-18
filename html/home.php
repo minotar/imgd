@@ -110,6 +110,8 @@
             A large Minecraft server.</li>
         <li><a href="http://massivecraft.com/">MassiveCraft</a><br>
             Massivecraft is a medieval fantasy role-playing Minecraft server.</li>
+        <li><a href="http://www.minecraftnation.org/">Minecraft Nation</a><br>
+            We're a medium sized Minecraft community that values cooperation and teamwork.</li>
     </ul>
 
     <br>
