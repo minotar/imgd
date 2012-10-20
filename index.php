@@ -39,15 +39,23 @@ respond('/helm/[:username].[:format]?/[:size]?.[:formate]?', function ($request,
 
     $name = Minotar::get($name);
 
-    $head = WideImage::load("./minecraft/heads/$name.png")->resize($size);
-    $helm = WideImage::load("./minecraft/helms/$name.png")->resize($size);
+    $head = WideImage::load("./minecraft/heads/$name.png");
+    $helm = WideImage::load("./minecraft/helms/$name.png");
 
-    if($helm->isTransparent())
-        $result = $head->merge($helm);
-    else
+    for ($x = 0; $x < $helm->getWidth(); $x++) {
+        for ($y = 0; $y < $helm->getHeight(); $y++) {
+            $color = $helm->getColorAt($x, $y);
+            if($color == PHP_INT_MAX || $color == 0 || $color == (256*256*256*127))
+                    $pixels++;
+        }
+    }
+
+    if($pixels == $head->getWidth() * $head->getHeight())
         $result = clone $head;
+    else
+        $result = $head->merge($helm);
 
-    $result->output($ext);
+    $result->resize($size)->output($ext);
 });
 
 respond('/[player|body]/[:username].[:format]?/[:size]?.[:formate]?', function ($request, $response) {
