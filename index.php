@@ -41,12 +41,11 @@ respond('/helm/[:username].[:format]?/[:size]?.[:formate]?', function ($request,
 
     $head = WideImage::load("./minecraft/heads/$name.png")->resize($size);
     $helm = WideImage::load("./minecraft/helms/$name.png")->resize($size);
-    $pixel = $helm->getColorAt(1,1);
-    $black = array('red' => 0, 'green' => 0, 'blue' => 0, 'alpha' => 0);
-    if($helm->getColorRGB($pixel) == $black)
-        $result = clone $head;
-    else
+
+    if($helm->isTransparent())
         $result = $head->merge($helm);
+    else
+        $result = clone $head;
 
     $result->output($ext);
 });
