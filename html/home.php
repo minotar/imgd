@@ -6,17 +6,17 @@
     <hr>
 
     <ul class="heads hidden-phone offset-by-one">
-        <li class="head"><img src="<?php echo URL; ?>avatar/clone1018/64" alt="clone1018"></li>
-        <li class="head"><img src="<?php echo URL; ?>avatar/citricsquid/64" alt="citricsquid"></li>
-        <li class="head"><img src="<?php echo URL; ?>avatar/Raitsui/64" alt="Raitsui"></li>
-        <li class="head"><img src="<?php echo URL; ?>avatar/runforthefinish/64" alt="runforthefinish"></li>
-        <li class="head"><img src="<?php echo URL; ?>avatar/NoMercyJon/64" alt="NoMercyJon"></li>
-        <li class="head"><img src="<?php echo URL; ?>avatar/Nautika/64" alt="Nautika"></li>
-        <li class="head"><img src="<?php echo URL; ?>avatar/Notch/64" alt="Notch"></li>
-        <li class="head"><img src="<?php echo URL; ?>avatar/NiteAngel/64" alt="NiteAngel"></li>
-        <li class="head"><img src="<?php echo URL; ?>avatar/S1NZ/64" alt="S1NZ"></li>
-        <li class="head"><img src="<?php echo URL; ?>avatar/drupal/64" alt="drupal"></li>
-        <li class="head"><img src="<?php echo URL; ?>avatar/ez/64" alt="ez"></li>
+        <li class="head"><img src="<?php echo URL; ?>avatar/clone1018/64.png" alt="clone1018"></li>
+        <li class="head"><img src="<?php echo URL; ?>avatar/citricsquid/64.png" alt="citricsquid"></li>
+        <li class="head"><img src="<?php echo URL; ?>avatar/Raitsui/64.png" alt="Raitsui"></li>
+        <li class="head"><img src="<?php echo URL; ?>avatar/runforthefinish/64.png" alt="runforthefinish"></li>
+        <li class="head"><img src="<?php echo URL; ?>avatar/NoMercyJon/64.png" alt="NoMercyJon"></li>
+        <li class="head"><img src="<?php echo URL; ?>avatar/Nautika/64.png" alt="Nautika"></li>
+        <li class="head"><img src="<?php echo URL; ?>avatar/Notch/64.png" alt="Notch"></li>
+        <li class="head"><img src="<?php echo URL; ?>avatar/NiteAngel/64.png" alt="NiteAngel"></li>
+        <li class="head"><img src="<?php echo URL; ?>avatar/S1NZ/64.png" alt="S1NZ"></li>
+        <li class="head"><img src="<?php echo URL; ?>avatar/drupal/64.png" alt="drupal"></li>
+        <li class="head"><img src="<?php echo URL; ?>avatar/ez/64.png" alt="ez"></li>
     </ul>
 
      <div style="text-align: center">
