@@ -113,8 +113,8 @@
         <li><a href="http://www.planetminecraft.com/">PlanetMinecraft</a><br>
             The largest Minecraft resource site.
         </li>
-        <li><a href="http://sushigaming.com/">Sushigaming</a><br>
-            Awesome sponsors of Minotar.net!
+        <li><a href="http://minecraft-seeds.net/">Minecraft-Seeds</a><br>
+            Minecraft-Seeds.net collects and shares detailed Information about Minecraft Seeds.
         </li>
         <li>
             <a href="http://forums.bukkit.org/threads/econ-web-virtualshop-v2-3-fight-communism-with-free-market-1-shop-plugin-now-with-webui-1000.18948/">VirtualShop</a><br>
