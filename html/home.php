@@ -139,6 +139,11 @@
     <p><em>Want to be added to the list? Email me at <a href="mailto:luke@axxim.net">luke@axxim.net</a></em></p>
 
     <br>
+    <h2>Minotar Status</h2>
+    <a class="twitter-timeline" href="https://twitter.com/search?q=clone1018%2CMinotar" data-widget-id="285123006018232320">Tweets about "clone1018,Minotar"</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+
+    <br>
 
     <h2>Plugins</h2>
     <ul>
