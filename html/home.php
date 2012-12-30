@@ -132,6 +132,9 @@
         <li><a href="http://www.minecraftnation.org/">Minecraft Nation</a><br>
             We're a medium sized Minecraft community that values cooperation and teamwork.
         </li>
+        <li><a href="https://minefold.com">Minefold</a><br>
+            Simple game servers.
+        </li>
     </ul>
 
     <br>
