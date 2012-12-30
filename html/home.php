@@ -1,13 +1,8 @@
 <div class="fifteen columns">
     <h1><a href="/">Minotar</a></h1>
 
-    <div class="twelve columns">
-        <h5 class="center">A Minotar is a global avatar that pulls your head off your Minecraft.net skin, <br>and allows it
-            for use on thousands of sites.</h5>
-    </div>
-    <div class="two columns">
-        <span class="gittip-0001" gittip-username="clone1018"></span>
-        <script id="gittip-0001" src="https://www.gittip.com/assets/widgets/0001.js"></script>
+    <div class="fifteen columns">
+        <h5 class="center count"><span class="number">4,002,345,126</span><br><br><small>Skins served.</small></h5>
     </div>
     <div class="clearfix"></div>
 
@@ -98,6 +93,37 @@
 
 </div>
 <div class="six columns offset-by-one hidden-phone" id="right">
+
+    <h2>Why Donate?</h2>
+    <hr>
+
+    <p>Minotar serves billions of images per month to thousands and thousands of sites just like yours,
+        we help the sites you love do what they do without worrying about what we do.</p>
+
+    <p>We also run free of charge, supported by donations.</p>
+
+    <p>So why not support something you love?</p>
+
+    <div class="row center">
+        <div class="three columns">
+            <strong>Paypal</strong>
+            <form action="https://www.paypal.com/cgi-bin/webscr" method="post">
+                <input type="hidden" name="cmd" value="_s-xclick">
+                <input type="hidden" name="hosted_button_id" value="8MQHPMJNJAG94">
+                <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
+                <img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
+            </form>
+        </div>
+        <div class="two columns">
+            <strong>Gittip</strong>
+            <span class="gittip-0001" gittip-username="clone1018"></span>
+            <script id="gittip-0001" src="https://www.gittip.com/assets/widgets/0001.js"></script>
+        </div>
+    </div>
+
+    <p>But hey, if you don't want to, cool! We'll support you all the same, feel free to use Minotar like the rest of us!</p>
+
+    <br>
 
     <h2>Who Uses Minotar?</h2>
 

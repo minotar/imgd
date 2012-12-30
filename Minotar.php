@@ -43,7 +43,6 @@ class Minotar {
                 $helm->destroy();
                 $img->destroy();
 
-                header("Status: 404 Not Found");
                 return 'char';
             } else {
                 try {
