@@ -41,5 +41,19 @@
                 <?php $this->yield(); ?>
             </div>
         </div>
+        <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+        <script type="text/javascript">
+            $(document).ready(function() {
+                var data = $.ajax({url:'/stats.json',type:'GET',dataType:'json',success: function(data) {
+                    $('.number').text(data.requests);
+                    $('.time').text(data.time / 60);
+
+                    window.setInterval(function() {
+                        var current = parseInt($('.number').text(), 10);
+                        $('.number').text(current + (data.rps / 4));
+                    }, 1000 / 4);
+                }});
+            });
+        </script>
     </body>
 </html>

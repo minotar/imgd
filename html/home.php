@@ -2,7 +2,7 @@
     <h1><a href="/">Minotar</a></h1>
 
     <div class="fifteen columns">
-        <h5 class="center count"><span class="number">4,002,345,126</span><br><br><small>Skins served.</small></h5>
+        <h5 class="center count"><span class="number"></span><br><br><small>Skins served in the past <span class="time"></span> minutes.</small></h5>
     </div>
     <div class="clearfix"></div>
 
