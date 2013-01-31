@@ -55,5 +55,6 @@
                 }});
             });
         </script>
+        <script type="text/javascript">var RumID = 40;</script><script type="text/javascript" src="https://statuscake.com/App/Workfloor/RUM/Embed.js"></script>
     </body>
 </html>
