@@ -20,7 +20,7 @@
             <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
         <![endif]-->
 
-        <link rel="shortcut icon" href="<?php echo URL; ?>avatar/clone1018/128.png">
+        <link rel="shortcut icon" href="https://minotar.net/avatar/clone1018/128.png">
 
         <script>
             var _gaq = _gaq || [];
@@ -41,19 +41,5 @@
                 <?php $this->yield(); ?>
             </div>
         </div>
-        <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
-        <script type="text/javascript">
-            $(document).ready(function() {
-                var data = $.ajax({url:'/stats.json',type:'GET',dataType:'json',success: function(data) {
-                    $('.number').text(data.requests);
-                    $('.time').text(data.time / 60);
-
-                    window.setInterval(function() {
-                        var current = parseInt($('.number').text(), 10);
-                        $('.number').text(current + (data.rps / 4));
-                    }, 1000 / 4);
-                }});
-            });
-        </script>
     </body>
 </html>

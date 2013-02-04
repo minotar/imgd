@@ -1,25 +1,19 @@
 <div class="fifteen columns">
     <h1><a href="/">Minotar</a></h1>
-
-    <div class="fifteen columns">
-        <h5 class="center count"><span class="number"></span><br><br><small>Images served in the past <span class="time"></span> minutes.</small></h5>
-    </div>
-    <div class="clearfix"></div>
-
     <hr>
 
     <ul class="heads hidden-phone offset-by-one">
-        <li class="head"><img src="<?php echo URL; ?>avatar/clone1018/64.png" alt="clone1018"></li>
-        <li class="head"><img src="<?php echo URL; ?>avatar/citricsquid/64.png" alt="citricsquid"></li>
-        <li class="head"><img src="<?php echo URL; ?>avatar/Raitsui/64.png" alt="Raitsui"></li>
-        <li class="head"><img src="<?php echo URL; ?>avatar/runforthefinish/64.png" alt="runforthefinish"></li>
-        <li class="head"><img src="<?php echo URL; ?>avatar/NoMercyJon/64.png" alt="NoMercyJon"></li>
-        <li class="head"><img src="<?php echo URL; ?>avatar/Nautika/64.png" alt="Nautika"></li>
-        <li class="head"><img src="<?php echo URL; ?>avatar/Notch/64.png" alt="Notch"></li>
-        <li class="head"><img src="<?php echo URL; ?>avatar/NiteAngel/64.png" alt="NiteAngel"></li>
-        <li class="head"><img src="<?php echo URL; ?>avatar/S1NZ/64.png" alt="S1NZ"></li>
-        <li class="head"><img src="<?php echo URL; ?>avatar/drupal/64.png" alt="drupal"></li>
-        <li class="head"><img src="<?php echo URL; ?>avatar/ez/64.png" alt="ez"></li>
+        <li class="head"><img src="/avatar/clone1018/64.png" alt="clone1018"></li>
+        <li class="head"><img src="/avatar/citricsquid/64.png" alt="citricsquid"></li>
+        <li class="head"><img src="/avatar/Raitsui/64.png" alt="Raitsui"></li>
+        <li class="head"><img src="/avatar/runforthefinish/64.png" alt="runforthefinish"></li>
+        <li class="head"><img src="/avatar/NoMercyJon/64.png" alt="NoMercyJon"></li>
+        <li class="head"><img src="/avatar/Nautika/64.png" alt="Nautika"></li>
+        <li class="head"><img src="/avatar/Notch/64.png" alt="Notch"></li>
+        <li class="head"><img src="/avatar/NiteAngel/64.png" alt="NiteAngel"></li>
+        <li class="head"><img src="/avatar/S1NZ/64.png" alt="S1NZ"></li>
+        <li class="head"><img src="/avatar/drupal/64.png" alt="drupal"></li>
+        <li class="head"><img src="/avatar/ez/64.png" alt="ez"></li>
     </ul>
 
     <br class="clear"><br>
@@ -58,21 +52,7 @@
 
     <p>You can also set the browser to download the image by using:</p>
     <pre>https://minotar.net/download/<span class="blue">clone1018</span></pre>
-
-    <br>
-
-    <h4>Random Skin</h4>
-
-    <p>Randomly generated head? We got that too.</p>
-    <pre>&#60;img src="https://minotar.net/random/<span class="red">100</span><span class="green">.png</span>"&#62;</pre>
-
-    <br>
-
-    <h4>View all Minotars</h4>
-
-    <p>You can browse through all the <a href="<?php echo URL; ?>all/skin">skins</a>,
-        <a href="<?php echo URL; ?>all/head">heads</a> and <a href="<?php echo URL; ?>all/helm">helms</a>.</p>
-
+    
     <br>
 
     <h4>Refresh your Minotar</h4>
