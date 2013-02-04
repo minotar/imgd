@@ -15,6 +15,9 @@
 		"rmccue/requests": "dev-master",
 		"spekkionu/wideimage": "dev-master"
 	},
+	"autoload": {
+        "psr-0": {"Requests": "library/"}
+    },
 	"repositories": [
 	    {
 	        "type": "vcs",
