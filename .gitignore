@@ -4,3 +4,15 @@ count
 nbproject
 .idea
 stats.json
+
+/.settings
+/.project
+/.buildpath
+/composer.phar
+/composer.lock
+/vendor
+/nbproject
+phpunit.xml
+.vagrant
+Vagrantfile
+.idea

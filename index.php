@@ -1,10 +1,6 @@
 <?php
-require 'klein.php';
-include 'WideImage/WideImage.php';
-include 'Minotar.php';
-
-define('URL', 'https://minotar.net/');
-//error_reporting(0);
+require 'vendor/autoload.php';
+require 'minotar/Minotar.php';
 
 respond('/', function ($request, $response) {
 
@@ -13,150 +9,114 @@ respond('/', function ($request, $response) {
 
 });
 
+respond('/tests', function ($request, $response) {
+
+    $response->layout('html/template/default.php');
+    $response->render('html/tests.php');
+
+});
+
+addValidator('username', function ($str) {
+    return preg_match('/^[a-z0-9 ]+$/i', $str);
+});
+
 respond('/[avatar|head]/[:username].[:format]?/[:size]?.[:formate]?', function ($request, $response) {
+    $request->validate('username')->isUsername();
+
     $name = $request->param('username', 'char');
     $size = $request->param('size', 180);
-    $ext = $request->param('format', '.png');
-    $ext = $request->param('formate', '.png');
+    $ext = $request->param('format', 'png');
+    $ext = $request->param('formate', 'png');
     list($name) = explode('.', $name);
     list($size) = explode('.', $size);
-    $size = min(1000, max(16, (int) $size));
+    $size = min(1000, max(16, (int)$size));
 
-    $name = Minotar::get($name);
+    $skin = Minotar::load($name);
+    $head = Minotar::head($skin);
 
-    $img = WideImage::load("./minecraft/heads/$name.png")->resize($size);
+    $img = $head->resize($size);
     $img->output($ext);
 });
 
 respond('/helm/[:username].[:format]?/[:size]?.[:formate]?', function ($request, $response) {
+    $request->validate('username')->isUsername();
+    
     $name = $request->param('username', 'char');
     $size = $request->param('size', 180);
-    $ext = $request->param('format', '.png');
-    $ext = $request->param('formate', '.png');
+    $ext = $request->param('format', 'png');
+    $ext = $request->param('formate', 'png');
     list($name) = explode('.', $name);
     list($size) = explode('.', $size);
-    $size = min(1000, max(16, (int) $size));
+    $size = min(1000, max(16, (int)$size));
 
-    $name = Minotar::get($name);
+    $skin = Minotar::load($name);
+    $helm = Minotar::helm($skin);
 
-    $head = WideImage::load("./minecraft/heads/$name.png");
-    $helm = WideImage::load("./minecraft/helms/$name.png");
-
-    for ($x = 0; $x < $helm->getWidth(); $x++) {
-        for ($y = 0; $y < $helm->getHeight(); $y++) {
-            $color = $helm->getColorAt($x, $y);
-            if($color == PHP_INT_MAX || $color == 0 || $color == (256*256*256*127))
-                    $pixels++;
-        }
-    }
-
-    if($pixels == $head->getWidth() * $head->getHeight())
-        $result = clone $head;
-    else
-        $result = $head->merge($helm);
-
-    $result->resize($size)->output($ext);
+    $helm->resize($size)->output($ext);
 });
 
 respond('/[player|body]/[:username].[:format]?/[:size]?.[:formate]?', function ($request, $response) {
+    $request->validate('username')->isUsername();
+    
     $name = $request->param('username', 'char');
     $size = $request->param('size', 180);
-    $ext = $request->param('format', '.png');
-    $ext = $request->param('formate', '.png');
+    $ext = $request->param('format', 'png');
+    $ext = $request->param('formate', 'png');
     list($name) = explode('.', $name);
     list($size) = explode('.', $size);
-    $size = min(1000, max(16, (int) $size));
+    $size = min(1000, max(16, (int)$size));
 
-    $name = Minotar::get($name);
+    $skin = Minotar::load($name);
 
-    $img = WideImage::load("./minecraft/players/$name.png")->resize($size);
-    $img->output($ext);
+    $skin->output($ext);
 });
 
 respond('/random/[:size]?.[:format]?', function ($request, $response) {
     $size = $request->param('size', 180);
-	$ext  = $request->param('format', '.png');
+    $ext = $request->param('format', 'png');
     list($size) = explode('.', $size);
-    $size = min(1000, max(16, (int) $size));
+    $size = min(1000, max(16, (int)$size));
 
-    $avatars = array_diff(scandir('./minecraft/heads/'), array('..', '.', '.gitignore'));
-    $rand = array_rand($avatars);
+    // We're phasing this out, load me :D
+    $skin = Minotar::load('clone1018');
+    $head = Minotar::head($skin);
 
-    $avatar = $avatars[$rand];
-
-    $name = str_replace('.png', '', $avatar);
-    header("Cache-Control: no-cache, must-revalidate");
-    header("Expires: Sat, 26 Jul 1997 05:00:00 GMT");
-    WideImage::load("./minecraft/heads/$name.png")->resize($size)->output('png');
+    $img = $head->resize($size);
+    $img->output($ext);
 });
 
 respond('/download/[:username]', function ($request, $response) {
+    $request->validate('username')->isUsername();
+    
     $name = $request->param('username', 'char');
 
-    $name = Minotar::get($name);
-
-    $img = WideImage::load("./minecraft/skins/$name.png");
+    $skin = Minotar::get($name);
     header('Content-Disposition: attachment; filename="' . $name . '.png"');
-    $img->output('.png');
+    $skin->output('.png');
 });
 
 respond('/skin/[:username]', function ($request, $response) {
+    $request->validate('username')->isUsername();
+    
     $name = $request->param('username', 'char');
 
-    $name = Minotar::get($name);
-
-    $img = WideImage::load("./minecraft/skins/$name.png");
-    $img->output('.png');
-});
-
-respond('/all/[head|helm|skin:type]/[i:start]?', function ($request, $response) {
-    $type = $request->param('type', 'head');
-    $start = $request->param('start', 0);
-    $limit = 85;
-    $files = Minotar::getFilesFromDir("./minecraft/{$type}s");
-
-    $response->layout('html/template/default.php');
-
-    foreach(array_slice($files, $start, $limit) as $file) {
-        $segments = explode("/", $file);
-        $dir_list = array_values((explode(".", end($segments))));
-        $file_list[] = array_shift($dir_list);
-    }
-
-    if($files) {
-        $response->render('html/all.php', array('files' => $file_list, 'type' => $type, 'start' => $start, 'limit' => $limit, 'total' => count($files), 'title' => "All {$type}s"));
-        return;
-    }
-
-    $response->render('html/404.php', array("title" => "404"));
+    $skin = Minotar::load($name);
+    $skin->output('png');
 });
 
 respond('/wallpaper/[:width]/[:height]?', function ($request, $response) {
     $width = $request->param('width', 1024);
     $height = $request->param('height', 768);
-    $files = Minotar::getFilesFromDir("./minecraft/heads");
-    if ($width >= 1920)
-        $width = 1920;
-    if ($height >= 1080)
-        $height = 1080;
-    $files = array_slice($files, 500);
 
-    //list($width, $height) = getimagesize($_GET['image']);
-    $image_p = imagecreatetruecolor($width, $height);
-    $count = 1;
-    foreach ($files as $avatar) {
-        $image = imagecreatefrompng($avatar);
-        imagecopyresampled($image_p, $image, $width * $count, $height * $count, 0, 0, $width, $height, 42, 42);
-        $count++;
-    }
-    header('Content-type: image/png');
-    imagejpeg($image_p, null, 100);
+    // In development
 });
 
 respond('/refresh/[:username]', function ($request, $response) {
+    $request->validate('username')->isUsername();
+    
     $username = $request->param('username');
-    $name = Minotar::get($username, true);
-    Header("Location: ".URL."avatar/$username");
+    $name = Minotar::delete($username);
+    //Header("Location: /avatar/$username");
 });
 
 respond('404', function ($request, $response) {
