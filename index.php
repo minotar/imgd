@@ -17,7 +17,7 @@ respond('/tests', function ($request, $response) {
 });
 
 addValidator('username', function ($str) {
-    return preg_match('/^[a-z0-9_]+$/i', $str);
+    return preg_match('/^[a-z0-9_-]+$/i', $str);
 });
 
 respond('/[avatar|head]/[:username].[:format]?/[:size]?.[:formate]?', function ($request, $response) {
