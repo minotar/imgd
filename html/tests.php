@@ -1,5 +1,5 @@
 <?php
-require 'vendor/portable.php';
+require 'pkg_root.php';
 ?>
 <div class="fifteen columns">
     <h1><a href="<?php echo $pkg_root; ?>">Minotar</a></h1>

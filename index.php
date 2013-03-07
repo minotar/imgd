@@ -1,6 +1,6 @@
 <?php
+require 'pkg_root.php';
 require 'vendor/autoload.php';
-require 'vendor/portable.php';
 
 require 'minotar/Minotar.php';
 

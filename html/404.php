@@ -1,5 +1,5 @@
 <?php
-require 'vendor/portable.php';
+require 'pkg_root.php';
 ?>
 <div class="span12 content">
     <h1>404</h1>

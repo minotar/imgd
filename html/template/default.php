@@ -1,5 +1,5 @@
 <?php
-require 'vendor/portable.php';
+require 'pkg_root.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
