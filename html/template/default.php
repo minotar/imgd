@@ -1,5 +1,5 @@
 <?php
-$pkg_root = dirname($_SERVER['PHP_SELF']);
+require 'vendor/portable.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">

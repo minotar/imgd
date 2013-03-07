@@ -1,5 +1,5 @@
 <?php
-$pkg_root = dirname($_SERVER['PHP_SELF']);
+require 'vendor/portable.php';
 ?>
 <div class="fifteen columns">
     <h1><a href="/">Minotar</a></h1>
