@@ -2,7 +2,7 @@
 require 'pkg_root.php';
 ?>
 <div class="fifteen columns">
-    <h1><a href="/">Minotar</a></h1>
+    <h1><a href="<?php echo $pkg_root; ?>/">Minotar</a></h1>
     <hr>
 
     <ul class="heads hidden-phone offset-by-one">
