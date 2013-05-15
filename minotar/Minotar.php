@@ -29,11 +29,14 @@ class Minotar {
         $mojang = Requests::get('http://s3.amazonaws.com/MinecraftSkins/' . $username . '.png');
 
         if($mojang->status_code === 200 ) {
-            // Good image, let's store
-            $img = WideImage::load($mojang->body);
 
-            $img->saveToFile('./minecraft/skins/' . strtolower($username) . '.png');
-            $img->destroy();
+            // Good image, let's store
+            if(CACHING) {
+                $img = WideImage::load($mojang->body);
+                $img->saveToFile('./minecraft/skins/' . strtolower($username) . '.png');
+                $img->destroy();
+            }
+
 
             return strtolower($username);
         } else {
