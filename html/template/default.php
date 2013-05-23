@@ -1,3 +1,6 @@
+<?php
+require 'pkg_root.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -11,16 +14,16 @@
 
         <!-- Style -->
         <!--<link href="./assets/css/style.css" rel="stylesheet">-->
-        <link rel="stylesheet" href="/assets/css/base.css">
-        <link rel="stylesheet" href="/assets/css/skeleton.css">
-        <link rel="stylesheet" href="/assets/css/layout.css">
-        <link rel="stylesheet" href="/assets/css/minotar.css">
+        <link rel="stylesheet" href="<?php echo $pkg_root; ?>/assets/css/base.css">
+        <link rel="stylesheet" href="<?php echo $pkg_root; ?>/assets/css/skeleton.css">
+        <link rel="stylesheet" href="<?php echo $pkg_root; ?>/assets/css/layout.css">
+        <link rel="stylesheet" href="<?php echo $pkg_root; ?>/assets/css/minotar.css">
 
         <!--[if lt IE 9]>
             <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
         <![endif]-->
 
-        <link rel="shortcut icon" href="https://minotar.net/avatar/clone1018/128.png">
+        <link rel="shortcut icon" href="<?php echo $pkg_root; ?>/avatar/clone1018/128.png">
 
         <script>
             var _gaq = _gaq || [];

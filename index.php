@@ -1,15 +1,19 @@
 <?php
+require 'pkg_root.php';
 require 'vendor/autoload.php';
+
 require 'minotar/Minotar.php';
 
-respond('/', function ($request, $response) {
+$pkg_root = dirname($_SERVER['PHP_SELF']);
+
+respond($pkg_root . '/', function ($request, $response) {
 
     $response->layout('html/template/default.php');
     $response->render('html/home.php');
 
 });
 
-respond('/tests', function ($request, $response) {
+respond($pkg_root . '/tests', function ($request, $response) {
 
     $response->layout('html/template/default.php');
     $response->render('html/tests.php');
@@ -20,7 +24,7 @@ addValidator('username', function ($str) {
     return preg_match('/^[a-z0-9_-]+$/i', $str);
 });
 
-respond('/[avatar|head]/[:username].[:format]?/[:size]?.[:formate]?', function ($request, $response) {
+respond($pkg_root . '/[avatar|head]/[:username].[:format]?/[:size]?.[:formate]?', function ($request, $response) {
     $request->validate('username')->isUsername();
 
     $name = $request->param('username', 'char');
@@ -38,9 +42,9 @@ respond('/[avatar|head]/[:username].[:format]?/[:size]?.[:formate]?', function (
     $img->output($ext);
 });
 
-respond('/helm/[:username].[:format]?/[:size]?.[:formate]?', function ($request, $response) {
+respond($pkg_root . '/helm/[:username].[:format]?/[:size]?.[:formate]?', function ($request, $response) {
     $request->validate('username')->isUsername();
-    
+
     $name = $request->param('username', 'char');
     $size = $request->param('size', 180);
     $ext = $request->param('format', 'png');
@@ -55,9 +59,9 @@ respond('/helm/[:username].[:format]?/[:size]?.[:formate]?', function ($request,
     $helm->resize($size)->output($ext);
 });
 
-respond('/[player|body]/[:username].[:format]?/[:size]?.[:formate]?', function ($request, $response) {
+respond($pkg_root . '/[player|body]/[:username].[:format]?/[:size]?.[:formate]?', function ($request, $response) {
     $request->validate('username')->isUsername();
-    
+
     $name = $request->param('username', 'char');
     $size = $request->param('size', 180);
     $ext = $request->param('format', 'png');
@@ -71,7 +75,7 @@ respond('/[player|body]/[:username].[:format]?/[:size]?.[:formate]?', function (
     $skin->output($ext);
 });
 
-respond('/random/[:size]?.[:format]?', function ($request, $response) {
+respond($pkg_root . '/random/[:size]?.[:format]?', function ($request, $response) {
     $size = $request->param('size', 180);
     $ext = $request->param('format', 'png');
     list($size) = explode('.', $size);
@@ -85,9 +89,9 @@ respond('/random/[:size]?.[:format]?', function ($request, $response) {
     $img->output($ext);
 });
 
-respond('/download/[:username]', function ($request, $response) {
+respond($pkg_root . '/download/[:username]', function ($request, $response) {
     $request->validate('username')->isUsername();
-    
+
     $name = $request->param('username', 'char');
 
     $skin = Minotar::get($name);
@@ -95,25 +99,25 @@ respond('/download/[:username]', function ($request, $response) {
     $skin->output('.png');
 });
 
-respond('/skin/[:username]', function ($request, $response) {
+respond($pkg_root . '/skin/[:username]', function ($request, $response) {
     $request->validate('username')->isUsername();
-    
+
     $name = $request->param('username', 'char');
 
     $skin = Minotar::load($name);
     $skin->output('png');
 });
 
-respond('/wallpaper/[:width]/[:height]?', function ($request, $response) {
+respond($pkg_root . '/wallpaper/[:width]/[:height]?', function ($request, $response) {
     $width = $request->param('width', 1024);
     $height = $request->param('height', 768);
 
     // In development
 });
 
-respond('/refresh/[:username]', function ($request, $response) {
+respond($pkg_root . '/refresh/[:username]', function ($request, $response) {
     $request->validate('username')->isUsername();
-    
+
     $username = $request->param('username');
     $name = Minotar::delete($username);
     //Header("Location: /avatar/$username");

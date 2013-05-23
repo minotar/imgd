@@ -1,19 +1,22 @@
+<?php
+require 'pkg_root.php';
+?>
 <div class="fifteen columns">
-    <h1><a href="/">Minotar</a></h1>
+    <h1><a href="<?php echo $pkg_root; ?>/">Minotar</a></h1>
     <hr>
 
     <ul class="heads hidden-phone offset-by-one">
-        <li class="head"><img src="/avatar/clone1018/64.png" alt="clone1018"></li>
-        <li class="head"><img src="/avatar/citricsquid/64.png" alt="citricsquid"></li>
-        <li class="head"><img src="/avatar/Raitsui/64.png" alt="Raitsui"></li>
-        <li class="head"><img src="/avatar/runforthefinish/64.png" alt="runforthefinish"></li>
-        <li class="head"><img src="/avatar/NoMercyJon/64.png" alt="NoMercyJon"></li>
-        <li class="head"><img src="/avatar/Nautika/64.png" alt="Nautika"></li>
-        <li class="head"><img src="/avatar/Notch/64.png" alt="Notch"></li>
-        <li class="head"><img src="/avatar/NiteAngel/64.png" alt="NiteAngel"></li>
-        <li class="head"><img src="/avatar/S1NZ/64.png" alt="S1NZ"></li>
-        <li class="head"><img src="/avatar/drupal/64.png" alt="drupal"></li>
-        <li class="head"><img src="/avatar/ez/64.png" alt="ez"></li>
+        <li class="head"><img src="<?php echo $pkg_root; ?>/avatar/clone1018/64.png" alt="clone1018"></li>
+        <li class="head"><img src="<?php echo $pkg_root; ?>/avatar/citricsquid/64.png" alt="citricsquid"></li>
+        <li class="head"><img src="<?php echo $pkg_root; ?>/avatar/Raitsui/64.png" alt="Raitsui"></li>
+        <li class="head"><img src="<?php echo $pkg_root; ?>/avatar/runforthefinish/64.png" alt="runforthefinish"></li>
+        <li class="head"><img src="<?php echo $pkg_root; ?>/avatar/NoMercyJon/64.png" alt="NoMercyJon"></li>
+        <li class="head"><img src="<?php echo $pkg_root; ?>/avatar/Nautika/64.png" alt="Nautika"></li>
+        <li class="head"><img src="<?php echo $pkg_root; ?>/avatar/Notch/64.png" alt="Notch"></li>
+        <li class="head"><img src="<?php echo $pkg_root; ?>/avatar/NiteAngel/64.png" alt="NiteAngel"></li>
+        <li class="head"><img src="<?php echo $pkg_root; ?>/avatar/S1NZ/64.png" alt="S1NZ"></li>
+        <li class="head"><img src="<?php echo $pkg_root; ?>/avatar/drupal/64.png" alt="drupal"></li>
+        <li class="head"><img src="<?php echo $pkg_root; ?>/avatar/ez/64.png" alt="ez"></li>
     </ul>
 
     <br class="clear"><br>
@@ -52,7 +55,7 @@
 
     <p>You can also set the browser to download the image by using:</p>
     <pre>https://minotar.net/download/<span class="blue">clone1018</span></pre>
-    
+
     <br>
 
     <h4>Refresh your Minotar</h4>
