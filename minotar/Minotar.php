@@ -31,7 +31,7 @@ class Minotar {
         if($mojang->status_code === 200 ) {
 
             // Good image, let's store
-            if(CACHING === true) {
+            if(self::CACHING === true) {
                 $img = WideImage::load($mojang->body);
                 $img->saveToFile('./minecraft/skins/' . strtolower($username) . '.png');
                 $img->destroy();
