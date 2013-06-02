@@ -11,4 +11,5 @@ To setup the project you need:
     - $ php composer.phar self-update
     - $ php composer.phar install
 4. Allow write access to minecraft/skins
+5. Test http://YOURSERVER/avatar/clone1018
 
