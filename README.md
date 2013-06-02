@@ -10,4 +10,5 @@ To setup the project you need:
 3. Point in terminal to the root directory and run:
     - $ php composer.phar self-update
     - $ php composer.phar install
+4. Allow write access to minecraft/skins
 
