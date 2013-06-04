@@ -5,12 +5,11 @@ A Minotar is a global avatar that pulls your head off of your Minecraft.net skin
 
 To setup the project you need:
 
-1. Apache with mod_rewrite, mod_autoindex
-2. Install ImageMagick
-3. PHP settings with imagick module
-4. Point in terminal to the root directory and run:
-    - $ php composer.phar self-update
+1. A webserver that supports URL Rewrites (nginx, apache, lighttpd)
+2. Install & Enable ImageMagick
+3. Download composer to the project root: http://getcomposer.org/download/
+4. Execute the following command on your server in the project directory.
     - $ php composer.phar install
-5. Allow write access to minecraft/skins
-6. Test http://YOURSERVER/avatar/clone1018 see more options in http://YOURSERVER
+4. Allow write access to minecraft/skins
+5. Test http://YOURSERVER/avatar/clone1018 and see more options in http://YOURSERVER
 
