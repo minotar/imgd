@@ -11,7 +11,7 @@
         <li class="head"><img src="/avatar/Nautika/64.png" alt="Nautika"></li>
         <li class="head"><img src="/avatar/Notch/64.png" alt="Notch"></li>
         <li class="head"><img src="/avatar/NiteAngel/64.png" alt="NiteAngel"></li>
-        <li class="head"><img src="/avatar/S1NZ/64.png" alt="S1NZ"></li>
+        <li class="head"><img src="/helm/SinZ/64.png" alt="SinZ"></li>
         <li class="head"><img src="/avatar/drupal/64.png" alt="drupal"></li>
         <li class="head"><img src="/avatar/ez/64.png" alt="ez"></li>
     </ul>
