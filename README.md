@@ -12,7 +12,6 @@ A Minotar is a global avatar that pulls your head off your Minecraft.net skin, a
 ![NiteAngel](https://minotar.net/helm/NiteAngel/64)
 ![hyp3rdriv3](https://minotar.net/helm/hyp3rdriv3/64)
 ![S1NZ](https://minotar.net/helm/S1NZ/64)
-![drupal](https://minotar.net/helm/drupal/64)
 ![KakashiSuno](https://minotar.net/helm/KakashiSuno/64)
 
 ## Sweet and Simple API
