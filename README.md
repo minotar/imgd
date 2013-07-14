@@ -13,7 +13,6 @@ A Minotar is a global avatar that pulls your head off your Minecraft.net skin, a
 ![hyp3rdriv3](https://minotar.net/helm/hyp3rdriv3/64)
 ![S1NZ](https://minotar.net/helm/S1NZ/64)
 ![drupal](https://minotar.net/helm/drupal/64)
-![wildhog101](https://minotar.net/helm/wildhog101/64)
 ![KakashiSuno](https://minotar.net/helm/KakashiSuno/64)
 
 ## Sweet and Simple API
@@ -33,7 +32,7 @@ Sometimes you want to display a helm too, that's fine with this endpoint.
 `<img src="https://minotar.net/helm/clone1018/100.png">`
 
 
-## Advanced API GET!
+## Advanced
 
 #### User's Skin
 You can even use Minotar's API to get a users skin. We're adding more soon!
@@ -47,7 +46,7 @@ Need Steve? Use "char" as the username:
 
 `<img src="https://minotar.net/avatar/char">`
 
-### How to install?
+## How to install?
 1. Setup your GOPATH properly.
 2. go get github.com/axxim/minotar/minotard
 3. cp -Rf $GOPATH/src/github.com/axxim/minotar/minotard/static $GOPATH/bin
@@ -56,3 +55,6 @@ Need Steve? Use "char" as the username:
 and it'll be listening on port 9999 on all interfaces.
 
 You'll then need to either edit the source to listen on the port you want, or use something like nginx as a reverse proxy.
+
+## Thanks
+Big thanks to [lukegb](https://github.com/lukegb) for porting this script from PHP to Go! 
