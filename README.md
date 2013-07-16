@@ -47,8 +47,8 @@ Need Steve? Use "char" as the username:
 
 ## How to install?
 1. Setup your GOPATH properly.
-2. go get github.com/axxim/minotar/minotard
-3. cp -Rf $GOPATH/src/github.com/axxim/minotar/minotard/static $GOPATH/bin
+2. go get github.com/Axxim/Minotar/minotard
+3. cp -Rf $GOPATH/src/github.com/Axxim/Minotar/minotard/static $GOPATH/bin
 4. cd $GOPATH/bin; ./minotard
 
 and it'll be listening on port 9999 on all interfaces.

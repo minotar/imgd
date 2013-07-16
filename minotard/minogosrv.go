@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/axxim/minotar"
+	"github.com/Axxim/Minotar"
 	"image"
 	"io"
 	"log"
