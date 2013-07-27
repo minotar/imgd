@@ -43,7 +43,7 @@ You can also set the browser to download the image by using:
 #### Default Skin
 Need Steve? Use "char" as the username:
 
-`<img src="https://minotar.net/avatar/char">`
+`<img src="https://minotar.net/skin/char">`
 
 ## How to install?
 1. Setup your GOPATH properly.
