@@ -6,6 +6,7 @@ import (
 
 const (
 	VALID_USERNAME_REGEX = `[a-zA-Z0-9_]+`
+    SKIN_CACHE = 'skins/'
 )
 
 func FetchSkinFromURL(url string) (Skin, error) {
@@ -24,4 +25,13 @@ func FetchSkinForUser(username string) (Skin, error) {
 
 func URLForUser(username string) string {
 	return "http://s3.amazonaws.com/MinecraftSkins/" + username + ".png"
+}
+
+func HasLocalFile(username string) bool {
+    if _, err := os.Stat("./"+SKIN_CACHE+"/"+username+".png"); err != nil {
+        if os.IsNotExist(err) {
+            return true
+        }
+    }
+    return false
 }
