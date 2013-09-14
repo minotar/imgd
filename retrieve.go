@@ -6,7 +6,7 @@ import (
 
 const (
 	VALID_USERNAME_REGEX = `[a-zA-Z0-9_]+`
-    SKIN_CACHE = 'skins/'
+	SKIN_CACHE = "skins/"
 )
 
 func FetchSkinFromURL(url string) (Skin, error) {
