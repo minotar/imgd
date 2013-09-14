@@ -2,6 +2,7 @@ package minotar
 
 import (
 	"net/http"
+	"os"
 )
 
 const (
