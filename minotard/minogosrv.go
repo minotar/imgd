@@ -4,7 +4,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/axxim/Minotar"
+	"github.com/Axxim/Minotar"
 	"github.com/gorilla/mux"
 	"image"
 	"io"
