@@ -3,7 +3,6 @@ package minotar
 ////// THIS CODE IS RELEASED INTO THE PUBLIC DOMAIN. SEE "UNLICENSE" FOR MORE INFORMATION. http://unlicense.org //////
 
 import (
-	"fmt"
 	"image/png"
 	"net/http"
 	"os"
