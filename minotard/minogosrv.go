@@ -1,9 +1,11 @@
 package main
 
+////// THIS CODE IS RELEASED INTO THE PUBLIC DOMAIN. SEE "UNLICENSE" FOR MORE INFORMATION. http://unlicense.org //////
+
 import (
 	"fmt"
+	"github.com/axxim/Minotar"
 	"github.com/gorilla/mux"
-	"github.com/Axxim/Minotar"
 	"image"
 	"io"
 	"log"
@@ -27,10 +29,10 @@ const (
 	MINUTES              uint = 60
 	HOURS                     = 60 * MINUTES
 	DAYS                      = 24 * HOURS
-	TIMEOUT_ACTUAL_SKIN       = 2 * HOURS
+	TIMEOUT_ACTUAL_SKIN       = 2 * DAYS
 	TIMEOUT_FAILED_FETCH      = 15 * MINUTES
 
-	SERVICE_VERSION = "0.2"
+	SERVICE_VERSION = "0.3"
 )
 
 func serveStatic(w http.ResponseWriter, r *http.Request, inpath string) error {
