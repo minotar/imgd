@@ -46,14 +46,7 @@ Need Steve? Use "char" as the username:
 `<img src="https://minotar.net/skin/char">`
 
 ## How to install?
-1. Setup your GOPATH properly.
-2. go get github.com/Axxim/Minotar/minotard
-3. cp -Rf $GOPATH/src/github.com/Axxim/Minotar/minotard/static $GOPATH/bin
-4. cd $GOPATH/bin; ./minotard
-
-and it'll be listening on port 9999 on all interfaces.
-
-You'll then need to either edit the source to listen on the port you want, or use something like nginx as a reverse proxy.
+- Coming Soon -
 
 ## Understanding Headers
 We use a couple of headers to help in understanding how something is served, here they are:
@@ -74,4 +67,4 @@ x-timing:
 - example: 48+0+4=52
 
 ## Thanks
-Big thanks to [lukegb](https://github.com/lukegb) for porting this script from PHP to Go! 
+Big thanks to [lukegb](https://github.com/lukegb) for porting the old version of this script from PHP to Go.
