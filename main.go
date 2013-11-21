@@ -16,21 +16,22 @@ import (
 )
 
 const (
-	DEFAULT_SIZE = uint(180)
-	MAX_SIZE     = uint(300)
-	MIN_SIZE     = uint(8)
+	DefaultSize = uint(180)
+	MaxSize     = uint(300)
+	MinSize     = uint(8)
 
-	STATIC_LOCATION = "www"
+	StaticLocation = "www"
+	SkinCache
 
-	LISTEN_ON = ":9999"
+	ListenOn = ":9999"
 
-	MINUTES              uint = 60
-	HOURS                     = 60 * MINUTES
-	DAYS                      = 24 * HOURS
-	TIMEOUT_ACTUAL_SKIN       = 2 * DAYS
-	TIMEOUT_FAILED_FETCH      = 15 * MINUTES
+	Minutes            uint = 60
+	Hours                   = 60 * Minutes
+	Days                    = 24 * Hours
+	TimeoutActualSkin       = 2 * Days
+	TimeoutFailedFetch      = 15 * Minutes
 
-	SERVICE_VERSION = "0.3"
+	MinotarVersion = "1.0"
 )
 
 func serveStatic(w http.ResponseWriter, r *http.Request, inpath string) error {
@@ -41,7 +42,7 @@ func serveStatic(w http.ResponseWriter, r *http.Request, inpath string) error {
 		inpath = "/" + inpath
 		r.URL.Path = inpath
 	}
-	path := STATIC_LOCATION + inpath
+	path := StaticLocation + inpath
 
 	f, err := os.Open(path)
 	if err != nil {
@@ -100,11 +101,11 @@ func rationalizeSize(inp string) uint {
 	out64, err := strconv.ParseUint(inp, 10, 0)
 	out := uint(out64)
 	if err != nil {
-		return DEFAULT_SIZE
-	} else if out > MAX_SIZE {
-		return MAX_SIZE
-	} else if out < MIN_SIZE {
-		return MIN_SIZE
+		return DefaultSize
+	} else if out > MaxSize {
+		return MaxSize
+	} else if out < MinSize {
+		return MinSize
 	}
 	return out
 }
@@ -135,14 +136,20 @@ func fetchImageProcessThen(callback func(minecraft.Skin) (image.Image, error)) f
 		var skin minecraft.Skin
 		var err error
 
-		// Create user
-		user, err := minecraft.GetUser(username)
+		// Fetch image using username
+		skin, err = minecraft.GetSkin(minecraft.User{Name: username})
 		if err != nil {
-			// INVALID USERNAME
-			skin = minecraft.GetSkin(minecraft.User{Name: "char"})
-		} else {
-			// Get valid skin
-			skin = minecraft.GetSkin(user)
+			// Problem with the returned image, probably means we have an incorrect username
+			// Hit the accounts api
+			user, err := minecraft.GetUser(username)
+
+			if err != nil {
+				// There's no account for this person, serve char
+				skin, _ = minecraft.GetSkin(minecraft.User{Name: "char"})
+			} else {
+				// Get valid skin
+				skin, _ = minecraft.GetSkin(user)
+			}
 		}
 
 		timeFetch := time.Now()
@@ -162,12 +169,12 @@ func fetchImageProcessThen(callback func(minecraft.Skin) (image.Image, error)) f
 		var timeout uint
 		if ok {
 			w.Header().Add("X-Result", "ok")
-			timeout = TIMEOUT_ACTUAL_SKIN
+			timeout = TimeoutActualSkin
 		} else {
 			w.Header().Add("X-Result", "failed")
-			timeout = TIMEOUT_FAILED_FETCH
+			timeout = TimeoutFailedFetch
 		}
-		w.Header().Add("X-Timing", fmt.Sprintf("%d+%d+%d=%d", timeBetween(timeReqStart, timeFetch), timeBetween(timeFetch, timeProcess), timeBetween(timeProcess, timeResize), timeBetween(timeReqStart, timeResize)))
+		w.Header().Add("X-Timing", fmt.Sprintf("%d+%d+%d=%dms", timeBetween(timeReqStart, timeFetch), timeBetween(timeFetch, timeProcess), timeBetween(timeProcess, timeResize), timeBetween(timeReqStart, timeResize)))
 		addCacheTimeoutHeader(w, timeout)
 		WritePNG(w, imgResized)
 	}
@@ -178,7 +185,7 @@ func skinPage(w http.ResponseWriter, r *http.Request) {
 	username := vars["username"]
 
 	user, _ := minecraft.GetUser(username)
-	skin := minecraft.GetSkin(user)
+	skin, _ := minecraft.GetSkin(user)
 
 	w.Header().Add("Content-Type", "image/png")
 	w.Header().Add("X-Requested", "skin")
@@ -229,12 +236,12 @@ func main() {
 	r.HandleFunc("/skin/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", skinPage)
 
 	r.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "%s", SERVICE_VERSION)
+		fmt.Fprintf(w, "%s", MinotarVersion)
 	})
 
 	r.HandleFunc("/", indexPage)
 
 	http.Handle("/", r)
 	http.HandleFunc("/assets/", serveAssetPage)
-	log.Fatalln(http.ListenAndServe(LISTEN_ON, nil))
+	log.Fatalln(http.ListenAndServe(ListenOn, nil))
 }
