@@ -148,7 +148,11 @@ func fetchImageProcessThen(callback func(minecraft.Skin) (image.Image, error)) f
 				skin, _ = minecraft.GetSkin(minecraft.User{Name: "char"})
 			} else {
 				// Get valid skin
-				skin, _ = minecraft.GetSkin(user)
+				skin, err = minecraft.GetSkin(user)
+				if err != nil {
+					// Their skin somehow errored, fallback
+					skin, _ = minecraft.GetSkin(minecraft.User{Name: "char"})
+				}
 			}
 		}
 
