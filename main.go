@@ -31,7 +31,7 @@ const (
 	TimeoutActualSkin       = 2 * Days
 	TimeoutFailedFetch      = 15 * Minutes
 
-	MinotarVersion = "1.0"
+	MinotarVersion = "1.1"
 )
 
 func serveStatic(w http.ResponseWriter, r *http.Request, inpath string) error {
@@ -136,25 +136,7 @@ func fetchImageProcessThen(callback func(minecraft.Skin) (image.Image, error)) f
 		var skin minecraft.Skin
 		var err error
 
-		// Fetch image using username
-		skin, err = minecraft.GetSkin(minecraft.User{Name: username})
-		if err != nil {
-			// Problem with the returned image, probably means we have an incorrect username
-			// Hit the accounts api
-			user, err := minecraft.GetUser(username)
-
-			if err != nil {
-				// There's no account for this person, serve char
-				skin, _ = minecraft.GetSkin(minecraft.User{Name: "char"})
-			} else {
-				// Get valid skin
-				skin, err = minecraft.GetSkin(user)
-				if err != nil {
-					// Their skin somehow errored, fallback
-					skin, _ = minecraft.GetSkin(minecraft.User{Name: "char"})
-				}
-			}
-		}
+		skin = fetchSkin(username)
 
 		timeFetch := time.Now()
 
@@ -188,34 +170,41 @@ func skinPage(w http.ResponseWriter, r *http.Request) {
 
 	username := vars["username"]
 
-	user, _ := minecraft.GetUser(username)
-	skin, _ := minecraft.GetSkin(user)
+	skin := fetchSkin(username)
 
 	w.Header().Add("Content-Type", "image/png")
 	w.Header().Add("X-Requested", "skin")
 	w.Header().Add("X-Result", "ok")
 
 	WritePNG(w, skin.Image)
-
-	/*
-		userSkinURL := minotar.URLForUser(username)
-		resp, err := http.Get(userSkinURL)
-		if err != nil {
-			notFoundPage(w, r)
-			return
-		}
-		w.Header().Add("Content-Type", "image/png")
-		w.Header().Add("X-Requested", "skin")
-		w.Header().Add("X-Result", "ok")
-		addCacheTimeoutHeader(w, TIMEOUT_ACTUAL_SKIN)
-		defer resp.Body.Close()
-		io.Copy(w, resp.Body)
-	*/
 }
 func downloadPage(w http.ResponseWriter, r *http.Request) {
 	headers := w.Header()
 	headers.Add("Content-Disposition", "attachment; filename=\"skin.png\"")
 	skinPage(w, r)
+}
+
+func fetchSkin(username string) minecraft.Skin {
+	skin, err := minecraft.GetSkin(minecraft.User{Name: username})
+	if err != nil {
+		// Problem with the returned image, probably means we have an incorrect username
+		// Hit the accounts api
+		user, err := minecraft.GetUser(username)
+
+		if err != nil {
+			// There's no account for this person, serve char
+			skin, _ = minecraft.GetSkin(minecraft.User{Name: "char"})
+		} else {
+			// Get valid skin
+			skin, err = minecraft.GetSkin(user)
+			if err != nil {
+				// Their skin somehow errored, fallback
+				skin, _ = minecraft.GetSkin(minecraft.User{Name: "char"})
+			}
+		}
+	}
+
+	return skin
 }
 
 func main() {
