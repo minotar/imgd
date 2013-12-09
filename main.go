@@ -31,7 +31,7 @@ const (
 	TimeoutActualSkin       = 2 * Days
 	TimeoutFailedFetch      = 15 * Minutes
 
-	MinotarVersion = "1.1"
+	MinotarVersion = "1.0"
 )
 
 func serveStatic(w http.ResponseWriter, r *http.Request, inpath string) error {
