@@ -106,13 +106,15 @@
 </div>
 <div class="six columns offset-by-one hidden-phone" id="right">
 
-    <h2>Why Donate?</h2>
+    <h2>Finances</h2>
     <hr>
 
     <p>Minotar serves billions of images per month to thousands and thousands of sites just like yours,
         we help the sites you love do what they do without worrying about what we do.</p>
 
-    <p>We also run free of charge, supported by donations.</p>
+    <p>We also run free of charge, supported by donations. Here's our financials:</p>
+  
+    <pre id="financials"></pre>
 
     <p>So why not support something you love?</p>
 
@@ -128,8 +130,7 @@
         </div>
         <div class="two columns">
             <strong>Gittip</strong>
-            <span class="gittip-0001" gittip-username="clone1018"></span>
-            <script id="gittip-0001" src="https://www.gittip.com/assets/widgets/0001.js"></script>
+            <script data-gittip-username="clone1018" src="//gttp.co/v1.js"></script>
         </div>
     </div>
 
@@ -204,6 +205,70 @@
 </div>
             </div>
         </div>
-        <script type="text/javascript">var RumID = 40;</script><script type="text/javascript" src="https://statuscake.com/App/Workfloor/RUM/Embed.js"></script>
+        
+        <script>
+        var expenses = {
+            DigitalOcean: { cost: 40 * 2, interval: 4 },
+            CloudFlare: { cost: 20, interval: 4 }
+        };
+
+        window.onload = function calcExpense() {
+            var total = 0;
+            var maxlength = 0;
+
+            Object.keys(expenses).forEach(function(name) {
+                var expense = expenses[name];
+
+                total += expense.cost / expense.interval;
+
+                line = [
+                    pad(name) +
+                    lpad('$' + (expense.cost / expense.interval).toFixed(2), 6) + '/wk',
+                    '($' + pad(expense.cost, 5), '/', pad(expense.interval, 2), 'weeks)',
+                ].join(' ');
+
+                maxlength = Math.max(maxlength, line.length);
+                print(line);
+            });
+
+            print(new Array(maxlength + 1).join('-'));
+            print(pad('Expenses') + '$' + total.toFixed(2) + '/wk');
+
+            print();
+
+            (function loadProfile() {
+                if (typeof Gittip == 'undefined')
+                    return setTimeout(loadProfile, 10);
+
+                Gittip.users.getPublic('clone1018', function(data) {
+                    Gittip.users.getCharts('clone1018', function(chart) {
+                        print(pad('Receiving') + '$' + (+chart[0].receipts).toFixed(2) + '/wk');
+                        //print(pad('Giving') + '$' + (-data.giving) + '/wk');
+
+                        print(new Array(maxlength + 1).join('-'));
+                        print(pad('Total') + '$' + (+chart[0].receipts).toFixed(2) + '/wk');
+                        print(pad('After Expenses') + '$' + ((+chart[0].receipts) - total) + '/wk');
+                    });
+                });
+            })();
+        };
+
+        function print(text) {
+          if(text) text += '\n';
+            var pre = document.querySelector('#financials');
+            pre.appendChild(document.createTextNode(text || '\n'));
+        }
+
+        function pad(text, length) {
+            length = length || 15;
+            return text + (new Array(length + 1 - text.toString().length).join(' '));
+        }
+
+        function lpad(text, length) {
+            return pad(text, length).replace(/^(.*?)(\s*)$/, '$2$1');
+        }
+        </script>
+
+
     </body>
 </html>
