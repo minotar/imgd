@@ -193,13 +193,13 @@ func fetchSkin(username string) minecraft.Skin {
 
 		if err != nil {
 			// There's no account for this person, serve char
-			skin, _ = minecraft.GetSkin(minecraft.User{Name: "char"})
+			skin, _ = minecraft.FetchSkinForChar()
 		} else {
 			// Get valid skin
 			skin, err = minecraft.GetSkin(user)
 			if err != nil {
 				// Their skin somehow errored, fallback
-				skin, _ = minecraft.GetSkin(minecraft.User{Name: "char"})
+				skin, _ = minecraft.FetchSkinForChar()
 			}
 		}
 	}

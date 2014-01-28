@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/Axxim/Minotar"
+	"github.com/minotar/minotar"
 	"log"
 	"os"
 )
