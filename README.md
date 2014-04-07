@@ -49,6 +49,7 @@ Need Steve? Use "char" as the username:
 Installation is simple - however it requires an installation of [Go](http://golang.org). Follow the instructions below for a comprehensive, step by step installation.
 ```bash
 $ git clone https://github.com/minotar/minotar
+$ cd minotar
 
 $ export GOPATH=`pwd`
 $ go get
