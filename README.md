@@ -46,7 +46,21 @@ Need Steve? Use "char" as the username:
 `<img src="https://minotar.net/skin/char">`
 
 ## How to install?
-- Coming Soon -
+Installation is simple - however it requires an installation of [Go](http://golang.org). Follow the instructions below for a comprehensive, step by step installation.
+```bash
+$ git clone https://github.com/minotar/minotar
+$ cd minotar
+
+$ export GOPATH=`pwd`
+$ go get
+
+$ go build
+```
+After you run `go build`, golang should automatically generate you an executable file (named `minotar`). Executing the file is simple: simply run:
+```bash
+$ ./minotar
+```
+There you have it! Go visit your installation at *your-ip*:9999 to view it in action.
 
 ## Understanding Headers
 We use a couple of headers to help in understanding how something is served, here they are:
