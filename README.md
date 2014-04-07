@@ -51,9 +51,7 @@ Installation is simple - however it requires an installation of [Go](http://gola
 $ git clone https://github.com/minotar/minotar
 
 $ export GOPATH=`pwd`
-$ go get github.com/minotar/minecraft
-$ go get github.com/nfnt/resize
-$ go get github.com/gorilla/mux
+$ go get
 
 $ go build
 ```
