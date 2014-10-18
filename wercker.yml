@@ -47,6 +47,8 @@ deploy:
     - script:
         name: transfer application
         code: |
+          pwd
+          ls -l
           rsync -a -e "ssh -i $PRIVATEKEY_PATH" $WERCKER_OUTPUT_DIR/imgd $MINOTAR_MASTER_USER@$MINOTAR_MASTER_IP:/srv/salt/minotar/deploy/
     - script:
         name: reset permissions
