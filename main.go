@@ -5,13 +5,9 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/minotar/minecraft"
 	"image"
-	"io"
 	"log"
 	"net/http"
-	"os"
-	"path"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -20,7 +16,6 @@ const (
 	MaxSize     = uint(300)
 	MinSize     = uint(8)
 
-	StaticLocation = "www"
 	SkinCache
 
 	ListenOn = ":9999"
@@ -31,61 +26,14 @@ const (
 	TimeoutActualSkin       = 2 * Days
 	TimeoutFailedFetch      = 15 * Minutes
 
-	MinotarVersion = "1.2"
+	MinotarVersion = "2.0"
 )
-
-func serveStatic(w http.ResponseWriter, r *http.Request, inpath string) error {
-	inpath = path.Clean(inpath)
-	r.URL.Path = inpath
-
-	if !strings.HasPrefix(inpath, "/") {
-		inpath = "/" + inpath
-		r.URL.Path = inpath
-	}
-	path := StaticLocation + inpath
-
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	d, err := f.Stat()
-	if err != nil {
-		return err
-	}
-
-	http.ServeContent(w, r, d.Name(), d.ModTime(), f)
-	return nil
-}
-
-func serveAssetPage(w http.ResponseWriter, r *http.Request) {
-	err := serveStatic(w, r, r.URL.Path)
-	if err != nil {
-		notFoundPage(w, r)
-	}
-}
-
-func indexPage(w http.ResponseWriter, r *http.Request) {
-	err := serveStatic(w, r, "index.html")
-	if err != nil {
-		notFoundPage(w, r)
-	}
-}
 
 type NotFoundHandler struct{}
 
 func (h NotFoundHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(404)
-
-	f, err := os.Open("static/404.html")
-	if err != nil {
-		fmt.Fprintf(w, "404 file not found")
-		return
-	}
-	defer f.Close()
-
-	io.Copy(w, f)
+	fmt.Fprintf(w, "404 not found")
 }
 
 func notFoundPage(w http.ResponseWriter, r *http.Request) {
@@ -232,9 +180,10 @@ func main() {
 		fmt.Fprintf(w, "%s", MinotarVersion)
 	})
 
-	r.HandleFunc("/", indexPage)
+	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Location", "https://minotar.net/")
+	})
 
 	http.Handle("/", r)
-	http.HandleFunc("/assets/", serveAssetPage)
 	log.Fatalln(http.ListenAndServe(ListenOn, nil))
 }
