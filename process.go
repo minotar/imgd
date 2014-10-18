@@ -2,8 +2,8 @@ package main
 
 import (
 	"errors"
+	"github.com/disintegration/imaging"
 	"github.com/minotar/minecraft"
-	"github.com/nfnt/resize"
 	"image"
 	"image/draw"
 	"image/png"
@@ -67,7 +67,7 @@ func WritePNG(w io.Writer, i image.Image) error {
 }
 
 func Resize(width, height uint, img image.Image) image.Image {
-	return resize.Resize(width, height, img, resize.NearestNeighbor)
+	return imaging.Resize(img, int(width), int(height), imaging.NearestNeighbor)
 }
 
 func cropImage(i image.Image, d image.Rectangle) (image.Image, error) {
