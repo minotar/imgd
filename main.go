@@ -136,7 +136,7 @@ func downloadPage(w http.ResponseWriter, r *http.Request) {
 func fetchSkin(username string) minecraft.Skin {
 	skin, err := minecraft.FetchSkinFromUrl(username)
 	if err != nil {
-		log.Error("Failed to get skin for " + username + " from Mojang")
+		log.Error("Failed to get skin for " + username + " from Mojang (" + err.Error() + ")")
 		skin, _ = minecraft.FetchSkinForChar()
 	} else {
 		log.Info("Fetched skin for " + username)
