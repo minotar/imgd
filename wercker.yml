@@ -27,6 +27,12 @@ build:
         code: |
           go test ./...
           
+    # Copy to output
+    - script:
+        name: copy output
+        code: |-
+          rsync -avz "$WERCKER_SOURCE_DIR/" "$WERCKER_OUTPUT_DIR"
+          
 deploy:
   steps:
     - add-to-known_hosts:
@@ -41,7 +47,7 @@ deploy:
     - script:
         name: transfer application
         code: |
-          rsync -a -e "ssh -i $PRIVATEKEY_PATH" /pipeline/build/imgd $MINOTAR_MASTER_USER@$MINOTAR_MASTER_IP:/srv/salt/minotar/deploy/
+          rsync -a -e "ssh -i $PRIVATEKEY_PATH" $WERCKER_OUTPUT_DIR/imgd $MINOTAR_MASTER_USER@$MINOTAR_MASTER_IP:/srv/salt/minotar/deploy/
     - script:
         name: reset permissions
         code: |
