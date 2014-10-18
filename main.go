@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/minotar/minecraft"
+	"github.com/op/go-logging"
 	"image"
-	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 )
@@ -26,7 +27,7 @@ const (
 	TimeoutActualSkin       = 2 * Days
 	TimeoutFailedFetch      = 15 * Minutes
 
-	MinotarVersion = "2.0"
+	MinotarVersion = "2.1"
 )
 
 type NotFoundHandler struct{}
@@ -135,7 +136,10 @@ func downloadPage(w http.ResponseWriter, r *http.Request) {
 func fetchSkin(username string) minecraft.Skin {
 	skin, err := minecraft.FetchSkinFromUrl(username)
 	if err != nil {
+		log.Error("Failed to get skin for " + username + " from Mojang")
 		skin, _ = minecraft.FetchSkinForChar()
+	} else {
+		log.Info("Fetched skin for " + username)
 	}
 
 	return skin
@@ -164,7 +168,14 @@ func fetchSkin(username string) minecraft.Skin {
 	*/
 }
 
+var log = logging.MustGetLogger("imgd")
+var format = "[%{time:15:04:05.000000}] %{level:.4s} %{message}"
+
 func main() {
+	logBackend := logging.NewLogBackend(os.Stdout, "", 0)
+	logging.SetBackend(logBackend)
+	logging.SetFormatter(logging.MustStringFormatter(format))
+
 	avatarPage := fetchImageProcessThen(func(skin minecraft.Skin) (image.Image, error) {
 		return GetHead(skin)
 	})
@@ -194,5 +205,6 @@ func main() {
 	})
 
 	http.Handle("/", r)
-	log.Fatalln(http.ListenAndServe(ListenOn, nil))
+	err := http.ListenAndServe(ListenOn, nil)
+	log.Critical(err.Error())
 }
