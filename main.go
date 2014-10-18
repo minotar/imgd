@@ -133,6 +133,14 @@ func downloadPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func fetchSkin(username string) minecraft.Skin {
+	skin, err := minecraft.FetchSkinFromUrl(username)
+	if err != nil {
+		skin, _ = minecraft.FetchSkinForChar()
+	}
+
+	return skin
+
+	/* We're not using this for now due to rate limiting restrictions
 	skin, err := minecraft.GetSkin(minecraft.User{Name: username})
 	if err != nil {
 		// Problem with the returned image, probably means we have an incorrect username
@@ -153,6 +161,7 @@ func fetchSkin(username string) minecraft.Skin {
 	}
 
 	return skin
+	*/
 }
 
 func main() {
