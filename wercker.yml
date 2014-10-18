@@ -49,9 +49,9 @@ deploy:
         code: |
           pwd
           ls -l
-          rsync -a -e "ssh -i $PRIVATEKEY_PATH" imgd $MINOTAR_MASTER_USER@$MINOTAR_MASTER_IP:/srv/salt/minotar/deploy/
+          rsync -a -e "ssh -i $PRIVATEKEY_PATH" imgd $MINOTAR_MASTER_USER@$MINOTAR_MASTER_IP:/srv/salt/imgd/deploy/
     - script:
-        name: reset permissions
+        name: deploy to salt minions
         code: |
-          ssh -i $PRIVATEKEY_PATH -l $MINOTAR_MASTER_USER $MINOTAR_MASTER_IP "salt '*' state.sls minotar"
+          ssh -i $PRIVATEKEY_PATH -l $MINOTAR_MASTER_USER $MINOTAR_MASTER_IP "salt 'imgd-*.minotar.net' state.sls imgd"
     
