@@ -6,7 +6,7 @@ imgd is a simple avatar serving system. You're probably looking for [Minotar.net
 Installation is simple - however it requires an installation of [Go](http://golang.org). Follow the instructions below for a comprehensive, step by step installation.
 ```bash
 $ git clone https://github.com/minotar/imgd
-$ cd minotar
+$ cd imgd
 
 $ export GOPATH=`pwd`
 $ go get
