@@ -5,6 +5,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/minotar/minecraft"
 	"github.com/op/go-logging"
+	"github.com/rcrowley/go-librato"
 	"image"
 	"net/http"
 	_ "net/http/pprof"
@@ -114,6 +115,18 @@ func fetchImageProcessThen(callback func(minecraft.Skin) (image.Image, error)) f
 		w.Header().Add("X-Timing", fmt.Sprintf("%d+%d+%d=%dms", timeBetween(timeReqStart, timeFetch), timeBetween(timeFetch, timeProcess), timeBetween(timeProcess, timeResize), timeBetween(timeReqStart, timeResize)))
 		addCacheTimeoutHeader(w, timeout)
 		WritePNG(w, imgResized)
+
+		fetchTimeCounter := m.GetCounter("time.fetch")
+		fetchTimeCounter <- timeBetween(timeReqStart, timeFetch)
+
+		processTimeCounter := m.GetCounter("time.process")
+		processTimeCounter <- timeBetween(timeFetch, timeProcess)
+
+		resizeTimeCounter := m.GetCounter("time.resize")
+		resizeTimeCounter <- timeBetween(timeProcess, timeResize)
+
+		totalTimeCounter := m.GetCounter("time.total")
+		totalTimeCounter <- timeBetween(timeReqStart, timeResize)
 	}
 }
 func skinPage(w http.ResponseWriter, r *http.Request) {
@@ -172,6 +185,8 @@ func fetchSkin(username string) minecraft.Skin {
 
 var log = logging.MustGetLogger("imgd")
 var format = "[%{time:15:04:05.000000}] %{level:.4s} %{message}"
+
+var m = librato.NewSimpleMetrics(os.Getenv("LIBRATO_USER"), os.Getenv("LIBRATO_TOKEN"), os.Getenv("LIBRATO_SOURCE"))
 
 func main() {
 	logBackend := logging.NewLogBackend(os.Stdout, "", 0)
