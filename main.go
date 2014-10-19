@@ -7,7 +7,9 @@ import (
 	"github.com/op/go-logging"
 	"image"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
+	"runtime/debug"
 	"strconv"
 	"time"
 )
@@ -175,6 +177,8 @@ func main() {
 	logBackend := logging.NewLogBackend(os.Stdout, "", 0)
 	logging.SetBackend(logBackend)
 	logging.SetFormatter(logging.MustStringFormatter(format))
+
+	debug.SetGCPercent(10)
 
 	avatarPage := fetchImageProcessThen(func(skin minecraft.Skin) (image.Image, error) {
 		return GetHead(skin)
