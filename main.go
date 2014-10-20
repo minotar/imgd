@@ -84,10 +84,8 @@ func fetchImageProcessThen(callback func(minecraft.Skin) (image.Image, error)) f
 		size := rationalizeSize(vars["size"])
 		ok := true
 
-		var skin minecraft.Skin
+		skin := fetchSkin(username)
 		var err error
-
-		skin = fetchSkin(username)
 
 		timeFetch := time.Now()
 
@@ -111,11 +109,14 @@ func fetchImageProcessThen(callback func(minecraft.Skin) (image.Image, error)) f
 			w.Header().Add("X-Result", "failed")
 			timeout = TimeoutFailedFetch
 		}
-		w.Header().Add("X-Timing", fmt.Sprintf("%d+%d+%d=%dms", timeBetween(timeReqStart, timeFetch), timeBetween(timeFetch, timeProcess), timeBetween(timeProcess, timeResize), timeBetween(timeReqStart, timeResize)))
+
+		timing := fmt.Sprintf("%d+%d+%d=%dms", timeBetween(timeReqStart, timeFetch), timeBetween(timeFetch, timeProcess), timeBetween(timeProcess, timeResize), timeBetween(timeReqStart, timeResize))
+
+		w.Header().Add("X-Timing", timing)
 		addCacheTimeoutHeader(w, timeout)
 		WritePNG(w, imgResized)
 
-		log.Info("Serving skin for " + username + " (" + w.Header().Get("X-Timing") + ")")
+		log.Info("Serving skin for " + username + " (" + timing + ") md5: " + skin.Hash)
 	}
 }
 func skinPage(w http.ResponseWriter, r *http.Request) {
