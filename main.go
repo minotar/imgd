@@ -98,7 +98,7 @@ func fetchImageProcessThen(callback func(minecraft.Skin) (image.Image, error)) f
 		
 		imgResized := img
 		if vars["size"]  < "8" {
-			imgResized := Resize(size, size, img)
+			imgResized = Resize(size, size, img)
 			//imgResized = Resize(size, img)
 		}
 		
