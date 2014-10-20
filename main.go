@@ -95,8 +95,13 @@ func fetchImageProcessThen(callback func(minecraft.Skin) (image.Image, error)) f
 			return
 		}
 		timeProcess := time.Now()
-
-		imgResized := Resize(size, size, img)
+		
+		imgResized := img
+		if vars["size"]  < "8" {
+			imgResized := Resize(size, size, img)
+			//imgResized = Resize(size, img)
+		}
+		
 		timeResize := time.Now()
 
 		w.Header().Add("Content-Type", "image/png")
