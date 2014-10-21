@@ -101,6 +101,7 @@ func fetchImageProcessThen(callback func(minecraft.Skin) (image.Image, error)) f
 
 		w.Header().Add("Content-Type", "image/png")
 		w.Header().Add("X-Requested", "processed")
+		w.Header().Add("X-Skin-Hash", skin.Hash)
 		var timeout uint
 		if ok {
 			w.Header().Add("X-Result", "ok")
