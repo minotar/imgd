@@ -21,8 +21,6 @@ const (
 
 	SkinCache
 
-	ListenOn = ":9999"
-
 	Minutes            uint = 60
 	Hours                   = 60 * Minutes
 	Days                    = 24 * Hours
@@ -30,6 +28,10 @@ const (
 	TimeoutFailedFetch      = 15 * Minutes
 
 	MinotarVersion = "2.1"
+)
+
+var (
+	ListenOn = ":9999"
 )
 
 type NotFoundHandler struct{}
@@ -181,6 +183,10 @@ func main() {
 	logging.SetFormatter(logging.MustStringFormatter(format))
 
 	debug.SetGCPercent(10)
+
+	if os.Getenv("IMGD_LISTENON") != "" {
+		ListenOn = os.Getenv("IMGD_LISTENON")
+	}
 
 	avatarPage := fetchImageProcessThen(func(skin minecraft.Skin) (image.Image, error) {
 		return GetHead(skin)
