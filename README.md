@@ -15,7 +15,7 @@ $ go build
 ```
 After you run `go build`, golang should automatically generate you an executable file (named `imgd`). Executing the file is simple: simply run:
 ```bash
-$ export MINOTAR_PORT=:8000
+$ export IMGD_LISTENON=:8000
 $ ./imgd
 ```
 There you have it! Go visit your installation at *your-ip*:8000 to view it in action.
