@@ -11,27 +11,27 @@ import (
 )
 
 const (
-	HEAD_X      = 8
-	HEAD_Y      = 8
-	HEAD_WIDTH  = 8
-	HEAD_HEIGHT = 8
+	HeadX      = 8
+	HeadY      = 8
+	HeadWidth  = 8
+	HeadHeight = 8
 
-	HELM_X      = 40
-	HELM_Y      = 8
-	HELM_WIDTH  = 8
-	HELM_HEIGHT = 8
+	HelmX      = 40
+	HelmY      = 8
+	HelmWidth  = 8
+	HelmHeight = 8
 )
 
 func GetHead(skin minecraft.Skin) (image.Image, error) {
-	return cropImage(skin.Image, image.Rect(HEAD_X, HEAD_Y, HEAD_X+HEAD_WIDTH, HEAD_Y+HEAD_HEIGHT))
+	return cropImage(skin.Image, image.Rect(HeadX, HeadY, HeadX+HeadWidth, HeadY+HeadHeight))
 }
 
 func GetHelm(skin minecraft.Skin) (image.Image, error) {
 	// check if helm is solid colour - if so, it counts as transparent
 	isSolidColour := true
-	baseColour := skin.Image.At(HELM_X, HELM_Y)
-	for checkX := HELM_X; checkX < HELM_X+HELM_WIDTH; checkX++ {
-		for checkY := HELM_Y; checkY < HELM_Y+HELM_HEIGHT; checkY++ {
+	baseColour := skin.Image.At(HelmX, HelmY)
+	for checkX := HelmX; checkX < HelmX+HelmWidth; checkX++ {
+		for checkY := HelmY; checkY < HelmY+HelmHeight; checkY++ {
 			checkColour := skin.Image.At(checkX, checkY)
 			if checkColour != baseColour {
 				isSolidColour = false
@@ -51,7 +51,7 @@ func GetHelm(skin minecraft.Skin) (image.Image, error) {
 
 	headImgRGBA := headImg.(*image.RGBA)
 
-	helmImg, err := cropImage(skin.Image, image.Rect(HELM_X, HELM_Y, HELM_X+HELM_WIDTH, HELM_Y+HELM_HEIGHT))
+	helmImg, err := cropImage(skin.Image, image.Rect(HelmX, HelmY, HelmX+HelmWidth, HelmY+HelmHeight))
 	if err != nil {
 		return nil, err
 	}
