@@ -156,8 +156,8 @@ func WritePNG(w io.Writer, i image.Image) error {
 	return png.Encode(w, i)
 }
 
-func Resize(width, height uint, img image.Image) image.Image {
-	return imaging.Resize(img, int(width), int(height), imaging.NearestNeighbor)
+func Resize(width uint, img image.Image) image.Image {
+	return imaging.Resize(img, int(width), 0, imaging.NearestNeighbor)
 }
 
 func cropImage(i image.Image, d image.Rectangle) (image.Image, error) {
