@@ -137,17 +137,17 @@ func GetBody(skin minecraft.Skin) (image.Image, error) {
 	// Create a blank canvas for us to draw our body on
 	bodyImg := image.NewRGBA(image.Rect(0, 0, LaWidth+TorsoWidth+RaWidth, HeadHeight+TorsoHeight+LlHeight))
 	// Helm
-	draw.Draw(bodyImg, image.Rect(LaWidth,0,LaWidth+HelmWidth,HelmHeight), helmImg, image.Pt(0,0), draw.Src)
+	draw.Draw(bodyImg, image.Rect(LaWidth, 0, LaWidth+HelmWidth, HelmHeight), helmImg, image.Pt(0, 0), draw.Src)
 	// Torso
-	draw.Draw(bodyImg, image.Rect(LaWidth,HelmHeight,LaWidth+TorsoWidth,HelmHeight+TorsoHeight), torsoImg, image.Pt(0,0), draw.Src)
+	draw.Draw(bodyImg, image.Rect(LaWidth, HelmHeight, LaWidth+TorsoWidth, HelmHeight+TorsoHeight), torsoImg, image.Pt(0, 0), draw.Src)
 	// Left Arm
-	draw.Draw(bodyImg, image.Rect(0,HelmHeight,LaWidth,HelmHeight+LaHeight), laImg, image.Pt(0,0), draw.Src)
+	draw.Draw(bodyImg, image.Rect(0, HelmHeight, LaWidth, HelmHeight+LaHeight), laImg, image.Pt(0, 0), draw.Src)
 	// Right Arm
-	draw.Draw(bodyImg, image.Rect(LaWidth+TorsoWidth,HelmHeight,LaWidth+TorsoWidth+RaWidth,HelmHeight+RaHeight), raImg, image.Pt(0,0), draw.Src)
+	draw.Draw(bodyImg, image.Rect(LaWidth+TorsoWidth, HelmHeight, LaWidth+TorsoWidth+RaWidth, HelmHeight+RaHeight), raImg, image.Pt(0, 0), draw.Src)
 	// Left Leg
-	draw.Draw(bodyImg, image.Rect(LaWidth,HelmHeight+TorsoHeight,LaWidth+LlWidth,HelmHeight+TorsoHeight+LlHeight), llImg, image.Pt(0,0), draw.Src)
+	draw.Draw(bodyImg, image.Rect(LaWidth, HelmHeight+TorsoHeight, LaWidth+LlWidth, HelmHeight+TorsoHeight+LlHeight), llImg, image.Pt(0, 0), draw.Src)
 	// Right Leg
-	draw.Draw(bodyImg, image.Rect(LaWidth+LlWidth,HelmHeight+TorsoHeight,LaWidth+LlWidth+RlWidth,HelmHeight+TorsoHeight+RlHeight), rlImg, image.Pt(0,0), draw.Src)
+	draw.Draw(bodyImg, image.Rect(LaWidth+LlWidth, HelmHeight+TorsoHeight, LaWidth+LlWidth+RlWidth, HelmHeight+TorsoHeight+RlHeight), rlImg, image.Pt(0, 0), draw.Src)
 
 	return bodyImg, nil
 }
