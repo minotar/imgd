@@ -98,7 +98,7 @@ func fetchImageProcessThen(callback func(minecraft.Skin) (image.Image, error)) f
 		}
 		timeProcess := time.Now()
 
-		imgResized := Resize(size, size, img)
+		imgResized := Resize(size, img)
 		timeResize := time.Now()
 
 		w.Header().Add("Content-Type", "image/png")
@@ -194,6 +194,9 @@ func main() {
 	helmPage := fetchImageProcessThen(func(skin minecraft.Skin) (image.Image, error) {
 		return GetHelm(skin)
 	})
+	bodyPage := fetchImageProcessThen(func(skin minecraft.Skin) (image.Image, error) {
+		return GetBody(skin)
+	})
 
 	r := mux.NewRouter()
 	r.NotFoundHandler = NotFoundHandler{}
@@ -203,6 +206,9 @@ func main() {
 
 	r.HandleFunc("/helm/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", helmPage)
 	r.HandleFunc("/helm/{username:"+minecraft.ValidUsernameRegex+"}/{size:[0-9]+}{extension:(.png)?}", helmPage)
+
+	r.HandleFunc("/body/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", bodyPage)
+	r.HandleFunc("/body/{username:"+minecraft.ValidUsernameRegex+"}/{size:[0-9]+}{extension:(.png)?}", bodyPage)
 
 	r.HandleFunc("/download/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", downloadPage)
 
