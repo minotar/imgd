@@ -152,6 +152,14 @@ func GetBody(skin minecraft.Skin) (image.Image, error) {
 	return bodyImg, nil
 }
 
+func GetBust(skin minecraft.Skin) (image.Image, error) {
+	body, err := GetBody(skin)
+	if err != nil {
+		return nil, err
+	}
+	return cropImage(body, image.Rect(0, 0, 16, 16))
+}
+
 func WritePNG(w io.Writer, i image.Image) error {
 	return png.Encode(w, i)
 }
