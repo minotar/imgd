@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"github.com/disintegration/imaging"
 	"github.com/minotar/minecraft"
 	"image"
@@ -48,7 +47,7 @@ const (
 )
 
 func GetHead(skin minecraft.Skin) (image.Image, error) {
-	return cropImage(skin.Image, image.Rect(HeadX, HeadY, HeadX+HeadWidth, HeadY+HeadHeight))
+	return imaging.Crop(skin.Image, image.Rect(HeadX, HeadY, HeadX+HeadWidth, HeadY+HeadHeight)), nil
 }
 
 func GetHelm(skin minecraft.Skin) (image.Image, error) {
@@ -76,10 +75,7 @@ func GetHelm(skin minecraft.Skin) (image.Image, error) {
 
 	headImgRGBA := headImg.(*image.RGBA)
 
-	helmImg, err := cropImage(skin.Image, image.Rect(HelmX, HelmY, HelmX+HelmWidth, HelmY+HelmHeight))
-	if err != nil {
-		return nil, err
-	}
+	helmImg := imaging.Crop(skin.Image, image.Rect(HelmX, HelmY, HelmX+HelmWidth, HelmY+HelmHeight))
 
 	sr := helmImg.Bounds()
 	draw.Draw(headImgRGBA, sr, helmImg, sr.Min, draw.Over)
@@ -100,34 +96,16 @@ func GetBody(skin minecraft.Skin) (image.Image, error) {
 		return nil, err
 	}
 
-	torsoImg, err := cropImage(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+TorsoHeight))
-	if err != nil {
-		return nil, err
-	}
-
-	raImg, err := cropImage(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+RaHeight))
-	if err != nil {
-		return nil, err
-	}
-
-	rlImg, err := cropImage(skin.Image, image.Rect(RlX, RlY, RlX+RlWidth, RlY+RlHeight))
-	if err != nil {
-		return nil, err
-	}
+	torsoImg := imaging.Crop(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+TorsoHeight))
+	raImg := imaging.Crop(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+RaHeight))
+	rlImg := imaging.Crop(skin.Image, image.Rect(RlX, RlY, RlX+RlWidth, RlY+RlHeight))
 
 	var laImg, llImg image.Image
 
 	// If the skin is 1.8 then we will use the left arms and legs, otherwise flip the right ones and use them.
 	if render18Skin {
-		laImg, err = cropImage(skin.Image, image.Rect(LaX, LaY, LaX+LaWidth, LaY+LaHeight))
-		if err != nil {
-			return nil, err
-		}
-
-		llImg, err = cropImage(skin.Image, image.Rect(LlX, LlY, LlX+LlWidth, LlY+LlHeight))
-		if err != nil {
-			return nil, err
-		}
+		laImg = imaging.Crop(skin.Image, image.Rect(LaX, LaY, LaX+LaWidth, LaY+LaHeight))
+		llImg = imaging.Crop(skin.Image, image.Rect(LlX, LlY, LlX+LlWidth, LlY+LlHeight))
 	} else {
 		laImg = imaging.FlipH(raImg)
 
@@ -158,20 +136,4 @@ func WritePNG(w io.Writer, i image.Image) error {
 
 func Resize(width uint, img image.Image) image.Image {
 	return imaging.Resize(img, int(width), 0, imaging.NearestNeighbor)
-}
-
-func cropImage(i image.Image, d image.Rectangle) (image.Image, error) {
-	bounds := i.Bounds()
-	if bounds.Min.X > d.Min.X || bounds.Min.Y > d.Min.Y || bounds.Max.X < d.Max.X || bounds.Max.Y < d.Max.Y {
-		return nil, errors.New("Bounds invalid for crop")
-	}
-
-	dims := d.Size()
-	outIm := image.NewRGBA(image.Rect(0, 0, dims.X, dims.Y))
-	for x := 0; x < dims.X; x++ {
-		for y := 0; y < dims.Y; y++ {
-			outIm.Set(x, y, i.At(d.Min.X+x, d.Min.Y+y))
-		}
-	}
-	return outIm, nil
 }
