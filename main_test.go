@@ -13,7 +13,7 @@ func BenchmarkGetHead(b *testing.B) {
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		GetHead(skin)
+		skin.GetHead()
 	}
 }
 
@@ -22,7 +22,7 @@ func BenchmarkGetHelm(b *testing.B) {
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		GetHelm(skin)
+		skin.GetHelm()
 	}
 }
 
@@ -31,6 +31,6 @@ func BenchmarkGetBody(b *testing.B) {
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		GetBody(skin)
+		skin.GetBody()
 	}
 }
