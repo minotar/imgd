@@ -187,16 +187,13 @@ func main() {
 	}
 
 	avatarPage := fetchImageProcessThen(func(skin *mcSkin) error {
-		_, err := skin.GetHead()
-		return err
+		return skin.GetHead()
 	})
 	helmPage := fetchImageProcessThen(func(skin *mcSkin) error {
-		_, err := skin.GetHelm()
-		return err
+		return skin.GetHelm()
 	})
 	bodyPage := fetchImageProcessThen(func(skin *mcSkin) error {
-		_, err := skin.GetBody()
-		return err
+		return skin.GetBody()
 	})
 
 	r := mux.NewRouter()

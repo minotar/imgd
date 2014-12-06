@@ -52,17 +52,17 @@ type mcSkin struct {
 	minecraft.Skin
 }
 
-func (skin *mcSkin) GetHead() (image.Image, error) {
-	img, err := cropImage(skin.Image, image.Rect(HeadX, HeadY, HeadX+HeadWidth, HeadY+HeadHeight))
+func (skin *mcSkin) GetHead() error {
+	img, err := cropHead(skin.Image)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	skin.Processed = img
-	return img, nil
+	return nil
 }
 
-func (skin *mcSkin) GetHelm() (image.Image, error) {
+func (skin *mcSkin) GetHelm() error {
 	// check if helm is solid colour - if so, it counts as transparent
 	isSolidColour := true
 	baseColour := skin.Image.At(HelmX, HelmY)
@@ -76,35 +76,30 @@ func (skin *mcSkin) GetHelm() (image.Image, error) {
 		}
 	}
 
-	if isSolidColour {
-		_, err := skin.GetHead()
-		if err != nil {
-			return nil, err
-		} else {
-			return skin.Processed, nil
-		}
+	headImg, err := cropHead(skin.Image)
+	if err != nil {
+		return err
 	}
 
-	headImg, err := skin.GetHead()
-	if err != nil {
-		return nil, err
+	skin.Processed = headImg
+
+	if isSolidColour {
+		return nil
 	}
 
 	headImgRGBA := headImg.(*image.RGBA)
 
 	helmImg, err := cropImage(skin.Image, image.Rect(HelmX, HelmY, HelmX+HelmWidth, HelmY+HelmHeight))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	sr := helmImg.Bounds()
 	draw.Draw(headImgRGBA, sr, helmImg, sr.Min, draw.Over)
-
-	skin.Processed = headImg
-	return headImg, nil
+	return nil
 }
 
-func (skin *mcSkin) GetBody() (image.Image, error) {
+func (skin *mcSkin) GetBody() error {
 	// Check if 1.8 skin (the max Y bound should be 64)
 	render18Skin := true
 	bounds := skin.Image.Bounds()
@@ -112,24 +107,25 @@ func (skin *mcSkin) GetBody() (image.Image, error) {
 		render18Skin = false
 	}
 
-	helmImg, err := skin.GetHelm()
+	err := skin.GetHelm()
 	if err != nil {
-		return nil, err
+		return err
 	}
+	helmImg := skin.Processed
 
 	torsoImg, err := cropImage(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+TorsoHeight))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	raImg, err := cropImage(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+RaHeight))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	rlImg, err := cropImage(skin.Image, image.Rect(RlX, RlY, RlX+RlWidth, RlY+RlHeight))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	var laImg, llImg image.Image
@@ -138,12 +134,12 @@ func (skin *mcSkin) GetBody() (image.Image, error) {
 	if render18Skin {
 		laImg, err = cropImage(skin.Image, image.Rect(LaX, LaY, LaX+LaWidth, LaY+LaHeight))
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		llImg, err = cropImage(skin.Image, image.Rect(LlX, LlY, LlX+LlWidth, LlY+LlHeight))
 		if err != nil {
-			return nil, err
+			return err
 		}
 	} else {
 		laImg = imaging.FlipH(raImg)
@@ -167,7 +163,7 @@ func (skin *mcSkin) GetBody() (image.Image, error) {
 	draw.Draw(bodyImg, image.Rect(LaWidth+LlWidth, HelmHeight+TorsoHeight, LaWidth+LlWidth+RlWidth, HelmHeight+TorsoHeight+RlHeight), rlImg, image.Pt(0, 0), draw.Src)
 
 	skin.Processed = bodyImg
-	return bodyImg, nil
+	return nil
 }
 
 func (skin *mcSkin) WritePNG(w io.Writer) error {
@@ -180,6 +176,10 @@ func (skin *mcSkin) Resize(width uint) {
 		return
 	}
 	skin.Processed = imaging.Resize(skin.Processed, int(width), 0, imaging.NearestNeighbor)
+}
+
+func cropHead(img image.Image) (image.Image, error) {
+	return cropImage(img, image.Rect(HeadX, HeadY, HeadX+HeadWidth, HeadY+HeadHeight))
 }
 
 func cropImage(i image.Image, d image.Rectangle) (image.Image, error) {
