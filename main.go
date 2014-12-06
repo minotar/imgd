@@ -195,6 +195,9 @@ func main() {
 	bodyPage := fetchImageProcessThen(func(skin *mcSkin) error {
 		return skin.GetBody()
 	})
+	bustPage := fetchImageProcessThen(func(skin *mcSkin) error {
+		return skin.GetBust()
+	})
 
 	r := mux.NewRouter()
 	r.NotFoundHandler = NotFoundHandler{}
@@ -207,6 +210,9 @@ func main() {
 
 	r.HandleFunc("/body/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", bodyPage)
 	r.HandleFunc("/body/{username:"+minecraft.ValidUsernameRegex+"}/{size:[0-9]+}{extension:(.png)?}", bodyPage)
+
+	r.HandleFunc("/bust/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", bustPage)
+	r.HandleFunc("/bust/{username:"+minecraft.ValidUsernameRegex+"}/{size:[0-9]+}{extension:(.png)?}", bustPage)
 
 	r.HandleFunc("/download/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", downloadPage)
 

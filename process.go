@@ -138,6 +138,16 @@ func (skin *mcSkin) GetBody() error {
 	return nil
 }
 
+func (skin *mcSkin) GetBust() error {
+	err := skin.GetBody()
+	if err != nil {
+		return err
+	}
+
+	skin.Processed, err = cropImage(skin.Processed, image.Rect(0, 0, 16, 16))
+	return err
+}
+
 func (skin *mcSkin) WritePNG(w io.Writer) error {
 	return png.Encode(w, skin.Processed)
 }
@@ -148,6 +158,10 @@ func (skin *mcSkin) Resize(width uint) {
 
 func cropHead(img image.Image) (image.Image, error) {
 	return cropImage(img, image.Rect(HeadX, HeadY, HeadX+HeadWidth, HeadY+HeadHeight))
+}
+
+func WritePNG(w io.Writer, i image.Image) error {
+	return png.Encode(w, i)
 }
 
 func cropHelm(img image.Image) (image.Image, error) {
