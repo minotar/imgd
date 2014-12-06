@@ -63,39 +63,12 @@ func (skin *mcSkin) GetHead() error {
 }
 
 func (skin *mcSkin) GetHelm() error {
-	// check if helm is solid colour - if so, it counts as transparent
-	isSolidColour := true
-	baseColour := skin.Image.At(HelmX, HelmY)
-	for checkX := HelmX; checkX < HelmX+HelmWidth; checkX++ {
-		for checkY := HelmY; checkY < HelmY+HelmHeight; checkY++ {
-			checkColour := skin.Image.At(checkX, checkY)
-			if checkColour != baseColour {
-				isSolidColour = false
-				break
-			}
-		}
-	}
-
-	headImg, err := cropHead(skin.Image)
+	helm, err := cropHelm(skin.Image)
 	if err != nil {
 		return err
 	}
 
-	skin.Processed = headImg
-
-	if isSolidColour {
-		return nil
-	}
-
-	headImgRGBA := headImg.(*image.RGBA)
-
-	helmImg, err := cropImage(skin.Image, image.Rect(HelmX, HelmY, HelmX+HelmWidth, HelmY+HelmHeight))
-	if err != nil {
-		return err
-	}
-
-	sr := helmImg.Bounds()
-	draw.Draw(headImgRGBA, sr, helmImg, sr.Min, draw.Over)
+	skin.Processed = helm
 	return nil
 }
 
@@ -107,11 +80,10 @@ func (skin *mcSkin) GetBody() error {
 		render18Skin = false
 	}
 
-	err := skin.GetHelm()
+	helmImg, err := cropHelm(skin.Image)
 	if err != nil {
 		return err
 	}
-	helmImg := skin.Processed
 
 	torsoImg, err := cropImage(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+TorsoHeight))
 	if err != nil {
@@ -176,6 +148,41 @@ func (skin *mcSkin) Resize(width uint) {
 
 func cropHead(img image.Image) (image.Image, error) {
 	return cropImage(img, image.Rect(HeadX, HeadY, HeadX+HeadWidth, HeadY+HeadHeight))
+}
+
+func cropHelm(img image.Image) (image.Image, error) {
+	// check if helm is solid colour - if so, it counts as transparent
+	isSolidColour := true
+	baseColour := img.At(HelmX, HelmY)
+	for checkX := HelmX; checkX < HelmX+HelmWidth; checkX++ {
+		for checkY := HelmY; checkY < HelmY+HelmHeight; checkY++ {
+			checkColour := img.At(checkX, checkY)
+			if checkColour != baseColour {
+				isSolidColour = false
+				break
+			}
+		}
+	}
+
+	headImg, err := cropHead(img)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !isSolidColour {
+		headImgRGBA := headImg.(*image.RGBA)
+
+		helmImg, err := cropImage(img, image.Rect(HelmX, HelmY, HelmX+HelmWidth, HelmY+HelmHeight))
+		if err != nil {
+			return nil, err
+		}
+
+		sr := helmImg.Bounds()
+		draw.Draw(headImgRGBA, sr, helmImg, sr.Min, draw.Over)
+	}
+
+	return headImg, nil
 }
 
 func cropImage(i image.Image, d image.Rectangle) (image.Image, error) {
