@@ -151,36 +151,21 @@ func cropHead(img image.Image) (image.Image, error) {
 }
 
 func cropHelm(img image.Image) (image.Image, error) {
-	// check if helm is solid colour - if so, it counts as transparent
-	isSolidColour := true
-	baseColour := img.At(HelmX, HelmY)
-	for checkX := HelmX; checkX < HelmX+HelmWidth; checkX++ {
-		for checkY := HelmY; checkY < HelmY+HelmHeight; checkY++ {
-			checkColour := img.At(checkX, checkY)
-			if checkColour != baseColour {
-				isSolidColour = false
-				break
-			}
-		}
-	}
-
 	headImg, err := cropHead(img)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if !isSolidColour {
-		headImgRGBA := headImg.(*image.RGBA)
+	headImgRGBA := headImg.(*image.RGBA)
 
-		helmImg, err := cropImage(img, image.Rect(HelmX, HelmY, HelmX+HelmWidth, HelmY+HelmHeight))
-		if err != nil {
-			return nil, err
-		}
-
-		sr := helmImg.Bounds()
-		draw.Draw(headImgRGBA, sr, helmImg, sr.Min, draw.Over)
+	helmImg, err := cropImage(img, image.Rect(HelmX, HelmY, HelmX+HelmWidth, HelmY+HelmHeight))
+	if err != nil {
+		return nil, err
 	}
+
+	sr := helmImg.Bounds()
+	draw.Draw(headImgRGBA, sr, helmImg, sr.Min, draw.Over)
 
 	return headImg, nil
 }
