@@ -171,10 +171,6 @@ func (skin *mcSkin) WritePNG(w io.Writer) error {
 }
 
 func (skin *mcSkin) Resize(width uint) {
-	if skin.Processed == nil {
-		print("oh no")
-		return
-	}
 	skin.Processed = imaging.Resize(skin.Processed, int(width), 0, imaging.NearestNeighbor)
 }
 
