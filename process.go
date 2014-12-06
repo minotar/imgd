@@ -47,11 +47,22 @@ const (
 	LlHeight = 12
 )
 
-func GetHead(skin minecraft.Skin) (image.Image, error) {
-	return cropImage(skin.Image, image.Rect(HeadX, HeadY, HeadX+HeadWidth, HeadY+HeadHeight))
+type mcSkin struct {
+	Processed image.Image
+	minecraft.Skin
 }
 
-func GetHelm(skin minecraft.Skin) (image.Image, error) {
+func (skin *mcSkin) GetHead() (image.Image, error) {
+	img, err := cropImage(skin.Image, image.Rect(HeadX, HeadY, HeadX+HeadWidth, HeadY+HeadHeight))
+	if err != nil {
+		return nil, err
+	}
+
+	skin.Processed = img
+	return img, nil
+}
+
+func (skin *mcSkin) GetHelm() (image.Image, error) {
 	// check if helm is solid colour - if so, it counts as transparent
 	isSolidColour := true
 	baseColour := skin.Image.At(HelmX, HelmY)
@@ -66,10 +77,15 @@ func GetHelm(skin minecraft.Skin) (image.Image, error) {
 	}
 
 	if isSolidColour {
-		return GetHead(skin)
+		_, err := skin.GetHead()
+		if err != nil {
+			return nil, err
+		} else {
+			return skin.Processed, nil
+		}
 	}
 
-	headImg, err := GetHead(skin)
+	headImg, err := skin.GetHead()
 	if err != nil {
 		return nil, err
 	}
@@ -84,10 +100,11 @@ func GetHelm(skin minecraft.Skin) (image.Image, error) {
 	sr := helmImg.Bounds()
 	draw.Draw(headImgRGBA, sr, helmImg, sr.Min, draw.Over)
 
+	skin.Processed = headImg
 	return headImg, nil
 }
 
-func GetBody(skin minecraft.Skin) (image.Image, error) {
+func (skin *mcSkin) GetBody() (image.Image, error) {
 	// Check if 1.8 skin (the max Y bound should be 64)
 	render18Skin := true
 	bounds := skin.Image.Bounds()
@@ -95,7 +112,7 @@ func GetBody(skin minecraft.Skin) (image.Image, error) {
 		render18Skin = false
 	}
 
-	helmImg, err := GetHelm(skin)
+	helmImg, err := skin.GetHelm()
 	if err != nil {
 		return nil, err
 	}
@@ -149,15 +166,20 @@ func GetBody(skin minecraft.Skin) (image.Image, error) {
 	// Right Leg
 	draw.Draw(bodyImg, image.Rect(LaWidth+LlWidth, HelmHeight+TorsoHeight, LaWidth+LlWidth+RlWidth, HelmHeight+TorsoHeight+RlHeight), rlImg, image.Pt(0, 0), draw.Src)
 
+	skin.Processed = bodyImg
 	return bodyImg, nil
 }
 
-func WritePNG(w io.Writer, i image.Image) error {
-	return png.Encode(w, i)
+func (skin *mcSkin) WritePNG(w io.Writer) error {
+	return png.Encode(w, skin.Processed)
 }
 
-func Resize(width uint, img image.Image) image.Image {
-	return imaging.Resize(img, int(width), 0, imaging.NearestNeighbor)
+func (skin *mcSkin) Resize(width uint) {
+	if skin.Processed == nil {
+		print("oh no")
+		return
+	}
+	skin.Processed = imaging.Resize(skin.Processed, int(width), 0, imaging.NearestNeighbor)
 }
 
 func cropImage(i image.Image, d image.Rectangle) (image.Image, error) {
