@@ -32,6 +32,7 @@ const (
 
 var (
 	config = &Configuration{}
+	cache  = MakeCache()
 )
 
 type NotFoundHandler struct{}
@@ -142,12 +143,17 @@ func downloadPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func fetchSkin(username string) minecraft.Skin {
+	if cache.has(username) {
+		return cache.pull(username)
+	}
+
 	skin, err := minecraft.FetchSkinFromUrl(username)
 	if err != nil {
 		log.Error("Failed to get skin for " + username + " from Mojang (" + err.Error() + ")")
 		skin, _ = minecraft.FetchSkinForChar()
 	}
 
+	cache.add(username, skin)
 	return skin
 
 	/* We're not using this for now due to rate limiting restrictions
