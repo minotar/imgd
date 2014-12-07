@@ -31,7 +31,7 @@ const (
 
 var (
 	config = &Configuration{}
-	cache  = MakeCache()
+	cache  = MakeCache(config.Cache)
 )
 
 type NotFoundHandler struct{}

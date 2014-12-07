@@ -16,6 +16,7 @@ const (
 
 type Configuration struct {
 	Address string
+	Cache string
 }
 
 // Reads the configuration from the config file, copying a config into
