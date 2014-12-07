@@ -181,19 +181,29 @@ func fetchSkin(username string) *mcSkin {
 var log = logging.MustGetLogger("imgd")
 var format = "[%{time:15:04:05.000000}] %{level:.4s} %{message}"
 
-func main() {
+func setupConfig() {
 	err := config.load()
 	if err != nil {
 		fmt.Printf("Error loading config: %s\n", err)
 		return
 	}
+}
 
+func setupCache() {
 	cache = MakeCache(config.Cache)
 	cache.setup()
+}
 
-	logBackend := logging.NewLogBackend(os.Stdout, "", 0)
+func setupLog(logBackend *logging.LogBackend) {
 	logging.SetBackend(logBackend)
 	logging.SetFormatter(logging.MustStringFormatter(format))
+}
+
+func main() {
+	logBackend := logging.NewLogBackend(os.Stdout, "", 0)
+	setupConfig()
+	setupLog(logBackend)
+	setupCache()
 
 	debug.SetGCPercent(10)
 
@@ -239,6 +249,6 @@ func main() {
 	})
 
 	http.Handle("/", r)
-	err = http.ListenAndServe(config.Address, nil)
+	err := http.ListenAndServe(config.Address, nil)
 	log.Critical(err.Error())
 }
