@@ -130,17 +130,12 @@ func cropHead(img image.Image) image.Image {
 	return imaging.Crop(img, image.Rect(HeadX, HeadY, HeadX+HeadWidth, HeadY+HeadHeight))
 }
 
-func WritePNG(w io.Writer, i image.Image) error {
-	return png.Encode(w, i)
-}
-
 func cropHelm(img image.Image) image.Image {
 	headImg := cropHead(img)
-	headImgRGBA := headImg.(*image.RGBA)
 	helmImg := imaging.Crop(img, image.Rect(HelmX, HelmY, HelmX+HelmWidth, HelmY+HelmHeight))
 
 	sr := helmImg.Bounds()
-	draw.Draw(headImgRGBA, sr, helmImg, sr.Min, draw.Over)
+	draw.Draw(helmImg, sr, helmImg, sr.Min, draw.Over)
 
 	return headImg
 }
