@@ -64,6 +64,44 @@ func (skin *mcSkin) GetHelm() error {
 	return nil
 }
 
+func (skin *mcSkin) GetBust() error {
+	// Check if 1.8 skin (the max Y bound should be 64)
+	render18Skin := true
+	bounds := skin.Image.Bounds()
+	if bounds.Max.Y != 64 {
+		render18Skin = false
+	}
+
+	BustShift := BustHeight - HeadHeight
+
+	helmImg := cropHelm(skin.Image)
+	torsoImg := imaging.Crop(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+BustShift))
+	raImg := imaging.Crop(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+BustShift))
+
+	var laImg image.Image
+
+	// If the skin is 1.8 then we will use the left arms and legs, otherwise flip the right ones and use them.
+	if render18Skin {
+		laImg = imaging.Crop(skin.Image, image.Rect(LaX, LaY, LaX+LaWidth, LaY+BustShift))
+	} else {
+		laImg = imaging.FlipH(raImg)
+	}
+
+	// Create a blank canvas for us to draw our bust on
+	bustImg := image.NewRGBA(image.Rect(0, 0, LaWidth+TorsoWidth+RaWidth, BustHeight))
+	// Helm
+	draw.Draw(bustImg, image.Rect(LaWidth, 0, LaWidth+HelmWidth, HelmHeight), helmImg, image.Pt(0, 0), draw.Src)
+	// Torso
+	draw.Draw(bustImg, image.Rect(LaWidth, HelmHeight, LaWidth+TorsoWidth, BustHeight), torsoImg, image.Pt(0, 0), draw.Src)
+	// Left Arm
+	draw.Draw(bustImg, image.Rect(0, HelmHeight, LaWidth, BustHeight), laImg, image.Pt(0, 0), draw.Src)
+	// Right Arm
+	draw.Draw(bustImg, image.Rect(LaWidth+TorsoWidth, HelmHeight, LaWidth+TorsoWidth+RaWidth, BustHeight), raImg, image.Pt(0, 0), draw.Src)
+
+	skin.Processed = bustImg
+	return nil
+}
+
 func (skin *mcSkin) GetBody() error {
 	// Check if 1.8 skin (the max Y bound should be 64)
 	render18Skin := true
@@ -105,16 +143,6 @@ func (skin *mcSkin) GetBody() error {
 	draw.Draw(bodyImg, image.Rect(LaWidth+LlWidth, HelmHeight+TorsoHeight, LaWidth+LlWidth+RlWidth, HelmHeight+TorsoHeight+RlHeight), rlImg, image.Pt(0, 0), draw.Src)
 
 	skin.Processed = bodyImg
-	return nil
-}
-
-func (skin *mcSkin) GetBust() error {
-	err := skin.GetBody()
-	if err != nil {
-		return err
-	}
-
-	skin.Processed = imaging.Crop(skin.Processed, image.Rect(0, 0, 16, 16))
 	return nil
 }
 
