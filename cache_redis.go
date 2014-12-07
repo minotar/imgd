@@ -8,8 +8,6 @@ import (
 	"time"
 )
 
-const ()
-
 type CacheRedis struct {
 	Client *redis.Client
 }
