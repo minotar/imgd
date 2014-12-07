@@ -15,10 +15,9 @@ $ go build
 ```
 After you run `go build`, golang should automatically generate you an executable file (named `imgd`). Executing the file is simple: simply run:
 ```bash
-$ export IMGD_LISTENON=:8000
 $ ./imgd
 ```
-There you have it! Go visit your installation at *your-ip*:8000 to view it in action.
+There you have it! Go visit your installation at *your-ip*:8000 to view it in action. If you wish to change the address the server listens on, you can do so by editing `config.json`.
 
 ## Understanding Headers
 We use a couple of headers to help in understanding how something is served, here they are:
