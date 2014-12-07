@@ -101,24 +101,15 @@ func GetBust(skin minecraft.Skin) (image.Image, error) {
 		return nil, err
 	}
 
-	torsoImg, err := cropImage(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+BustShift))
-	if err != nil {
-		return nil, err
-	}
+	torsoImg := imaging.Crop(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+BustShift))
 
-	raImg, err := cropImage(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+BustShift))
-	if err != nil {
-		return nil, err
-	}
+	raImg := imaging.Crop(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+BustShift))
 
 	var laImg image.Image
 
 	// If the skin is 1.8 then we will use the left arms and legs, otherwise flip the right ones and use them.
 	if render18Skin {
-		laImg, err = cropImage(skin.Image, image.Rect(LaX, LaY, LaX+LaWidth, LaY+BustShift))
-		if err != nil {
-			return nil, err
-		}
+		laImg = imaging.Crop(skin.Image, image.Rect(LaX, LaY, LaX+LaWidth, LaY+BustShift))
 	} else {
 		laImg = imaging.FlipH(raImg)
 	}
