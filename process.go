@@ -49,44 +49,22 @@ const (
 	BustHeight = 16
 )
 
-func GetHead(skin minecraft.Skin) (image.Image, error) {
-	return imaging.Crop(skin.Image, image.Rect(HeadX, HeadY, HeadX+HeadWidth, HeadY+HeadHeight)), nil
+type mcSkin struct {
+	Processed image.Image
+	minecraft.Skin
 }
 
-func GetHelm(skin minecraft.Skin) (image.Image, error) {
-	// check if helm is solid colour - if so, it counts as transparent
-	isSolidColour := true
-	baseColour := skin.Image.At(HelmX, HelmY)
-	for checkX := HelmX; checkX < HelmX+HelmWidth; checkX++ {
-		for checkY := HelmY; checkY < HelmY+HelmHeight; checkY++ {
-			checkColour := skin.Image.At(checkX, checkY)
-			if checkColour != baseColour {
-				isSolidColour = false
-				break
-			}
-		}
-	}
-
-	if isSolidColour {
-		return GetHead(skin)
-	}
-
-	headImg, err := GetHead(skin)
-	if err != nil {
-		return nil, err
-	}
-
-	headImgRGBA := headImg.(*image.RGBA)
-
-	helmImg := imaging.Crop(skin.Image, image.Rect(HelmX, HelmY, HelmX+HelmWidth, HelmY+HelmHeight))
-
-	sr := helmImg.Bounds()
-	draw.Draw(headImgRGBA, sr, helmImg, sr.Min, draw.Over)
-
-	return headImg, nil
+func (skin *mcSkin) GetHead() error {
+	skin.Processed = cropHead(skin.Image)
+	return nil
 }
 
-func GetBust(skin minecraft.Skin) (image.Image, error) {
+func (skin *mcSkin) GetHelm() error {
+	skin.Processed = cropHelm(skin.Image)
+	return nil
+}
+
+func (skin *mcSkin) GetBody() error {
 	// Check if 1.8 skin (the max Y bound should be 64)
 	render18Skin := true
 	bounds := skin.Image.Bounds()
@@ -94,53 +72,7 @@ func GetBust(skin minecraft.Skin) (image.Image, error) {
 		render18Skin = false
 	}
 
-	BustShift := BustHeight - HeadHeight
-
-	helmImg, err := GetHelm(skin)
-	if err != nil {
-		return nil, err
-	}
-
-	torsoImg := imaging.Crop(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+BustShift))
-
-	raImg := imaging.Crop(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+BustShift))
-
-	var laImg image.Image
-
-	// If the skin is 1.8 then we will use the left arms and legs, otherwise flip the right ones and use them.
-	if render18Skin {
-		laImg = imaging.Crop(skin.Image, image.Rect(LaX, LaY, LaX+LaWidth, LaY+BustShift))
-	} else {
-		laImg = imaging.FlipH(raImg)
-	}
-
-	// Create a blank canvas for us to draw our body on
-	bustImg := image.NewRGBA(image.Rect(0, 0, LaWidth+TorsoWidth+RaWidth, BustHeight))
-	// Helm
-	draw.Draw(bustImg, image.Rect(LaWidth, 0, LaWidth+HelmWidth, HelmHeight), helmImg, image.Pt(0, 0), draw.Src)
-	// Torso
-	draw.Draw(bustImg, image.Rect(LaWidth, HelmHeight, LaWidth+TorsoWidth, BustHeight), torsoImg, image.Pt(0, 0), draw.Src)
-	// Left Arm
-	draw.Draw(bustImg, image.Rect(0, HelmHeight, LaWidth, BustHeight), laImg, image.Pt(0, 0), draw.Src)
-	// Right Arm
-	draw.Draw(bustImg, image.Rect(LaWidth+TorsoWidth, HelmHeight, LaWidth+TorsoWidth+RaWidth, BustHeight), raImg, image.Pt(0, 0), draw.Src)
-
-	return bustImg, nil
-}
-
-func GetBody(skin minecraft.Skin) (image.Image, error) {
-	// Check if 1.8 skin (the max Y bound should be 64)
-	render18Skin := true
-	bounds := skin.Image.Bounds()
-	if bounds.Max.Y != 64 {
-		render18Skin = false
-	}
-
-	helmImg, err := GetHelm(skin)
-	if err != nil {
-		return nil, err
-	}
-
+	helmImg := cropHelm(skin.Image)
 	torsoImg := imaging.Crop(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+TorsoHeight))
 	raImg := imaging.Crop(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+RaHeight))
 	rlImg := imaging.Crop(skin.Image, image.Rect(RlX, RlY, RlX+RlWidth, RlY+RlHeight))
@@ -172,13 +104,38 @@ func GetBody(skin minecraft.Skin) (image.Image, error) {
 	// Right Leg
 	draw.Draw(bodyImg, image.Rect(LaWidth+LlWidth, HelmHeight+TorsoHeight, LaWidth+LlWidth+RlWidth, HelmHeight+TorsoHeight+RlHeight), rlImg, image.Pt(0, 0), draw.Src)
 
-	return bodyImg, nil
+	skin.Processed = bodyImg
+	return nil
 }
 
-func WritePNG(w io.Writer, i image.Image) error {
-	return png.Encode(w, i)
+func (skin *mcSkin) GetBust() error {
+	err := skin.GetBody()
+	if err != nil {
+		return err
+	}
+
+	skin.Processed = imaging.Crop(skin.Processed, image.Rect(0, 0, 16, 16))
+	return nil
 }
 
-func Resize(width uint, img image.Image) image.Image {
-	return imaging.Resize(img, int(width), 0, imaging.NearestNeighbor)
+func (skin *mcSkin) WritePNG(w io.Writer) error {
+	return png.Encode(w, skin.Processed)
+}
+
+func (skin *mcSkin) Resize(width uint) {
+	skin.Processed = imaging.Resize(skin.Processed, int(width), 0, imaging.NearestNeighbor)
+}
+
+func cropHead(img image.Image) image.Image {
+	return imaging.Crop(img, image.Rect(HeadX, HeadY, HeadX+HeadWidth, HeadY+HeadHeight))
+}
+
+func cropHelm(img image.Image) image.Image {
+	headImg := cropHead(img)
+	helmImg := imaging.Crop(img, image.Rect(HelmX, HelmY, HelmX+HelmWidth, HelmY+HelmHeight))
+
+	sr := helmImg.Bounds()
+	draw.Draw(helmImg, sr, helmImg, sr.Min, draw.Over)
+
+	return headImg
 }

@@ -5,7 +5,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/minotar/minecraft"
 	"github.com/op/go-logging"
-	"image"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -77,7 +76,7 @@ func timeBetween(timeA time.Time, timeB time.Time) int64 {
 	return timeB.Sub(timeA).Nanoseconds() / 1000000
 }
 
-func fetchImageProcessThen(callback func(minecraft.Skin) (image.Image, error)) func(w http.ResponseWriter, r *http.Request) {
+func fetchImageProcessThen(callback func(*mcSkin) error) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		timeReqStart := time.Now()
 
@@ -92,14 +91,13 @@ func fetchImageProcessThen(callback func(minecraft.Skin) (image.Image, error)) f
 
 		timeFetch := time.Now()
 
-		img, err := callback(skin)
+		err = callback(skin)
 		if err != nil {
 			serverErrorPage(w, r)
 			return
 		}
 		timeProcess := time.Now()
-
-		imgResized := Resize(size, img)
+		skin.Resize(size)
 		timeResize := time.Now()
 
 		w.Header().Add("Content-Type", "image/png")
@@ -118,7 +116,7 @@ func fetchImageProcessThen(callback func(minecraft.Skin) (image.Image, error)) f
 
 		w.Header().Add("X-Timing", timing)
 		addCacheTimeoutHeader(w, timeout)
-		WritePNG(w, imgResized)
+		skin.WritePNG(w)
 
 		log.Info("Serving skin for " + username + " (" + timing + ") md5: " + skin.Hash)
 	}
@@ -134,7 +132,7 @@ func skinPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("X-Requested", "skin")
 	w.Header().Add("X-Result", "ok")
 
-	WritePNG(w, skin.Image)
+	skin.WritePNG(w)
 }
 func downloadPage(w http.ResponseWriter, r *http.Request) {
 	headers := w.Header()
@@ -142,9 +140,9 @@ func downloadPage(w http.ResponseWriter, r *http.Request) {
 	skinPage(w, r)
 }
 
-func fetchSkin(username string) minecraft.Skin {
+func fetchSkin(username string) *mcSkin {
 	if cache.has(username) {
-		return cache.pull(username)
+		return &mcSkin{Processed: nil, Skin: cache.pull(username)}
 	}
 
 	skin, err := minecraft.FetchSkinFromUrl(username)
@@ -154,7 +152,7 @@ func fetchSkin(username string) minecraft.Skin {
 	}
 
 	cache.add(username, skin)
-	return skin
+	return &mcSkin{Processed: nil, Skin: skin}
 
 	/* We're not using this for now due to rate limiting restrictions
 	skin, err := minecraft.GetSkin(minecraft.User{Name: username})
@@ -196,17 +194,17 @@ func main() {
 
 	debug.SetGCPercent(10)
 
-	avatarPage := fetchImageProcessThen(func(skin minecraft.Skin) (image.Image, error) {
-		return GetHead(skin)
+	avatarPage := fetchImageProcessThen(func(skin *mcSkin) error {
+		return skin.GetHead()
 	})
-	helmPage := fetchImageProcessThen(func(skin minecraft.Skin) (image.Image, error) {
-		return GetHelm(skin)
+	helmPage := fetchImageProcessThen(func(skin *mcSkin) error {
+		return skin.GetHelm()
 	})
-	bodyPage := fetchImageProcessThen(func(skin minecraft.Skin) (image.Image, error) {
-		return GetBody(skin)
+	bodyPage := fetchImageProcessThen(func(skin *mcSkin) error {
+		return skin.GetBody()
 	})
-	bustPage := fetchImageProcessThen(func(skin minecraft.Skin) (image.Image, error) {
-		return GetBust(skin)
+	bustPage := fetchImageProcessThen(func(skin *mcSkin) error {
+		return skin.GetBust()
 	})
 
 	r := mux.NewRouter()
