@@ -43,3 +43,21 @@ func BenchmarkGetBust(b *testing.B) {
 		GetBust(skin)
 	}
 }
+
+func BenchmarkGetBustV2(b *testing.B) {
+	skin := fetchSkin("clone1018")
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		GetBustV2(skin)
+	}
+}
+
+func BenchmarkGetBustV3(b *testing.B) {
+	skin := fetchSkin("clone1018")
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		GetBustV3(skin)
+	}
+}
