@@ -30,7 +30,8 @@ const (
 )
 
 var (
-	ListenOn = ":9999"
+	config = &Configuration{}
+	cache  = MakeCache()
 )
 
 type NotFoundHandler struct{}
@@ -140,12 +141,17 @@ func downloadPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func fetchSkin(username string) *mcSkin {
+	if cache.has(username) {
+		return &mcSkin{Processed: nil, Skin: cache.pull(username)}
+	}
+
 	skin, err := minecraft.FetchSkinFromUrl(username)
 	if err != nil {
 		log.Error("Failed to get skin for " + username + " from Mojang (" + err.Error() + ")")
 		skin, _ = minecraft.FetchSkinForChar()
 	}
 
+	cache.add(username, skin)
 	return &mcSkin{Processed: nil, Skin: skin}
 
 	/* We're not using this for now due to rate limiting restrictions
@@ -176,15 +182,17 @@ var log = logging.MustGetLogger("imgd")
 var format = "[%{time:15:04:05.000000}] %{level:.4s} %{message}"
 
 func main() {
+	err := config.load()
+	if err != nil {
+		fmt.Printf("Error loading config: %s\n", err)
+		return
+	}
+
 	logBackend := logging.NewLogBackend(os.Stdout, "", 0)
 	logging.SetBackend(logBackend)
 	logging.SetFormatter(logging.MustStringFormatter(format))
 
 	debug.SetGCPercent(10)
-
-	if os.Getenv("IMGD_LISTENON") != "" {
-		ListenOn = os.Getenv("IMGD_LISTENON")
-	}
 
 	avatarPage := fetchImageProcessThen(func(skin *mcSkin) error {
 		return skin.GetHead()
@@ -228,6 +236,6 @@ func main() {
 	})
 
 	http.Handle("/", r)
-	err := http.ListenAndServe(ListenOn, nil)
+	err = http.ListenAndServe(config.Address, nil)
 	log.Critical(err.Error())
 }

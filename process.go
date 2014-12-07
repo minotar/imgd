@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"github.com/disintegration/imaging"
 	"github.com/minotar/minecraft"
 	"image"
@@ -45,6 +44,9 @@ const (
 	LlY      = 52
 	LlWidth  = 4
 	LlHeight = 12
+
+	// The height of the 'bust' relative to the width of the body (16)
+	BustHeight = 16
 )
 
 type mcSkin struct {
@@ -53,22 +55,12 @@ type mcSkin struct {
 }
 
 func (skin *mcSkin) GetHead() error {
-	img, err := cropHead(skin.Image)
-	if err != nil {
-		return err
-	}
-
-	skin.Processed = img
+	skin.Processed = cropHead(skin.Image)
 	return nil
 }
 
 func (skin *mcSkin) GetHelm() error {
-	helm, err := cropHelm(skin.Image)
-	if err != nil {
-		return err
-	}
-
-	skin.Processed = helm
+	skin.Processed = cropHelm(skin.Image)
 	return nil
 }
 
@@ -80,39 +72,17 @@ func (skin *mcSkin) GetBody() error {
 		render18Skin = false
 	}
 
-	helmImg, err := cropHelm(skin.Image)
-	if err != nil {
-		return err
-	}
-
-	torsoImg, err := cropImage(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+TorsoHeight))
-	if err != nil {
-		return err
-	}
-
-	raImg, err := cropImage(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+RaHeight))
-	if err != nil {
-		return err
-	}
-
-	rlImg, err := cropImage(skin.Image, image.Rect(RlX, RlY, RlX+RlWidth, RlY+RlHeight))
-	if err != nil {
-		return err
-	}
+	helmImg := cropHelm(skin.Image)
+	torsoImg := imaging.Crop(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+TorsoHeight))
+	raImg := imaging.Crop(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+RaHeight))
+	rlImg := imaging.Crop(skin.Image, image.Rect(RlX, RlY, RlX+RlWidth, RlY+RlHeight))
 
 	var laImg, llImg image.Image
 
 	// If the skin is 1.8 then we will use the left arms and legs, otherwise flip the right ones and use them.
 	if render18Skin {
-		laImg, err = cropImage(skin.Image, image.Rect(LaX, LaY, LaX+LaWidth, LaY+LaHeight))
-		if err != nil {
-			return err
-		}
-
-		llImg, err = cropImage(skin.Image, image.Rect(LlX, LlY, LlX+LlWidth, LlY+LlHeight))
-		if err != nil {
-			return err
-		}
+		laImg = imaging.Crop(skin.Image, image.Rect(LaX, LaY, LaX+LaWidth, LaY+LaHeight))
+		llImg = imaging.Crop(skin.Image, image.Rect(LlX, LlY, LlX+LlWidth, LlY+LlHeight))
 	} else {
 		laImg = imaging.FlipH(raImg)
 
@@ -144,8 +114,8 @@ func (skin *mcSkin) GetBust() error {
 		return err
 	}
 
-	skin.Processed, err = cropImage(skin.Processed, image.Rect(0, 0, 16, 16))
-	return err
+	skin.Processed = imaging.Crop(skin.Processed, image.Rect(0, 0, 16, 16))
+	return nil
 }
 
 func (skin *mcSkin) WritePNG(w io.Writer) error {
@@ -156,46 +126,21 @@ func (skin *mcSkin) Resize(width uint) {
 	skin.Processed = imaging.Resize(skin.Processed, int(width), 0, imaging.NearestNeighbor)
 }
 
-func cropHead(img image.Image) (image.Image, error) {
-	return cropImage(img, image.Rect(HeadX, HeadY, HeadX+HeadWidth, HeadY+HeadHeight))
+func cropHead(img image.Image) image.Image {
+	return imaging.Crop(img, image.Rect(HeadX, HeadY, HeadX+HeadWidth, HeadY+HeadHeight))
 }
 
 func WritePNG(w io.Writer, i image.Image) error {
 	return png.Encode(w, i)
 }
 
-func cropHelm(img image.Image) (image.Image, error) {
-	headImg, err := cropHead(img)
-
-	if err != nil {
-		return nil, err
-	}
-
+func cropHelm(img image.Image) image.Image {
+	headImg := cropHead(img)
 	headImgRGBA := headImg.(*image.RGBA)
-
-	helmImg, err := cropImage(img, image.Rect(HelmX, HelmY, HelmX+HelmWidth, HelmY+HelmHeight))
-	if err != nil {
-		return nil, err
-	}
+	helmImg := imaging.Crop(img, image.Rect(HelmX, HelmY, HelmX+HelmWidth, HelmY+HelmHeight))
 
 	sr := helmImg.Bounds()
 	draw.Draw(headImgRGBA, sr, helmImg, sr.Min, draw.Over)
 
-	return headImg, nil
-}
-
-func cropImage(i image.Image, d image.Rectangle) (image.Image, error) {
-	bounds := i.Bounds()
-	if bounds.Min.X > d.Min.X || bounds.Min.Y > d.Min.Y || bounds.Max.X < d.Max.X || bounds.Max.Y < d.Max.Y {
-		return nil, errors.New("Bounds invalid for crop")
-	}
-
-	dims := d.Size()
-	outIm := image.NewRGBA(image.Rect(0, 0, dims.X, dims.Y))
-	for x := 0; x < dims.X; x++ {
-		for y := 0; y < dims.Y; y++ {
-			outIm.Set(x, y, i.At(d.Min.X+x, d.Min.Y+y))
-		}
-	}
-	return outIm, nil
+	return headImg
 }

@@ -34,3 +34,12 @@ func BenchmarkGetBody(b *testing.B) {
 		skin.GetBody()
 	}
 }
+
+func BenchmarkGetBust(b *testing.B) {
+	skin := fetchSkin("clone1018")
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		GetBust(skin)
+	}
+}
