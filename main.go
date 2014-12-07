@@ -231,8 +231,8 @@ func main() {
 	})
 
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Location", "https://minotar.net/")
 		w.WriteHeader(302)
+		w.Header().Set("Location", "https://minotar.net/")
 	})
 
 	http.Handle("/", r)
