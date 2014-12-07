@@ -46,8 +46,8 @@ const (
 	LlWidth  = 4
 	LlHeight = 12
 
-    // The height of the 'bust' relative to the width of the body (16) 
-    BustHeight = 16
+	// The height of the 'bust' relative to the width of the body (16)
+	BustHeight = 16
 )
 
 func GetHead(skin minecraft.Skin) (image.Image, error) {
@@ -98,7 +98,7 @@ func GetBust(skin minecraft.Skin) (image.Image, error) {
 		render18Skin = false
 	}
 
-	BustShift := BustHeight-HeadHeight
+	BustShift := BustHeight - HeadHeight
 
 	helmImg, err := GetHelm(skin)
 	if err != nil {
