@@ -45,6 +45,9 @@ const (
 	LlY      = 52
 	LlWidth  = 4
 	LlHeight = 12
+
+	// The height of the 'bust' relative to the width of the body (16)
+	BustHeight = 16
 )
 
 func GetHead(skin minecraft.Skin) (image.Image, error) {
@@ -85,6 +88,57 @@ func GetHelm(skin minecraft.Skin) (image.Image, error) {
 	draw.Draw(headImgRGBA, sr, helmImg, sr.Min, draw.Over)
 
 	return headImg, nil
+}
+
+func GetBust(skin minecraft.Skin) (image.Image, error) {
+	// Check if 1.8 skin (the max Y bound should be 64)
+	render18Skin := true
+	bounds := skin.Image.Bounds()
+	if bounds.Max.Y != 64 {
+		render18Skin = false
+	}
+
+	BustShift := BustHeight - HeadHeight
+
+	helmImg, err := GetHelm(skin)
+	if err != nil {
+		return nil, err
+	}
+
+	torsoImg, err := cropImage(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+BustShift))
+	if err != nil {
+		return nil, err
+	}
+
+	raImg, err := cropImage(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+BustShift))
+	if err != nil {
+		return nil, err
+	}
+
+	var laImg image.Image
+
+	// If the skin is 1.8 then we will use the left arms and legs, otherwise flip the right ones and use them.
+	if render18Skin {
+		laImg, err = cropImage(skin.Image, image.Rect(LaX, LaY, LaX+LaWidth, LaY+BustShift))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		laImg = imaging.FlipH(raImg)
+	}
+
+	// Create a blank canvas for us to draw our body on
+	bustImg := image.NewRGBA(image.Rect(0, 0, LaWidth+TorsoWidth+RaWidth, BustHeight))
+	// Helm
+	draw.Draw(bustImg, image.Rect(LaWidth, 0, LaWidth+HelmWidth, HelmHeight), helmImg, image.Pt(0, 0), draw.Src)
+	// Torso
+	draw.Draw(bustImg, image.Rect(LaWidth, HelmHeight, LaWidth+TorsoWidth, BustHeight), torsoImg, image.Pt(0, 0), draw.Src)
+	// Left Arm
+	draw.Draw(bustImg, image.Rect(0, HelmHeight, LaWidth, BustHeight), laImg, image.Pt(0, 0), draw.Src)
+	// Right Arm
+	draw.Draw(bustImg, image.Rect(LaWidth+TorsoWidth, HelmHeight, LaWidth+TorsoWidth+RaWidth, BustHeight), raImg, image.Pt(0, 0), draw.Src)
+
+	return bustImg, nil
 }
 
 func GetBody(skin minecraft.Skin) (image.Image, error) {
@@ -150,14 +204,6 @@ func GetBody(skin minecraft.Skin) (image.Image, error) {
 	draw.Draw(bodyImg, image.Rect(LaWidth+LlWidth, HelmHeight+TorsoHeight, LaWidth+LlWidth+RlWidth, HelmHeight+TorsoHeight+RlHeight), rlImg, image.Pt(0, 0), draw.Src)
 
 	return bodyImg, nil
-}
-
-func GetBust(skin minecraft.Skin) (image.Image, error) {
-	body, err := GetBody(skin)
-	if err != nil {
-		return nil, err
-	}
-	return cropImage(body, image.Rect(0, 0, 16, 16))
 }
 
 func WritePNG(w io.Writer, i image.Image) error {
