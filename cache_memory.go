@@ -28,7 +28,6 @@ type CacheMemory struct {
 	Usernames []string
 }
 
-
 // Find the position of a string in a slice. Returns -1 on failure.
 func indexOf(str string, list []string) int {
 	for index, value := range list {
@@ -43,6 +42,8 @@ func indexOf(str string, list []string) int {
 func (c *CacheMemory) setup() {
 	c.Skins = map[string]minecraft.Skin{}
 	c.Usernames = []string{}
+
+	log.Info("Loaded Memory cache")
 }
 
 // Returns whether the item exists in the cache.

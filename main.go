@@ -31,7 +31,7 @@ const (
 
 var (
 	config = &Configuration{}
-	cache  = MakeCache(config.Cache)
+	cache  Cache
 )
 
 type NotFoundHandler struct{}
@@ -187,6 +187,9 @@ func main() {
 		fmt.Printf("Error loading config: %s\n", err)
 		return
 	}
+
+	cache = MakeCache(config.Cache)
+	cache.setup()
 
 	logBackend := logging.NewLogBackend(os.Stdout, "", 0)
 	logging.SetBackend(logBackend)
