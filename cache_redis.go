@@ -21,7 +21,7 @@ func (c *CacheRedis) setup() {
 	}
 
 	c.Client = conn
-	_ := c.Client.Cmd("AUTH", config.Redis.Auth)
+	_ = c.Client.Cmd("AUTH", config.Redis.Auth)
 
 	log.Info("Loaded Redis cache")
 }
