@@ -31,7 +31,7 @@ const (
 )
 
 var (
-	ListenOn = ":9999"
+	config = &Configuration{}
 )
 
 type NotFoundHandler struct{}
@@ -178,15 +178,17 @@ var log = logging.MustGetLogger("imgd")
 var format = "[%{time:15:04:05.000000}] %{level:.4s} %{message}"
 
 func main() {
+	err := config.load()
+	if err != nil {
+		fmt.Printf("Error loading config: %s\n", err)
+		return
+	}
+
 	logBackend := logging.NewLogBackend(os.Stdout, "", 0)
 	logging.SetBackend(logBackend)
 	logging.SetFormatter(logging.MustStringFormatter(format))
 
 	debug.SetGCPercent(10)
-
-	if os.Getenv("IMGD_LISTENON") != "" {
-		ListenOn = os.Getenv("IMGD_LISTENON")
-	}
 
 	avatarPage := fetchImageProcessThen(func(skin minecraft.Skin) (image.Image, error) {
 		return GetHead(skin)
@@ -230,6 +232,6 @@ func main() {
 	})
 
 	http.Handle("/", r)
-	err := http.ListenAndServe(ListenOn, nil)
+	err = http.ListenAndServe(config.Address, nil)
 	log.Critical(err.Error())
 }
