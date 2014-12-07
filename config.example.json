@@ -4,6 +4,7 @@
     "redis": {
         "address": "127.0.0.1:6379",
         "ttl": "172800",
-        "auth": ""
+        "auth": "",
+        "prefix": "skins:"
     }
 }

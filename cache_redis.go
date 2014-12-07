@@ -2,12 +2,13 @@ package main
 
 import (
 	"bytes"
-	"encoding/base64"
 	"github.com/fzzy/radix/redis"
 	"github.com/minotar/minecraft"
 	"image/png"
 	"time"
 )
+
+const ()
 
 type CacheRedis struct {
 	Client *redis.Client
@@ -27,9 +28,10 @@ func (c *CacheRedis) setup() {
 }
 
 func (c *CacheRedis) has(username string) bool {
-	res := c.Client.Cmd("EXISTS", "skins:"+username)
+	res := c.Client.Cmd("EXISTS", config.Redis.Prefix+username)
 	exists, err := res.Bool()
 	if err != nil {
+		log.Error(err.Error())
 		return false
 	}
 
@@ -37,12 +39,13 @@ func (c *CacheRedis) has(username string) bool {
 }
 
 func (c *CacheRedis) pull(username string) minecraft.Skin {
-	resp := c.Client.Cmd("GET", "skins:"+username)
+	resp := c.Client.Cmd("GET", config.Redis.Prefix+username)
 
 	skin, err := getSkinFromReply(resp)
 	if err != nil {
-		c.remove(username)
+		log.Error(err.Error())
 
+		c.remove(username)
 		char, _ := minecraft.FetchSkinForChar()
 
 		return char
@@ -54,28 +57,21 @@ func (c *CacheRedis) pull(username string) minecraft.Skin {
 func (c *CacheRedis) add(username string, skin minecraft.Skin) {
 	skinBuf := new(bytes.Buffer)
 	_ = png.Encode(skinBuf, skin.Image)
-	skinStr := base64.StdEncoding.EncodeToString(skinBuf.Bytes())
 
-	_ = c.Client.Cmd("SET", "skins:"+username, skinStr)
-	_ = c.Client.Cmd("EXPIRE", "skins:"+username, config.Redis.Ttl)
+	_ = c.Client.Cmd("SETEX", "skins:"+username, config.Redis.Ttl, skinBuf.Bytes())
 }
 
 func (c *CacheRedis) remove(username string) {
-	_ = c.Client.Cmd("DEL", "skins:"+username)
+	_ = c.Client.Cmd("DEL", config.Redis.Prefix+username)
 }
 
 func getSkinFromReply(resp *redis.Reply) (minecraft.Skin, error) {
-	respString, respErr := resp.Str()
+	respBytes, respErr := resp.Bytes()
 	if respErr != nil {
 		return minecraft.Skin{}, respErr
 	}
 
-	imgBytes, decErr := base64.StdEncoding.DecodeString(respString)
-	if decErr != nil {
-		return minecraft.Skin{}, decErr
-	}
-
-	imgBuf := bytes.NewBuffer(imgBytes)
+	imgBuf := bytes.NewBuffer(respBytes)
 
 	skin, skinErr := minecraft.DecodeSkin(imgBuf)
 	if skinErr != nil {

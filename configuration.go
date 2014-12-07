@@ -22,6 +22,7 @@ type Configuration struct {
 		Address string
 		Ttl     string
 		Auth    string
+		Prefix  string
 	}
 }
 
