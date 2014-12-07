@@ -56,7 +56,7 @@ func (c *CacheRedis) add(username string, skin minecraft.Skin) {
 	_ = png.Encode(skinBuf, skin.Image)
 	skinStr := base64.StdEncoding.EncodeToString(skinBuf.Bytes())
 
-	resp := c.Client.Cmd("SET", "skins:"+username, skinStr)
+	_ = c.Client.Cmd("SET", "skins:"+username, skinStr)
 	_ = c.Client.Cmd("EXPIRE", "skins:"+username, config.Redis.Ttl)
 }
 
