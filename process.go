@@ -139,7 +139,7 @@ func cropHelm(img image.Image) image.Image {
 	helmImg := imaging.Crop(img, image.Rect(HelmX, HelmY, HelmX+HelmWidth, HelmY+HelmHeight))
 
 	sr := helmImg.Bounds()
-	draw.Draw(helmImg, sr, helmImg, sr.Min, draw.Over)
+	draw.Draw(headImg.(*image.NRGBA), sr, helmImg, sr.Min, draw.Over)
 
 	return headImg
 }
