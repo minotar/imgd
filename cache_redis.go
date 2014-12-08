@@ -28,8 +28,6 @@ func (c *CacheRedis) setup() {
 	}
 	defer c.Pool.Put(client)
 
-	_ = client.Cmd("AUTH", config.Redis.Auth)
-
 	log.Info("Loaded Redis cache (pool: " + fmt.Sprintf("%v", config.Redis.PoolSize) + ")")
 }
 
@@ -40,6 +38,7 @@ func (c *CacheRedis) has(username string) bool {
 	}
 	defer c.Pool.Put(client)
 
+	_ = client.Cmd("AUTH", config.Redis.Auth)
 	res := client.Cmd("EXISTS", config.Redis.Prefix+username)
 
 	exists, err := res.Bool()
@@ -58,6 +57,7 @@ func (c *CacheRedis) pull(username string) minecraft.Skin {
 	}
 	defer c.Pool.Put(client)
 
+	_ = client.Cmd("AUTH", config.Redis.Auth)
 	resp := client.Cmd("GET", config.Redis.Prefix+username)
 
 	skin, err := getSkinFromReply(resp)
@@ -83,6 +83,7 @@ func (c *CacheRedis) add(username string, skin minecraft.Skin) {
 	skinBuf := new(bytes.Buffer)
 	_ = png.Encode(skinBuf, skin.Image)
 
+	_ = client.Cmd("AUTH", config.Redis.Auth)
 	_ = client.Cmd("SETEX", "skins:"+username, config.Redis.Ttl, skinBuf.Bytes())
 }
 
@@ -93,6 +94,7 @@ func (c *CacheRedis) remove(username string) {
 	}
 	defer c.Pool.Put(client)
 
+	_ = client.Cmd("AUTH", config.Redis.Auth)
 	_ = client.Cmd("DEL", config.Redis.Prefix+username)
 }
 
