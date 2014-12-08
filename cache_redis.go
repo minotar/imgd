@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/fzzy/radix/extra/pool"
 	"github.com/fzzy/radix/redis"
 	"github.com/minotar/minecraft"
 	"image/png"
@@ -11,34 +10,18 @@ import (
 
 type CacheRedis struct {
 	Client *redis.Client
-	Pool   *pool.Pool
+	Pool   *RedisPool
 }
 
 func (c *CacheRedis) setup() {
-	pool, err := pool.NewPool("tcp", config.Redis.Address, config.Redis.PoolSize)
-	if err != nil {
-		log.Error("Error connecting to redis database")
-		return
-	}
-
-	c.Pool = pool
-	client, err := c.Pool.Get()
-	if err != nil {
-		log.Error(err.Error())
-	}
-	defer c.Pool.Put(client)
+	c.Pool = CreateRedisPool(config.Redis.Address, config.Redis.PoolSize, config.Redis.Auth)
 
 	log.Info("Loaded Redis cache (pool: " + fmt.Sprintf("%v", config.Redis.PoolSize) + ")")
 }
 
 func (c *CacheRedis) has(username string) bool {
-	client, err := c.Pool.Get()
-	if err != nil {
-		log.Error(err.Error())
-	}
-	defer c.Pool.Put(client)
+	client := c.Pool.Get()
 
-	_ = client.Cmd("AUTH", config.Redis.Auth)
 	res := client.Cmd("EXISTS", config.Redis.Prefix+username)
 
 	exists, err := res.Bool()
@@ -51,13 +34,8 @@ func (c *CacheRedis) has(username string) bool {
 }
 
 func (c *CacheRedis) pull(username string) minecraft.Skin {
-	client, err := c.Pool.Get()
-	if err != nil {
-		log.Error(err.Error())
-	}
-	defer c.Pool.Put(client)
+	client := c.Pool.Get()
 
-	_ = client.Cmd("AUTH", config.Redis.Auth)
 	resp := client.Cmd("GET", config.Redis.Prefix+username)
 
 	skin, err := getSkinFromReply(resp)
@@ -74,27 +52,17 @@ func (c *CacheRedis) pull(username string) minecraft.Skin {
 }
 
 func (c *CacheRedis) add(username string, skin minecraft.Skin) {
-	client, err := c.Pool.Get()
-	if err != nil {
-		log.Error(err.Error())
-	}
-	defer c.Pool.Put(client)
+	client := c.Pool.Get()
 
 	skinBuf := new(bytes.Buffer)
 	_ = png.Encode(skinBuf, skin.Image)
 
-	_ = client.Cmd("AUTH", config.Redis.Auth)
 	_ = client.Cmd("SETEX", "skins:"+username, config.Redis.Ttl, skinBuf.Bytes())
 }
 
 func (c *CacheRedis) remove(username string) {
-	client, err := c.Pool.Get()
-	if err != nil {
-		log.Error(err.Error())
-	}
-	defer c.Pool.Put(client)
+	client := c.Pool.Get()
 
-	_ = client.Cmd("AUTH", config.Redis.Auth)
 	_ = client.Cmd("DEL", config.Redis.Prefix+username)
 }
 
