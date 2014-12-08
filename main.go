@@ -121,6 +121,7 @@ func fetchImageProcessThen(callback func(*mcSkin) error) func(w http.ResponseWri
 		log.Info("Serving skin for " + username + " (" + timing + ") md5: " + skin.Hash)
 	}
 }
+
 func skinPage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
@@ -132,8 +133,9 @@ func skinPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("X-Requested", "skin")
 	w.Header().Add("X-Result", "ok")
 
-	skin.WritePNG(w)
+	skin.WriteSkin(w)
 }
+
 func downloadPage(w http.ResponseWriter, r *http.Request) {
 	headers := w.Header()
 	headers.Add("Content-Disposition", "attachment; filename=\"skin.png\"")

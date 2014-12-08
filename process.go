@@ -122,6 +122,10 @@ func (skin *mcSkin) WritePNG(w io.Writer) error {
 	return png.Encode(w, skin.Processed)
 }
 
+func (skin *mcSkin) WriteSkin(w io.Writer) error {
+	return png.Encode(w, skin.Image)
+}
+
 func (skin *mcSkin) Resize(width uint) {
 	skin.Processed = imaging.Resize(skin.Processed, int(width), 0, imaging.NearestNeighbor)
 }
