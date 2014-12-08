@@ -53,5 +53,5 @@ deploy:
     - script:
         name: deploy to salt minions
         code: |
-          ssh -i $PRIVATEKEY_PATH -l $MINOTAR_MASTER_USER $MINOTAR_MASTER_IP "salt 'imgd-*.minotar.net' state.sls imgd --out=no_return"
+          ssh -i $PRIVATEKEY_PATH -l $MINOTAR_MASTER_USER $MINOTAR_MASTER_IP "salt 'imgd-*.minotar.net' state.sls imgd --out=quiet"
     
