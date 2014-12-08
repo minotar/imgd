@@ -133,7 +133,7 @@ func skinPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("X-Requested", "skin")
 	w.Header().Add("X-Result", "ok")
 
-	skin.WritePNG(w)
+	skin.WriteSkin(w)
 }
 
 func downloadPage(w http.ResponseWriter, r *http.Request) {
