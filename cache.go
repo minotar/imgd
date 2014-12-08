@@ -14,8 +14,10 @@ type Cache interface {
 func MakeCache(cacheType string) Cache {
 	if cacheType == "redis" {
 		return &CacheRedis{}
-	} else {
+	} else if cacheType == "memory" {
 		return &CacheMemory{}
+	} else {
+		return &CacheOff{}
 	}
 
 }
