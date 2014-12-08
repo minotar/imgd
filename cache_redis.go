@@ -2,31 +2,46 @@ package main
 
 import (
 	"bytes"
+	"fmt"
+	"github.com/fzzy/radix/extra/pool"
 	"github.com/fzzy/radix/redis"
 	"github.com/minotar/minecraft"
 	"image/png"
-	"time"
 )
 
 type CacheRedis struct {
 	Client *redis.Client
+	Pool   *pool.Pool
 }
 
 func (c *CacheRedis) setup() {
-	conn, err := redis.DialTimeout("tcp", config.Redis.Address, time.Duration(10)*time.Second)
+	pool, err := pool.NewPool("tcp", config.Redis.Address, config.Redis.PoolSize)
 	if err != nil {
 		log.Error("Error connecting to redis database")
 		return
 	}
 
-	c.Client = conn
-	_ = c.Client.Cmd("AUTH", config.Redis.Auth)
+	c.Pool = pool
+	client, err := c.Pool.Get()
+	if err != nil {
+		log.Error(err.Error())
+	}
+	defer c.Pool.Put(client)
 
-	log.Info("Loaded Redis cache")
+	_ = client.Cmd("AUTH", config.Redis.Auth)
+
+	log.Info("Loaded Redis cache (pool: " + fmt.Sprintf("%v", config.Redis.PoolSize) + ")")
 }
 
 func (c *CacheRedis) has(username string) bool {
-	res := c.Client.Cmd("EXISTS", config.Redis.Prefix+username)
+	client, err := c.Pool.Get()
+	if err != nil {
+		log.Error(err.Error())
+	}
+	defer c.Pool.Put(client)
+
+	res := client.Cmd("EXISTS", config.Redis.Prefix+username)
+
 	exists, err := res.Bool()
 	if err != nil {
 		log.Error(err.Error())
@@ -37,7 +52,13 @@ func (c *CacheRedis) has(username string) bool {
 }
 
 func (c *CacheRedis) pull(username string) minecraft.Skin {
-	resp := c.Client.Cmd("GET", config.Redis.Prefix+username)
+	client, err := c.Pool.Get()
+	if err != nil {
+		log.Error(err.Error())
+	}
+	defer c.Pool.Put(client)
+
+	resp := client.Cmd("GET", config.Redis.Prefix+username)
 
 	skin, err := getSkinFromReply(resp)
 	if err != nil {
@@ -53,14 +74,26 @@ func (c *CacheRedis) pull(username string) minecraft.Skin {
 }
 
 func (c *CacheRedis) add(username string, skin minecraft.Skin) {
+	client, err := c.Pool.Get()
+	if err != nil {
+		log.Error(err.Error())
+	}
+	defer c.Pool.Put(client)
+
 	skinBuf := new(bytes.Buffer)
 	_ = png.Encode(skinBuf, skin.Image)
 
-	_ = c.Client.Cmd("SETEX", "skins:"+username, config.Redis.Ttl, skinBuf.Bytes())
+	_ = client.Cmd("SETEX", "skins:"+username, config.Redis.Ttl, skinBuf.Bytes())
 }
 
 func (c *CacheRedis) remove(username string) {
-	_ = c.Client.Cmd("DEL", config.Redis.Prefix+username)
+	client, err := c.Pool.Get()
+	if err != nil {
+		log.Error(err.Error())
+	}
+	defer c.Pool.Put(client)
+
+	_ = client.Cmd("DEL", config.Redis.Prefix+username)
 }
 
 func getSkinFromReply(resp *redis.Reply) (minecraft.Skin, error) {

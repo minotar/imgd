@@ -19,10 +19,11 @@ type Configuration struct {
 	Cache   string
 
 	Redis struct {
-		Address string
-		Ttl     string
-		Auth    string
-		Prefix  string
+		Address  string
+		Ttl      string
+		Auth     string
+		Prefix   string
+		PoolSize int `json:"pool_size"`
 	}
 }
 
