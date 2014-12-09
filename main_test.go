@@ -28,7 +28,7 @@ func BenchmarkGetHead(b *testing.B) {
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		skin.GetHead()
+		skin.GetHead(20)
 	}
 }
 
@@ -37,7 +37,7 @@ func BenchmarkGetHelm(b *testing.B) {
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		skin.GetHelm()
+		skin.GetHelm(20)
 	}
 }
 
@@ -46,7 +46,7 @@ func BenchmarkGetBody(b *testing.B) {
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		skin.GetBody()
+		skin.GetBody(20)
 	}
 }
 
@@ -55,6 +55,15 @@ func BenchmarkGetBust(b *testing.B) {
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		skin.GetBust()
+		skin.GetBust(20)
+	}
+}
+
+func BenchmarkGetCube(b *testing.B) {
+	skin := fetchSkin("clone1018")
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		skin.GetCube(20)
 	}
 }
