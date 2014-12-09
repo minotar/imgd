@@ -10,6 +10,7 @@ import (
 	"os"
 	"runtime/debug"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -82,7 +83,7 @@ func fetchImageProcessThen(callback func(*mcSkin) error) func(w http.ResponseWri
 
 		vars := mux.Vars(r)
 
-		username := vars["username"]
+		username := strings.ToLower(vars["username"])
 		size := rationalizeSize(vars["size"])
 		ok := true
 
@@ -125,7 +126,7 @@ func fetchImageProcessThen(callback func(*mcSkin) error) func(w http.ResponseWri
 func skinPage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	username := vars["username"]
+	username := strings.ToLower(vars["username"])
 
 	skin := fetchSkin(username)
 
