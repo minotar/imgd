@@ -136,8 +136,6 @@ func cropHead(img image.Image) image.Image {
 func cropHelm(img image.Image) image.Image {
 	headImg := cropHead(img)
 	helmImg := imaging.Crop(img, image.Rect(HelmX, HelmY, HelmX+HelmWidth, HelmY+HelmHeight))
-	// sr := helmImg.Bounds()
-	// draw.Draw(headImg.(*image.NRGBA), sr, helmImg, sr.Min, draw.Over)
 
 	fastDraw(headImg.(*image.NRGBA), helmImg, 0, 0)
 
@@ -145,7 +143,6 @@ func cropHelm(img image.Image) image.Image {
 }
 
 func fastDraw(dst *image.NRGBA, src *image.NRGBA, x, y int) {
-	// bounds := src.Bounds()
 	bounds := src.Bounds()
 	maxY := bounds.Max.Y
 	maxX := bounds.Max.X * 4
@@ -159,7 +156,7 @@ func fastDraw(dst *image.NRGBA, src *image.NRGBA, x, y int) {
 				dst.Pix[dstPx+0] = src.Pix[srcPx+0]
 				dst.Pix[dstPx+1] = src.Pix[srcPx+1]
 				dst.Pix[dstPx+2] = src.Pix[srcPx+2]
-				dst.Pix[dstPx+3] = 255
+				dst.Pix[dstPx+3] = 0xFF
 			}
 		}
 	}
