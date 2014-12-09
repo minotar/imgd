@@ -1,3 +1,11 @@
 {
-    "address": "0.0.0.0:8000"
+    "address": "0.0.0.0:8000",
+    "cache": "memory",
+    "redis": {
+        "address": "127.0.0.1:6379",
+        "ttl": "172800",
+        "auth": "",
+        "prefix": "skins:",
+        "pool_size": 10
+    }
 }

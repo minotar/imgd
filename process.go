@@ -4,7 +4,6 @@ import (
 	"github.com/disintegration/imaging"
 	"github.com/minotar/minecraft"
 	"image"
-	"image/draw"
 	"image/png"
 	"io"
 )
@@ -128,19 +127,19 @@ func (skin *mcSkin) GetBody() error {
 	}
 
 	// Create a blank canvas for us to draw our body on
-	bodyImg := image.NewRGBA(image.Rect(0, 0, LaWidth+TorsoWidth+RaWidth, HeadHeight+TorsoHeight+LlHeight))
+	bodyImg := image.NewNRGBA(image.Rect(0, 0, LaWidth+TorsoWidth+RaWidth, HeadHeight+TorsoHeight+LlHeight))
 	// Helm
-	draw.Draw(bodyImg, image.Rect(LaWidth, 0, LaWidth+HelmWidth, HelmHeight), helmImg, image.Pt(0, 0), draw.Src)
+	fastDraw(bodyImg, helmImg.(*image.NRGBA), LaWidth, 0)
 	// Torso
-	draw.Draw(bodyImg, image.Rect(LaWidth, HelmHeight, LaWidth+TorsoWidth, HelmHeight+TorsoHeight), torsoImg, image.Pt(0, 0), draw.Src)
+	fastDraw(bodyImg, torsoImg, LaWidth, HelmHeight)
 	// Left Arm
-	draw.Draw(bodyImg, image.Rect(0, HelmHeight, LaWidth, HelmHeight+LaHeight), laImg, image.Pt(0, 0), draw.Src)
+	fastDraw(bodyImg, laImg.(*image.NRGBA), 0, HelmHeight)
 	// Right Arm
-	draw.Draw(bodyImg, image.Rect(LaWidth+TorsoWidth, HelmHeight, LaWidth+TorsoWidth+RaWidth, HelmHeight+RaHeight), raImg, image.Pt(0, 0), draw.Src)
+	fastDraw(bodyImg, raImg, LaWidth+TorsoWidth, HelmHeight)
 	// Left Leg
-	draw.Draw(bodyImg, image.Rect(LaWidth, HelmHeight+TorsoHeight, LaWidth+LlWidth, HelmHeight+TorsoHeight+LlHeight), llImg, image.Pt(0, 0), draw.Src)
+	fastDraw(bodyImg, llImg.(*image.NRGBA), LaWidth, HelmHeight+TorsoHeight)
 	// Right Leg
-	draw.Draw(bodyImg, image.Rect(LaWidth+LlWidth, HelmHeight+TorsoHeight, LaWidth+LlWidth+RlWidth, HelmHeight+TorsoHeight+RlHeight), rlImg, image.Pt(0, 0), draw.Src)
+	fastDraw(bodyImg, rlImg, LaWidth+LlWidth, HelmHeight+TorsoHeight)
 
 	skin.Processed = bodyImg
 	return nil
@@ -148,6 +147,10 @@ func (skin *mcSkin) GetBody() error {
 
 func (skin *mcSkin) WritePNG(w io.Writer) error {
 	return png.Encode(w, skin.Processed)
+}
+
+func (skin *mcSkin) WriteSkin(w io.Writer) error {
+	return png.Encode(w, skin.Image)
 }
 
 func (skin *mcSkin) Resize(width uint) {
@@ -162,8 +165,27 @@ func cropHelm(img image.Image) image.Image {
 	headImg := cropHead(img)
 	helmImg := imaging.Crop(img, image.Rect(HelmX, HelmY, HelmX+HelmWidth, HelmY+HelmHeight))
 
-	sr := helmImg.Bounds()
-	draw.Draw(helmImg, sr, helmImg, sr.Min, draw.Over)
+	fastDraw(headImg.(*image.NRGBA), helmImg, 0, 0)
 
 	return headImg
+}
+
+func fastDraw(dst *image.NRGBA, src *image.NRGBA, x, y int) {
+	bounds := src.Bounds()
+	maxY := bounds.Max.Y
+	maxX := bounds.Max.X * 4
+
+	pointer := dst.PixOffset(x, y)
+	for row := 0; row < maxY; row += 1 {
+		for i := 0; i < maxX; i += 4 {
+			srcPx := row*src.Stride + i
+			dstPx := row*dst.Stride + i + pointer
+			if src.Pix[srcPx+3] != 0 {
+				dst.Pix[dstPx+0] = src.Pix[srcPx+0]
+				dst.Pix[dstPx+1] = src.Pix[srcPx+1]
+				dst.Pix[dstPx+2] = src.Pix[srcPx+2]
+				dst.Pix[dstPx+3] = 0xFF
+			}
+		}
+	}
 }

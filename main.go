@@ -31,7 +31,7 @@ const (
 
 var (
 	config = &Configuration{}
-	cache  = MakeCache()
+	cache  Cache
 )
 
 type NotFoundHandler struct{}
@@ -121,6 +121,7 @@ func fetchImageProcessThen(callback func(*mcSkin) error) func(w http.ResponseWri
 		log.Info("Serving skin for " + username + " (" + timing + ") md5: " + skin.Hash)
 	}
 }
+
 func skinPage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
@@ -132,8 +133,9 @@ func skinPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("X-Requested", "skin")
 	w.Header().Add("X-Result", "ok")
 
-	skin.WritePNG(w)
+	skin.WriteSkin(w)
 }
+
 func downloadPage(w http.ResponseWriter, r *http.Request) {
 	headers := w.Header()
 	headers.Add("Content-Disposition", "attachment; filename=\"skin.png\"")
@@ -181,16 +183,29 @@ func fetchSkin(username string) *mcSkin {
 var log = logging.MustGetLogger("imgd")
 var format = "[%{time:15:04:05.000000}] %{level:.4s} %{message}"
 
-func main() {
+func setupConfig() {
 	err := config.load()
 	if err != nil {
 		fmt.Printf("Error loading config: %s\n", err)
 		return
 	}
+}
 
-	logBackend := logging.NewLogBackend(os.Stdout, "", 0)
+func setupCache() {
+	cache = MakeCache(config.Cache)
+	cache.setup()
+}
+
+func setupLog(logBackend *logging.LogBackend) {
 	logging.SetBackend(logBackend)
 	logging.SetFormatter(logging.MustStringFormatter(format))
+}
+
+func main() {
+	logBackend := logging.NewLogBackend(os.Stdout, "", 0)
+	setupConfig()
+	setupLog(logBackend)
+	setupCache()
 
 	debug.SetGCPercent(10)
 
@@ -231,11 +246,10 @@ func main() {
 	})
 
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(302)
-		w.Header().Set("Location", "https://minotar.net/")
+		http.Redirect(w, r, "https://minotar.net/", 302)
 	})
 
 	http.Handle("/", r)
-	err = http.ListenAndServe(config.Address, nil)
+	err := http.ListenAndServe(config.Address, nil)
 	log.Critical(err.Error())
 }

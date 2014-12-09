@@ -16,6 +16,15 @@ const (
 
 type Configuration struct {
 	Address string
+	Cache   string
+
+	Redis struct {
+		Address  string
+		Ttl      string
+		Auth     string
+		Prefix   string
+		PoolSize int `json:"pool_size"`
+	}
 }
 
 // Reads the configuration from the config file, copying a config into
