@@ -1,11 +1,8 @@
 package main
 
 import (
-	"github.com/disintegration/imaging"
+	"github.com/gographics/imagick/imagick"
 	"github.com/minotar/minecraft"
-	"image"
-	"image/draw"
-	"image/png"
 	"io"
 )
 
@@ -50,7 +47,7 @@ const (
 )
 
 type mcSkin struct {
-	Processed image.Image
+	Processed *imagick.MagickWand
 	minecraft.Skin
 }
 
@@ -67,42 +64,62 @@ func (skin *mcSkin) GetHelm() error {
 func (skin *mcSkin) GetBody() error {
 	// Check if 1.8 skin (the max Y bound should be 64)
 	render18Skin := true
-	bounds := skin.Image.Bounds()
-	if bounds.Max.Y != 64 {
+	if skin.Image.GetImageHeight() != 64 {
 		render18Skin = false
 	}
 
 	helmImg := cropHelm(skin.Image)
-	torsoImg := imaging.Crop(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+TorsoHeight))
-	raImg := imaging.Crop(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+RaHeight))
-	rlImg := imaging.Crop(skin.Image, image.Rect(RlX, RlY, RlX+RlWidth, RlY+RlHeight))
+	// Create necessary subimages
+	torsoImg := skin.Image.Clone()
+	raImg := skin.Image.Clone()
+	rlImg := skin.Image.Clone()
+	var laImg, llImg *imagick.MagickWand
 
-	var laImg, llImg image.Image
+	// Destroy them all after we're done
+	defer torsoImg.Destroy()
+	defer raImg.Destroy()
+	defer rlImg.Destroy()
+
+	// And start croppin!
+	torsoImg.CropImage(TorsoWidth, TorsoHeight, TorsoX, TorsoY)
+	raImg.CropImage(RaWidth, RaHeight, RaX, RaY)
+	rlImg.CropImage(RlWidth, RlHeight, RlX, RlY)
 
 	// If the skin is 1.8 then we will use the left arms and legs, otherwise flip the right ones and use them.
 	if render18Skin {
-		laImg = imaging.Crop(skin.Image, image.Rect(LaX, LaY, LaX+LaWidth, LaY+LaHeight))
-		llImg = imaging.Crop(skin.Image, image.Rect(LlX, LlY, LlX+LlWidth, LlY+LlHeight))
+		laImg = skin.Image.Clone()
+		llImg = skin.Image.Clone()
+		laImg.CropImage(LaWidth, LaHeight, LaX, LaY)
+		llImg.CropImage(LlWidth, LlHeight, LlX, LlY)
 	} else {
-		laImg = imaging.FlipH(raImg)
-
-		llImg = imaging.FlipH(rlImg)
+		laImg = raImg.Clone()
+		llImg = rlImg.Clone()
+		laImg.FlopImage()
+		llImg.FlopImage()
 	}
 
+	defer laImg.Destroy()
+	defer llImg.Destroy()
+
 	// Create a blank canvas for us to draw our body on
-	bodyImg := image.NewRGBA(image.Rect(0, 0, LaWidth+TorsoWidth+RaWidth, HeadHeight+TorsoHeight+LlHeight))
+	bodyImg := imagick.NewMagickWand()
+	bodyImg.SetFormat("PNG")
+	bg := imagick.NewPixelWand()
+	bg.SetColor("none")
+
+	bodyImg.NewImage(LaWidth+TorsoWidth+RaWidth, HeadHeight+TorsoHeight+LlHeight, bg)
 	// Helm
-	draw.Draw(bodyImg, image.Rect(LaWidth, 0, LaWidth+HelmWidth, HelmHeight), helmImg, image.Pt(0, 0), draw.Src)
+	bodyImg.CompositeImage(helmImg, imagick.COMPOSITE_OP_OVER, LaWidth, 0)
 	// Torso
-	draw.Draw(bodyImg, image.Rect(LaWidth, HelmHeight, LaWidth+TorsoWidth, HelmHeight+TorsoHeight), torsoImg, image.Pt(0, 0), draw.Src)
+	bodyImg.CompositeImage(torsoImg, imagick.COMPOSITE_OP_OVER, LaWidth, HelmHeight)
 	// Left Arm
-	draw.Draw(bodyImg, image.Rect(0, HelmHeight, LaWidth, HelmHeight+LaHeight), laImg, image.Pt(0, 0), draw.Src)
+	bodyImg.CompositeImage(laImg, imagick.COMPOSITE_OP_OVER, 0, HelmHeight)
 	// Right Arm
-	draw.Draw(bodyImg, image.Rect(LaWidth+TorsoWidth, HelmHeight, LaWidth+TorsoWidth+RaWidth, HelmHeight+RaHeight), raImg, image.Pt(0, 0), draw.Src)
+	bodyImg.CompositeImage(raImg, imagick.COMPOSITE_OP_OVER, LaWidth+TorsoWidth, HelmHeight)
 	// Left Leg
-	draw.Draw(bodyImg, image.Rect(LaWidth, HelmHeight+TorsoHeight, LaWidth+LlWidth, HelmHeight+TorsoHeight+LlHeight), llImg, image.Pt(0, 0), draw.Src)
+	bodyImg.CompositeImage(llImg, imagick.COMPOSITE_OP_OVER, LaWidth, HelmHeight+TorsoHeight)
 	// Right Leg
-	draw.Draw(bodyImg, image.Rect(LaWidth+LlWidth, HelmHeight+TorsoHeight, LaWidth+LlWidth+RlWidth, HelmHeight+TorsoHeight+RlHeight), rlImg, image.Pt(0, 0), draw.Src)
+	bodyImg.CompositeImage(rlImg, imagick.COMPOSITE_OP_OVER, LaWidth+LlWidth, HelmHeight+TorsoHeight)
 
 	skin.Processed = bodyImg
 	return nil
@@ -114,32 +131,53 @@ func (skin *mcSkin) GetBust() error {
 		return err
 	}
 
-	skin.Processed = imaging.Crop(skin.Processed, image.Rect(0, 0, 16, 16))
+	body := skin.Processed
+	skin.Processed = body.Clone()
+	defer body.Destroy()
+
+	body.CropImage(0, 0, 16, 16)
+
 	return nil
 }
 
-func (skin *mcSkin) WritePNG(w io.Writer) error {
-	return png.Encode(w, skin.Processed)
+func (skin *mcSkin) WritePNG(w io.Writer) {
+	w.Write(skin.Processed.GetImageBlob())
 }
 
-func (skin *mcSkin) WriteSkin(w io.Writer) error {
-	return png.Encode(w, skin.Image)
+func (skin *mcSkin) WriteSkin(w io.Writer) {
+	w.Write(skin.Processed.GetImageBlob())
 }
 
-func (skin *mcSkin) Resize(width uint) {
-	skin.Processed = imaging.Resize(skin.Processed, int(width), 0, imaging.NearestNeighbor)
+func (skin *mcSkin) Destroy() {
+	if skin.Processed != nil {
+		skin.Processed.Destroy()
+	}
+	if skin.Image != nil {
+		skin.Image.Destroy()
+	}
 }
 
-func cropHead(img image.Image) image.Image {
-	return imaging.Crop(img, image.Rect(HeadX, HeadY, HeadX+HeadWidth, HeadY+HeadHeight))
+func (skin *mcSkin) Resize(targetWidth uint) {
+	width := skin.Processed.GetImageWidth()
+	height := skin.Processed.GetImageHeight()
+	scaled := float64(targetWidth) / float64(width)
+
+	skin.Processed.ResizeImage(targetWidth, uint(scaled*float64(height)), imagick.FILTER_BOX, 0)
 }
 
-func cropHelm(img image.Image) image.Image {
+func cropHead(img *imagick.MagickWand) *imagick.MagickWand {
+	out := img.Clone()
+	out.CropImage(HeadWidth, HeadHeight, HeadX, HeadY)
+	return out
+}
+
+func cropHelm(img *imagick.MagickWand) *imagick.MagickWand {
+	helmImg := img.Clone()
+	helmImg.CropImage(HelmWidth, HelmHeight, HelmX, HelmY)
+	defer helmImg.Destroy()
+
 	headImg := cropHead(img)
-	helmImg := imaging.Crop(img, image.Rect(HelmX, HelmY, HelmX+HelmWidth, HelmY+HelmHeight))
-
-	sr := helmImg.Bounds()
-	draw.Draw(headImg.(*image.NRGBA), sr, helmImg, sr.Min, draw.Over)
+	headImg.CompositeImage(helmImg, imagick.COMPOSITE_OP_OVER, 0, 0)
 
 	return headImg
 }

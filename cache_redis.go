@@ -6,7 +6,6 @@ import (
 	"github.com/fzzy/radix/extra/pool"
 	"github.com/fzzy/radix/redis"
 	"github.com/minotar/minecraft"
-	"image/png"
 )
 
 type CacheRedis struct {
@@ -80,11 +79,10 @@ func (c *CacheRedis) add(username string, skin minecraft.Skin) {
 	}
 	defer c.Pool.Put(client)
 
-	skinBuf := new(bytes.Buffer)
-	_ = png.Encode(skinBuf, skin.Image)
+	skinBuf := skin.Image.GetImageBlob()
 
 	_ = client.Cmd("AUTH", config.Redis.Auth)
-	_ = client.Cmd("SETEX", "skins:"+username, config.Redis.Ttl, skinBuf.Bytes())
+	_ = client.Cmd("SETEX", "skins:"+username, config.Redis.Ttl, skinBuf)
 }
 
 func (c *CacheRedis) remove(username string) {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/gographics/imagick/imagick"
 	"github.com/gorilla/mux"
 	"github.com/minotar/minecraft"
 	"github.com/op/go-logging"
@@ -117,6 +118,7 @@ func fetchImageProcessThen(callback func(*mcSkin) error) func(w http.ResponseWri
 		w.Header().Add("X-Timing", timing)
 		addCacheTimeoutHeader(w, timeout)
 		skin.WritePNG(w)
+		skin.Destroy()
 
 		log.Info("Serving skin for " + username + " (" + timing + ") md5: " + skin.Hash)
 	}
@@ -155,29 +157,6 @@ func fetchSkin(username string) *mcSkin {
 
 	cache.add(username, skin)
 	return &mcSkin{Processed: nil, Skin: skin}
-
-	/* We're not using this for now due to rate limiting restrictions
-	skin, err := minecraft.GetSkin(minecraft.User{Name: username})
-	if err != nil {
-		// Problem with the returned image, probably means we have an incorrect username
-		// Hit the accounts api
-		user, err := minecraft.GetUser(username)
-
-		if err != nil {
-			// There's no account for this person, serve char
-			skin, _ = minecraft.FetchSkinForChar()
-		} else {
-			// Get valid skin
-			skin, err = minecraft.GetSkin(user)
-			if err != nil {
-				// Their skin somehow errored, fallback
-				skin, _ = minecraft.FetchSkinForChar()
-			}
-		}
-	}
-
-	return skin
-	*/
 }
 
 var log = logging.MustGetLogger("imgd")
@@ -202,6 +181,9 @@ func setupLog(logBackend *logging.LogBackend) {
 }
 
 func main() {
+	imagick.Initialize()
+	defer imagick.Terminate()
+
 	logBackend := logging.NewLogBackend(os.Stdout, "", 0)
 	setupConfig()
 	setupLog(logBackend)

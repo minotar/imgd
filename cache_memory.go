@@ -62,7 +62,8 @@ func (c *CacheMemory) pull(username string) minecraft.Skin {
 	c.Usernames = append(c.Usernames, username)
 	c.Usernames = append(c.Usernames[:index], c.Usernames[index+1:]...)
 
-	return c.Skins[username]
+	skin := c.Skins[username]
+	return minecraft.Skin{Hash: skin.Hash, Image: skin.Image.Clone()}
 }
 
 // Adds the skin to the cache, remove the oldest, expired skin if the cache
@@ -70,11 +71,12 @@ func (c *CacheMemory) pull(username string) minecraft.Skin {
 func (c *CacheMemory) add(username string, skin minecraft.Skin) {
 	if len(c.Usernames) >= SKIN_NUMBER {
 		first := c.Usernames[0]
+		c.Skins[first].Image.Destroy()
 		delete(c.Skins, first)
 		c.Usernames = append(c.Usernames[1:], username)
 	} else {
 		c.Usernames = append(c.Usernames, username)
 	}
 
-	c.Skins[username] = skin
+	c.Skins[username] = minecraft.Skin{Hash: skin.Hash, Image: skin.Image.Clone()}
 }
