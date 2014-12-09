@@ -146,7 +146,7 @@ func (skin *mcSkin) GetCube(width int) error {
 	front = imaging.Resize(front, width/2, int(float64(width)/1.75), imaging.NearestNeighbor)
 	side = imaging.Resize(side, width/2, int(float64(width)/1.75), imaging.NearestNeighbor)
 	front = skewVertical(front, math.Pi/12)
-	side = skewVertical(side, math.Pi/-12)
+	side = skewVertical(imaging.FlipH(side), math.Pi/-12)
 
 	// Create a new image to assemble upon
 	skin.Processed = image.NewNRGBA(image.Rect(0, 0, width, width))
