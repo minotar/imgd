@@ -63,7 +63,7 @@ func (skin *mcSkin) GetHelm() error {
 	return nil
 }
 
-func (skin *mcSkin) GetBust() error {
+func (skin *mcSkin) RenderUpperBody(all bool) error {
 	// Check if 1.8 skin (the max Y bound should be 64)
 	render18Skin := true
 	bounds := skin.Image.Bounds()
@@ -71,33 +71,49 @@ func (skin *mcSkin) GetBust() error {
 		render18Skin = false
 	}
 
-	BustShift := BustHeight - HeadHeight
+	UpperBodyHeight := HeadHeight + TorsoHeight
+	UpperBodyShift := TorsoHeight
+	if !all {
+		//We will make a smaller UpperBody
+		UpperBodyHeight = BustHeight
+		UpperBodyShift = BustHeight - HeadHeight
+	}
 
 	helmImg := cropHelm(skin.Image)
-	torsoImg := imaging.Crop(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+BustShift))
-	raImg := imaging.Crop(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+BustShift))
+	torsoImg := imaging.Crop(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+UpperBodyShift))
+	raImg := imaging.Crop(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+UpperBodyShift))
 
 	var laImg image.Image
 
 	// If the skin is 1.8 then we will use the left arms and legs, otherwise flip the right ones and use them.
 	if render18Skin {
-		laImg = imaging.Crop(skin.Image, image.Rect(LaX, LaY, LaX+LaWidth, LaY+BustShift))
+		laImg = imaging.Crop(skin.Image, image.Rect(LaX, LaY, LaX+LaWidth, LaY+UpperBodyShift))
 	} else {
 		laImg = imaging.FlipH(raImg)
 	}
 
 	// Create a blank canvas for us to draw our bust on
-	bustImg := image.NewRGBA(image.Rect(0, 0, LaWidth+TorsoWidth+RaWidth, BustHeight))
+	upperBodyImg := image.NewNRGBA(image.Rect(0, 0, LaWidth+TorsoWidth+RaWidth, UpperBodyHeight))
 	// Helm
-	draw.Draw(bustImg, image.Rect(LaWidth, 0, LaWidth+HelmWidth, HelmHeight), helmImg, image.Pt(0, 0), draw.Src)
+	fastDraw(upperBodyImg, helmImg.(*image.NRGBA), LaWidth, 0)
 	// Torso
-	draw.Draw(bustImg, image.Rect(LaWidth, HelmHeight, LaWidth+TorsoWidth, BustHeight), torsoImg, image.Pt(0, 0), draw.Src)
+	fastDraw(upperBodyImg, torsoImg, LaWidth, HelmHeight)
 	// Left Arm
-	draw.Draw(bustImg, image.Rect(0, HelmHeight, LaWidth, BustHeight), laImg, image.Pt(0, 0), draw.Src)
+	fastDraw(upperBodyImg, laImg.(*image.NRGBA), 0, HelmHeight)
 	// Right Arm
-	draw.Draw(bustImg, image.Rect(LaWidth+TorsoWidth, HelmHeight, LaWidth+TorsoWidth+RaWidth, BustHeight), raImg, image.Pt(0, 0), draw.Src)
+	fastDraw(upperBodyImg, raImg, LaWidth+TorsoWidth, HelmHeight)
 
-	skin.Processed = bustImg
+	skin.Processed = upperBodyImg
+	return nil
+}
+
+func (skin *mcSkin) GetBust() error {
+	// Go get the upper body but not all of it.
+	err := skin.RenderUpperBody(false)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -109,33 +125,27 @@ func (skin *mcSkin) GetBody() error {
 		render18Skin = false
 	}
 
-	helmImg := cropHelm(skin.Image)
-	torsoImg := imaging.Crop(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+TorsoHeight))
-	raImg := imaging.Crop(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+RaHeight))
+	// Go get the upper body (all of it).
+	err := skin.RenderUpperBody(true)
+	if err != nil {
+		return err
+	}
+
 	rlImg := imaging.Crop(skin.Image, image.Rect(RlX, RlY, RlX+RlWidth, RlY+RlHeight))
 
-	var laImg, llImg image.Image
+	var llImg image.Image
 
 	// If the skin is 1.8 then we will use the left arms and legs, otherwise flip the right ones and use them.
 	if render18Skin {
-		laImg = imaging.Crop(skin.Image, image.Rect(LaX, LaY, LaX+LaWidth, LaY+LaHeight))
 		llImg = imaging.Crop(skin.Image, image.Rect(LlX, LlY, LlX+LlWidth, LlY+LlHeight))
 	} else {
-		laImg = imaging.FlipH(raImg)
-
 		llImg = imaging.FlipH(rlImg)
 	}
 
 	// Create a blank canvas for us to draw our body on
 	bodyImg := image.NewNRGBA(image.Rect(0, 0, LaWidth+TorsoWidth+RaWidth, HeadHeight+TorsoHeight+LlHeight))
-	// Helm
-	fastDraw(bodyImg, helmImg.(*image.NRGBA), LaWidth, 0)
-	// Torso
-	fastDraw(bodyImg, torsoImg, LaWidth, HelmHeight)
-	// Left Arm
-	fastDraw(bodyImg, laImg.(*image.NRGBA), 0, HelmHeight)
-	// Right Arm
-	fastDraw(bodyImg, raImg, LaWidth+TorsoWidth, HelmHeight)
+	// Upper Body
+	fastDraw(bodyImg, skin.Processed.(*image.NRGBA), 0, 0)
 	// Left Leg
 	fastDraw(bodyImg, llImg.(*image.NRGBA), LaWidth, HelmHeight+TorsoHeight)
 	// Right Leg
