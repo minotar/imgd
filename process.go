@@ -64,13 +64,6 @@ func (skin *mcSkin) GetHelm() error {
 }
 
 func (skin *mcSkin) RenderUpperBody(all bool) error {
-	// Check if 1.8 skin (the max Y bound should be 64)
-	render18Skin := true
-	bounds := skin.Image.Bounds()
-	if bounds.Max.Y != 64 {
-		render18Skin = false
-	}
-
 	UpperBodyHeight := HeadHeight + TorsoHeight
 	UpperBodyShift := TorsoHeight
 	if !all {
@@ -86,13 +79,13 @@ func (skin *mcSkin) RenderUpperBody(all bool) error {
 	var laImg image.Image
 
 	// If the skin is 1.8 then we will use the left arms and legs, otherwise flip the right ones and use them.
-	if render18Skin {
+	if skin.is18Skin() {
 		laImg = imaging.Crop(skin.Image, image.Rect(LaX, LaY, LaX+LaWidth, LaY+UpperBodyShift))
 	} else {
 		laImg = imaging.FlipH(raImg)
 	}
 
-	// Create a blank canvas for us to draw our bust on
+	// Create a blank canvas for us to draw our upper body on
 	upperBodyImg := image.NewNRGBA(image.Rect(0, 0, LaWidth+TorsoWidth+RaWidth, UpperBodyHeight))
 	// Helm
 	fastDraw(upperBodyImg, helmImg.(*image.NRGBA), LaWidth, 0)
@@ -118,13 +111,6 @@ func (skin *mcSkin) GetBust() error {
 }
 
 func (skin *mcSkin) GetBody() error {
-	// Check if 1.8 skin (the max Y bound should be 64)
-	render18Skin := true
-	bounds := skin.Image.Bounds()
-	if bounds.Max.Y != 64 {
-		render18Skin = false
-	}
-
 	// Go get the upper body (all of it).
 	err := skin.RenderUpperBody(true)
 	if err != nil {
@@ -136,7 +122,7 @@ func (skin *mcSkin) GetBody() error {
 	var llImg image.Image
 
 	// If the skin is 1.8 then we will use the left arms and legs, otherwise flip the right ones and use them.
-	if render18Skin {
+	if skin.is18Skin() {
 		llImg = imaging.Crop(skin.Image, image.Rect(LlX, LlY, LlX+LlWidth, LlY+LlHeight))
 	} else {
 		llImg = imaging.FlipH(rlImg)
@@ -153,6 +139,14 @@ func (skin *mcSkin) GetBody() error {
 
 	skin.Processed = bodyImg
 	return nil
+}
+
+func (skin *mcSkin) is18Skin() bool {
+	bounds := skin.Image.Bounds()
+	if bounds.Max.Y == 64 {
+		return true
+	}
+	return false
 }
 
 func (skin *mcSkin) WritePNG(w io.Writer) error {
