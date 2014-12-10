@@ -138,10 +138,10 @@ func (skin *mcSkin) GetCube(width int) error {
 	top := image.NewNRGBA(bounds)
 	// Draw it on the filter, then smush it!
 	filter.Draw(top, topFlat)
-	top = imaging.Resize(top, width, width/3, imaging.NearestNeighbor)
+	top = imaging.Resize(top, width+2, width/3, imaging.NearestNeighbor)
 	// Skew the front and sides at 15 degree angles to match up with the
 	// head that has been smushed
-	front := cropHelm(skin.Image).(*image.NRGBA)
+	front := cropHead(skin.Image).(*image.NRGBA)
 	side := imaging.Crop(skin.Image, image.Rect(0, 8, 8, 16))
 	front = imaging.Resize(front, width/2, int(float64(width)/1.75), imaging.NearestNeighbor)
 	side = imaging.Resize(side, width/2, int(float64(width)/1.75), imaging.NearestNeighbor)
@@ -154,7 +154,7 @@ func (skin *mcSkin) GetCube(width int) error {
 	draw.Draw(skin.Processed.(draw.Image), image.Rect(0, width/6, width/2, width), side, image.Pt(0, 0), draw.Src)
 	draw.Draw(skin.Processed.(draw.Image), image.Rect(width/2, width/6, width, width), front, image.Pt(0, 0), draw.Src)
 	// Draw the top we created
-	draw.Draw(skin.Processed.(draw.Image), image.Rect(0, 0, width, width/3), top, image.Pt(0, 0), draw.Over)
+	draw.Draw(skin.Processed.(draw.Image), image.Rect(-1, 0, width+1, width/3), top, image.Pt(0, 0), draw.Over)
 
 	return nil
 }
@@ -215,7 +215,7 @@ func skewVertical(src *image.NRGBA, degrees float64) *image.NRGBA {
 		shouldFlip = true
 	}
 
-	newHeight := maxY + int(1+math.Abs(distance))
+	newHeight := maxY + int(1+distance)
 	dst := image.NewNRGBA(image.Rect(0, 0, bounds.Max.X, newHeight))
 
 	step := distance
