@@ -148,10 +148,16 @@ func fetchSkin(username string) *mcSkin {
 		return &mcSkin{Processed: nil, Skin: cache.pull(strings.ToLower(username))}
 	}
 
-	skin, err := minecraft.FetchSkinFromUrl(username)
+	skin, err := minecraft.FetchSkinFromMojang(username)
 	if err != nil {
-		log.Error("Failed to get skin for " + username + " from Mojang (" + err.Error() + ")")
-		skin, _ = minecraft.FetchSkinForChar()
+		log.Error("Failed Skin Mojang: " + username + " (" + err.Error() + ")")
+		// Let's fallback to S3 and try and serve at least an old skin...
+		skin, err = minecraft.FetchSkinFromS3(username)
+		if err != nil {
+			log.Error("Failed Skin S3: " + username + " (" + err.Error() + ")")
+			// Well, looks like they don't exist after all.
+			skin, _ = minecraft.FetchSkinForChar()
+		}
 	}
 
 	cache.add(strings.ToLower(username), skin)
