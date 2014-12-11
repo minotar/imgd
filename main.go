@@ -83,7 +83,7 @@ func fetchImageProcessThen(callback func(*mcSkin) error) func(w http.ResponseWri
 
 		vars := mux.Vars(r)
 
-		username := strings.ToLower(vars["username"])
+		username := vars["username"]
 		size := rationalizeSize(vars["size"])
 		ok := true
 
@@ -126,7 +126,7 @@ func fetchImageProcessThen(callback func(*mcSkin) error) func(w http.ResponseWri
 func skinPage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	username := strings.ToLower(vars["username"])
+	username := vars["username"]
 
 	skin := fetchSkin(username)
 
@@ -144,8 +144,8 @@ func downloadPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func fetchSkin(username string) *mcSkin {
-	if cache.has(username) {
-		return &mcSkin{Processed: nil, Skin: cache.pull(username)}
+	if cache.has(strings.ToLower(username)) {
+		return &mcSkin{Processed: nil, Skin: cache.pull(strings.ToLower(username))}
 	}
 
 	skin, err := minecraft.FetchSkinFromUrl(username)
@@ -154,7 +154,7 @@ func fetchSkin(username string) *mcSkin {
 		skin, _ = minecraft.FetchSkinForChar()
 	}
 
-	cache.add(username, skin)
+	cache.add(strings.ToLower(username), skin)
 	return &mcSkin{Processed: nil, Skin: skin}
 
 	/* We're not using this for now due to rate limiting restrictions
