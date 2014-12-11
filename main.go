@@ -10,6 +10,7 @@ import (
 	"os"
 	"runtime/debug"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -143,8 +144,8 @@ func downloadPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func fetchSkin(username string) *mcSkin {
-	if cache.has(username) {
-		return &mcSkin{Processed: nil, Skin: cache.pull(username)}
+	if cache.has(strings.ToLower(username)) {
+		return &mcSkin{Processed: nil, Skin: cache.pull(strings.ToLower(username))}
 	}
 
 	skin, err := minecraft.FetchSkinFromUrl(username)
@@ -153,7 +154,7 @@ func fetchSkin(username string) *mcSkin {
 		skin, _ = minecraft.FetchSkinForChar()
 	}
 
-	cache.add(username, skin)
+	cache.add(strings.ToLower(username), skin)
 	return &mcSkin{Processed: nil, Skin: skin}
 
 	/* We're not using this for now due to rate limiting restrictions
