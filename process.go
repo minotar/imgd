@@ -54,12 +54,12 @@ type mcSkin struct {
 }
 
 func (skin *mcSkin) GetHead() error {
-	skin.Processed = cropHead(skin.Image)
+	skin.Processed = skin.cropHead(skin.Image)
 	return nil
 }
 
 func (skin *mcSkin) GetHelm() error {
-	skin.Processed = cropHelm(skin.Image)
+	skin.Processed = skin.cropHelm(skin.Image)
 	return nil
 }
 
@@ -71,7 +71,7 @@ func (skin *mcSkin) GetBody() error {
 		render18Skin = false
 	}
 
-	helmImg := cropHelm(skin.Image)
+	helmImg := skin.cropHelm(skin.Image)
 	torsoImg := imaging.Crop(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+TorsoHeight))
 	raImg := imaging.Crop(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+RaHeight))
 	rlImg := imaging.Crop(skin.Image, image.Rect(RlX, RlY, RlX+RlWidth, RlY+RlHeight))
@@ -129,14 +129,32 @@ func (skin *mcSkin) Resize(width uint) {
 	skin.Processed = imaging.Resize(skin.Processed, int(width), 0, imaging.NearestNeighbor)
 }
 
-func cropHead(img image.Image) image.Image {
+// Removes the skin's alpha matte from the given image.
+func (skin *mcSkin) removeAlpha(img *image.NRGBA) {
+	// If it's already a transparent image, do nothing
+	if skin.AlphaSig[3] == 0 {
+		return
+	}
+
+	// Otherwise loop through all the pixels and fix em
+	for i := 0; i < len(img.Pix); i += 4 {
+		if img.Pix[i+0] == skin.AlphaSig[0] &&
+			img.Pix[i+1] == skin.AlphaSig[1] &&
+			img.Pix[i+2] == skin.AlphaSig[2] &&
+			img.Pix[i+3] == skin.AlphaSig[3] {
+			img.Pix[i+3] = 0
+		}
+	}
+}
+
+func (skin *mcSkin) cropHead(img image.Image) image.Image {
 	return imaging.Crop(img, image.Rect(HeadX, HeadY, HeadX+HeadWidth, HeadY+HeadHeight))
 }
 
-func cropHelm(img image.Image) image.Image {
-	headImg := cropHead(img)
+func (skin *mcSkin) cropHelm(img image.Image) image.Image {
+	headImg := skin.cropHead(img)
 	helmImg := imaging.Crop(img, image.Rect(HelmX, HelmY, HelmX+HelmWidth, HelmY+HelmHeight))
-
+	skin.removeAlpha(helmImg)
 	fastDraw(headImg.(*image.NRGBA), helmImg, 0, 0)
 
 	return headImg
