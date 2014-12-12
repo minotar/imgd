@@ -14,34 +14,56 @@ type CacheRedis struct {
 	Pool   *pool.Pool
 }
 
+func dialFunc(network, addr string) (*redis.Client, error) {
+	client, err := redis.Dial(network, addr)
+	if err != nil {
+		return nil, err
+	}
+	if config.Redis.Auth != "" {
+		if err := client.Cmd("AUTH", config.Redis.Auth).Err; err != nil {
+			client.Close()
+			return nil, err
+		}
+	}
+	return client, nil
+}
+
 func (c *CacheRedis) setup() {
-	pool, err := pool.NewPool("tcp", config.Redis.Address, config.Redis.PoolSize)
+	pool, err := pool.NewCustomPool(
+		"tcp",
+		config.Redis.Address,
+		config.Redis.PoolSize,
+		dialFunc,
+	)
 	if err != nil {
 		log.Error("Error connecting to redis database")
 		return
 	}
 
 	c.Pool = pool
-	client, err := c.Pool.Get()
-	if err != nil {
-		log.Error(err.Error())
-	}
-	defer c.Pool.Put(client)
 
 	log.Info("Loaded Redis cache (pool: " + fmt.Sprintf("%v", config.Redis.PoolSize) + ")")
 }
 
-func (c *CacheRedis) has(username string) bool {
+func (c *CacheRedis) getFromPool() *redis.Client {
 	client, err := c.Pool.Get()
 	if err != nil {
 		log.Error(err.Error())
+		return nil
 	}
-	defer c.Pool.Put(client)
+	return client
+}
 
-	_ = client.Cmd("AUTH", config.Redis.Auth)
-	res := client.Cmd("EXISTS", config.Redis.Prefix+username)
+func (c *CacheRedis) has(username string) bool {
+	var err error
+	client := c.getFromPool()
+	if client == nil {
+		return false
+	}
+	defer c.Pool.CarefullyPut(client, &err)
 
-	exists, err := res.Bool()
+	var exists bool
+	exists, err = client.Cmd("EXISTS", config.Redis.Prefix+username).Bool()
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -50,52 +72,56 @@ func (c *CacheRedis) has(username string) bool {
 	return exists
 }
 
+// What to do when failing to pull a skin from redis
+func (c *CacheRedis) pullFailed(username string) minecraft.Skin {
+	c.remove(username)
+	char, _ := minecraft.FetchSkinForChar()
+	return char
+}
+
 func (c *CacheRedis) pull(username string) minecraft.Skin {
-	client, err := c.Pool.Get()
-	if err != nil {
-		log.Error(err.Error())
+	var err error
+	client := c.getFromPool()
+	if client == nil {
+		return c.pullFailed(username)
 	}
-	defer c.Pool.Put(client)
+	defer c.Pool.CarefullyPut(client, &err)
 
-	_ = client.Cmd("AUTH", config.Redis.Auth)
 	resp := client.Cmd("GET", config.Redis.Prefix+username)
-
 	skin, err := getSkinFromReply(resp)
 	if err != nil {
 		log.Error(err.Error())
-
-		c.remove(username)
-		char, _ := minecraft.FetchSkinForChar()
-
-		return char
+		return c.pullFailed(username)
 	}
 
 	return skin
 }
 
 func (c *CacheRedis) add(username string, skin minecraft.Skin) {
-	client, err := c.Pool.Get()
-	if err != nil {
-		log.Error(err.Error())
+	var err error
+	client := c.getFromPool()
+	if client == nil {
+		return
 	}
-	defer c.Pool.Put(client)
+	defer c.Pool.CarefullyPut(client, &err)
 
 	skinBuf := new(bytes.Buffer)
 	_ = png.Encode(skinBuf, skin.Image)
 
-	_ = client.Cmd("AUTH", config.Redis.Auth)
-	_ = client.Cmd("SETEX", "skins:"+username, config.Redis.Ttl, skinBuf.Bytes())
+	// read into err so that it's set for the defer
+	err = client.Cmd("SETEX", "skins:"+username, config.Redis.Ttl, skinBuf.Bytes()).Err
 }
 
 func (c *CacheRedis) remove(username string) {
-	client, err := c.Pool.Get()
-	if err != nil {
-		log.Error(err.Error())
+	var err error
+	client := c.getFromPool()
+	if client == nil {
+		return
 	}
-	defer c.Pool.Put(client)
+	defer c.Pool.CarefullyPut(client, &err)
 
-	_ = client.Cmd("AUTH", config.Redis.Auth)
-	_ = client.Cmd("DEL", config.Redis.Prefix+username)
+	// read into err so that it's set for the defer
+	err = client.Cmd("DEL", config.Redis.Prefix+username).Err
 }
 
 func getSkinFromReply(resp *redis.Reply) (minecraft.Skin, error) {
