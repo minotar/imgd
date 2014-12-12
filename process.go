@@ -1,11 +1,15 @@
 package main
 
 import (
+	"github.com/disintegration/gift"
 	"github.com/disintegration/imaging"
 	"github.com/minotar/minecraft"
 	"image"
+	"image/color"
+	"image/draw"
 	"image/png"
 	"io"
+	"math"
 )
 
 const (
@@ -54,14 +58,16 @@ type mcSkin struct {
 }
 
 // Returns the "face" of the skin.
-func (skin *mcSkin) GetHead() error {
+func (skin *mcSkin) GetHead(width int) error {
 	skin.Processed = skin.cropHead(skin.Image)
+	skin.Resize(width, imaging.NearestNeighbor)
 	return nil
 }
 
 // Returns the face of the skin overlayed with the helmet texture.
-func (skin *mcSkin) GetHelm() error {
+func (skin *mcSkin) GetHelm(width int) error {
 	skin.Processed = skin.cropHelm(skin.Image)
+	skin.Resize(width, imaging.NearestNeighbor)
 	return nil
 }
 
@@ -97,7 +103,7 @@ func (skin *mcSkin) RenderUpperBody() error {
 }
 
 // Returns the upper portion of the body - like GetBody, but without the legs.
-func (skin *mcSkin) GetBust() error {
+func (skin *mcSkin) GetBust(width int) error {
 	// Go get the upper body but not all of it.
 	err := skin.RenderUpperBody()
 	if err != nil {
@@ -108,10 +114,46 @@ func (skin *mcSkin) GetBust() error {
 	img := skin.Processed.(*image.NRGBA)
 	img.Rect.Max.Y = BustHeight
 
+	skin.Resize(width, imaging.NearestNeighbor)
+
 	return nil
 }
 
-func (skin *mcSkin) GetBody() error {
+func (skin *mcSkin) GetCube(width int) error {
+	// Crop out the top of the head
+	topFlat := imaging.Crop(skin.Image, image.Rect(8, 0, 16, 8))
+	// Resize appropriately, so that it fills the `width` when rotated 45 def.
+	topFlat = imaging.Resize(topFlat, int(float64(width)*math.Sqrt(2)/3+1), 0, imaging.NearestNeighbor)
+	// Create the Gift filter
+	filter := gift.New(
+		gift.Rotate(45, color.Transparent, gift.LinearInterpolation),
+	)
+	bounds := filter.Bounds(topFlat.Bounds())
+	top := image.NewNRGBA(bounds)
+	// Draw it on the filter, then smush it!
+	filter.Draw(top, topFlat)
+	top = imaging.Resize(top, width+2, width/3, imaging.NearestNeighbor)
+	// Skew the front and sides at 15 degree angles to match up with the
+	// head that has been smushed
+	front := skin.cropHead(skin.Image).(*image.NRGBA)
+	side := imaging.Crop(skin.Image, image.Rect(0, 8, 8, 16))
+	front = imaging.Resize(front, width/2, int(float64(width)/1.75), imaging.NearestNeighbor)
+	side = imaging.Resize(side, width/2, int(float64(width)/1.75), imaging.NearestNeighbor)
+	front = skewVertical(front, math.Pi/12)
+	side = skewVertical(imaging.FlipH(side), math.Pi/-12)
+
+	// Create a new image to assemble upon
+	skin.Processed = image.NewNRGBA(image.Rect(0, 0, width, width))
+	// Draw each side
+	draw.Draw(skin.Processed.(draw.Image), image.Rect(0, width/6, width/2, width), side, image.Pt(0, 0), draw.Src)
+	draw.Draw(skin.Processed.(draw.Image), image.Rect(width/2, width/6, width, width), front, image.Pt(0, 0), draw.Src)
+	// Draw the top we created
+	draw.Draw(skin.Processed.(draw.Image), image.Rect(-1, 0, width+1, width/3), top, image.Pt(0, 0), draw.Over)
+
+	return nil
+}
+
+func (skin *mcSkin) GetBody(width int) error {
 	// Go get the upper body (all of it).
 	err := skin.RenderUpperBody()
 	if err != nil {
@@ -139,6 +181,8 @@ func (skin *mcSkin) GetBody() error {
 	fastDraw(bodyImg, rlImg, LaWidth+LlWidth, HelmHeight+TorsoHeight)
 
 	skin.Processed = bodyImg
+	skin.Resize(width, imaging.NearestNeighbor)
+
 	return nil
 }
 
@@ -153,8 +197,8 @@ func (skin *mcSkin) WriteSkin(w io.Writer) error {
 }
 
 // Resizes the skin to the given dimensions, keeping aspect ratio.
-func (skin *mcSkin) Resize(width uint) {
-	skin.Processed = imaging.Resize(skin.Processed, int(width), 0, imaging.NearestNeighbor)
+func (skin *mcSkin) Resize(width int, filter imaging.ResampleFilter) {
+	skin.Processed = imaging.Resize(skin.Processed, width, 0, filter)
 }
 
 // Removes the skin's alpha matte from the given image.
@@ -217,5 +261,50 @@ func fastDraw(dst *image.NRGBA, src *image.NRGBA, x, y int) {
 				dst.Pix[dstPx+3] = 0xFF
 			}
 		}
+	}
+}
+
+func skewVertical(src *image.NRGBA, degrees float64) *image.NRGBA {
+	bounds := src.Bounds()
+	maxY := bounds.Max.Y
+	maxX := bounds.Max.X * 4
+	distance := float64(bounds.Max.X) * math.Tan(degrees)
+	shouldFlip := false
+	if distance < 0 {
+		distance = -distance
+		shouldFlip = true
+	}
+
+	newHeight := maxY + int(1+distance)
+	dst := image.NewNRGBA(image.Rect(0, 0, bounds.Max.X, newHeight))
+
+	step := distance
+	for x := 0; x < maxX; x += 4 {
+		for row := 0; row < maxY; row += 1 {
+			srcPx := row*src.Stride + x
+			dstLower := (int(step)+row)*dst.Stride + x
+			dstUpper := dstLower + dst.Stride
+			_, delta := math.Modf(step)
+
+			if src.Pix[srcPx+3] != 0 {
+				dst.Pix[dstLower+0] += uint8(float64(src.Pix[srcPx+0]) * (1 - delta))
+				dst.Pix[dstLower+1] += uint8(float64(src.Pix[srcPx+1]) * (1 - delta))
+				dst.Pix[dstLower+2] += uint8(float64(src.Pix[srcPx+2]) * (1 - delta))
+				dst.Pix[dstLower+3] += uint8(float64(src.Pix[srcPx+3]) * (1 - delta))
+
+				dst.Pix[dstUpper+0] += uint8(float64(src.Pix[srcPx+0]) * delta)
+				dst.Pix[dstUpper+1] += uint8(float64(src.Pix[srcPx+1]) * delta)
+				dst.Pix[dstUpper+2] += uint8(float64(src.Pix[srcPx+2]) * delta)
+				dst.Pix[dstUpper+3] += uint8(float64(src.Pix[srcPx+3]) * delta)
+			}
+		}
+
+		step -= distance / float64(bounds.Max.X)
+	}
+
+	if shouldFlip {
+		return imaging.FlipH(dst)
+	} else {
+		return dst
 	}
 }

@@ -27,7 +27,7 @@ const (
 	TimeoutActualSkin       = 2 * Days
 	TimeoutFailedFetch      = 15 * Minutes
 
-	MinotarVersion = "2.5"
+	MinotarVersion = "2.6"
 )
 
 var (
@@ -77,7 +77,7 @@ func timeBetween(timeA time.Time, timeB time.Time) int64 {
 	return timeB.Sub(timeA).Nanoseconds() / 1000000
 }
 
-func fetchImageProcessThen(callback func(*mcSkin) error) func(w http.ResponseWriter, r *http.Request) {
+func fetchImageProcessThen(callback func(*mcSkin, int) error) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		timeReqStart := time.Now()
 
@@ -92,14 +92,12 @@ func fetchImageProcessThen(callback func(*mcSkin) error) func(w http.ResponseWri
 
 		timeFetch := time.Now()
 
-		err = callback(skin)
+		err = callback(skin, int(size))
 		if err != nil {
 			serverErrorPage(w, r)
 			return
 		}
 		timeProcess := time.Now()
-		skin.Resize(size)
-		timeResize := time.Now()
 
 		w.Header().Add("Content-Type", "image/png")
 		w.Header().Add("X-Requested", "processed")
@@ -113,7 +111,7 @@ func fetchImageProcessThen(callback func(*mcSkin) error) func(w http.ResponseWri
 			timeout = TimeoutFailedFetch
 		}
 
-		timing := fmt.Sprintf("%d+%d+%d=%dms", timeBetween(timeReqStart, timeFetch), timeBetween(timeFetch, timeProcess), timeBetween(timeProcess, timeResize), timeBetween(timeReqStart, timeResize))
+		timing := fmt.Sprintf("%d+%d=%dms", timeBetween(timeReqStart, timeFetch), timeBetween(timeFetch, timeProcess), timeBetween(timeReqStart, timeProcess))
 
 		w.Header().Add("X-Timing", timing)
 		addCacheTimeoutHeader(w, timeout)
@@ -165,6 +163,7 @@ func fetchSkin(username string) *mcSkin {
 	}
 
 	cache.add(strings.ToLower(username), skin)
+
 	return &mcSkin{Processed: nil, Skin: skin}
 }
 
@@ -197,17 +196,20 @@ func main() {
 
 	debug.SetGCPercent(10)
 
-	avatarPage := fetchImageProcessThen(func(skin *mcSkin) error {
-		return skin.GetHead()
+	avatarPage := fetchImageProcessThen(func(skin *mcSkin, width int) error {
+		return skin.GetHead(width)
 	})
-	helmPage := fetchImageProcessThen(func(skin *mcSkin) error {
-		return skin.GetHelm()
+	helmPage := fetchImageProcessThen(func(skin *mcSkin, width int) error {
+		return skin.GetHelm(width)
 	})
-	bodyPage := fetchImageProcessThen(func(skin *mcSkin) error {
-		return skin.GetBody()
+	bodyPage := fetchImageProcessThen(func(skin *mcSkin, width int) error {
+		return skin.GetBody(width)
 	})
-	bustPage := fetchImageProcessThen(func(skin *mcSkin) error {
-		return skin.GetBust()
+	bustPage := fetchImageProcessThen(func(skin *mcSkin, width int) error {
+		return skin.GetBust(width)
+	})
+	cubePage := fetchImageProcessThen(func(skin *mcSkin, width int) error {
+		return skin.GetCube(width)
 	})
 
 	r := mux.NewRouter()
@@ -224,6 +226,9 @@ func main() {
 
 	r.HandleFunc("/bust/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", bustPage)
 	r.HandleFunc("/bust/{username:"+minecraft.ValidUsernameRegex+"}/{size:[0-9]+}{extension:(.png)?}", bustPage)
+
+	r.HandleFunc("/cube/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", cubePage)
+	r.HandleFunc("/cube/{username:"+minecraft.ValidUsernameRegex+"}/{size:[0-9]+}{extension:(.png)?}", cubePage)
 
 	r.HandleFunc("/download/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", downloadPage)
 
