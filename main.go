@@ -153,6 +153,8 @@ func cacheRemove(w http.ResponseWriter, r *http.Request) {
 	cache.remove(strings.ToLower(username))
 
 	w.WriteHeader(204)
+	
+	log.Info("Removing skin for " + username + " from cache")
 }
 
 func fetchSkin(username string) *mcSkin {
