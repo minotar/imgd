@@ -27,7 +27,7 @@ const (
 	TimeoutActualSkin       = 2 * Days
 	TimeoutFailedFetch      = 15 * Minutes
 
-	MinotarVersion = "2.5"
+	MinotarVersion = "2.6"
 )
 
 var (
