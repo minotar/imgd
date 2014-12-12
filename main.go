@@ -119,6 +119,10 @@ func fetchImageProcessThen(callback func(*mcSkin) error) func(w http.ResponseWri
 		addCacheTimeoutHeader(w, timeout)
 		skin.WritePNG(w)
 
+		if skin.Source == "" {
+			skin.Source = "Cached"
+		}
+
 		log.Info("Serving " + skin.Source + " skin for " + username + " (" + timing + ") md5: " + skin.Hash)
 	}
 }
