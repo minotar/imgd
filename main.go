@@ -27,7 +27,7 @@ const (
 	TimeoutActualSkin       = 2 * Days
 	TimeoutFailedFetch      = 15 * Minutes
 
-	MinotarVersion = "2.4"
+	MinotarVersion = "2.5"
 )
 
 var (
@@ -166,29 +166,6 @@ func fetchSkin(username string) *mcSkin {
 
 	cache.add(strings.ToLower(username), skin)
 	return &mcSkin{Processed: nil, Skin: skin}
-
-	/* We're not using this for now due to rate limiting restrictions
-	skin, err := minecraft.GetSkin(minecraft.User{Name: username})
-	if err != nil {
-		// Problem with the returned image, probably means we have an incorrect username
-		// Hit the accounts api
-		user, err := minecraft.GetUser(username)
-
-		if err != nil {
-			// There's no account for this person, serve char
-			skin, _ = minecraft.FetchSkinForChar()
-		} else {
-			// Get valid skin
-			skin, err = minecraft.GetSkin(user)
-			if err != nil {
-				// Their skin somehow errored, fallback
-				skin, _ = minecraft.FetchSkinForChar()
-			}
-		}
-	}
-
-	return skin
-	*/
 }
 
 var log = logging.MustGetLogger("imgd")
