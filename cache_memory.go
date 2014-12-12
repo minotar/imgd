@@ -82,5 +82,6 @@ func (c *CacheMemory) add(username string, skin minecraft.Skin) {
 // Removes the username from the cache
 func (c *CacheMemory) remove(username string) {
 	index := indexOf(username, c.Usernames)
-	delete(c.Skins, index)
+	key := c.Usernames[index]
+	delete(c.Skins, first)
 }
