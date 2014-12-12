@@ -65,61 +65,80 @@ func (skin *mcSkin) GetHelm() error {
 	return nil
 }
 
-// Gets the full frontal body shot of the image.
-func (skin *mcSkin) GetBody() error {
-	// Check if 1.8 skin (the max Y bound should be 64). Pre-1.8 skins are
-	// 32 pixels in height.
-	render18Skin := true
-	bounds := skin.Image.Bounds()
-	if bounds.Max.Y != 64 {
-		render18Skin = false
-	}
-
-	// Crop out the parts we'll need to piece together in the image.
+// Returns the head, torso, and arms part of the body image.
+func (skin *mcSkin) RenderUpperBody() error {
 	helmImg := skin.cropHelm(skin.Image)
 	torsoImg := imaging.Crop(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+TorsoHeight))
-	raImg := imaging.Crop(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+RaHeight))
-	rlImg := imaging.Crop(skin.Image, image.Rect(RlX, RlY, RlX+RlWidth, RlY+RlHeight))
+	raImg := imaging.Crop(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+TorsoHeight))
 
-	var laImg, llImg image.Image
+	var laImg image.Image
 
-	// If the skin is 1.8 then we will use the left arms and legs, otherwise
+	// If the skin is 1.8 then we will use the left arm, otherwise
 	// flip the right ones and use them.
-	if render18Skin {
-		laImg = imaging.Crop(skin.Image, image.Rect(LaX, LaY, LaX+LaWidth, LaY+LaHeight))
-		llImg = imaging.Crop(skin.Image, image.Rect(LlX, LlY, LlX+LlWidth, LlY+LlHeight))
+	if skin.is18Skin() {
+		laImg = imaging.Crop(skin.Image, image.Rect(LaX, LaY, LaX+LaWidth, LaY+TorsoHeight))
 	} else {
 		laImg = imaging.FlipH(raImg)
+	}
+
+	// Create a blank canvas for us to draw our upper body on
+	upperBodyImg := image.NewNRGBA(image.Rect(0, 0, LaWidth+TorsoWidth+RaWidth, HeadHeight+TorsoHeight))
+	// Helm
+	fastDraw(upperBodyImg, helmImg.(*image.NRGBA), LaWidth, 0)
+	// Torso
+	fastDraw(upperBodyImg, torsoImg, LaWidth, HelmHeight)
+	// Left Arm
+	fastDraw(upperBodyImg, laImg.(*image.NRGBA), 0, HelmHeight)
+	// Right Arm
+	fastDraw(upperBodyImg, raImg, LaWidth+TorsoWidth, HelmHeight)
+
+	skin.Processed = upperBodyImg
+	return nil
+}
+
+// Returns the upper portion of the body - like GetBody, but without the legs.
+func (skin *mcSkin) GetBust() error {
+	// Go get the upper body but not all of it.
+	err := skin.RenderUpperBody()
+	if err != nil {
+		return err
+	}
+
+	// Slice off the last little tidbit of the image.
+	img := skin.Processed.(*image.NRGBA)
+	img.Rect.Max.Y = BustHeight
+
+	return nil
+}
+
+func (skin *mcSkin) GetBody() error {
+	// Go get the upper body (all of it).
+	err := skin.RenderUpperBody()
+	if err != nil {
+		return err
+	}
+
+	rlImg := imaging.Crop(skin.Image, image.Rect(RlX, RlY, RlX+RlWidth, RlY+RlHeight))
+
+	// If the skin is 1.8 then we will use the left arms and legs, otherwise flip the right ones and use them.
+	var llImg image.Image
+	if skin.is18Skin() {
+		llImg = imaging.Crop(skin.Image, image.Rect(LlX, LlY, LlX+LlWidth, LlY+LlHeight))
+	} else {
 		llImg = imaging.FlipH(rlImg)
 	}
 
-	// Create a blank canvas for us to draw our body on
-	bodyImg := image.NewNRGBA(image.Rect(0, 0, LaWidth+TorsoWidth+RaWidth, HeadHeight+TorsoHeight+LlHeight))
-	// Helm
-	fastDraw(bodyImg, helmImg.(*image.NRGBA), LaWidth, 0)
-	// Torso
-	fastDraw(bodyImg, torsoImg, LaWidth, HelmHeight)
-	// Left Arm
-	fastDraw(bodyImg, laImg.(*image.NRGBA), 0, HelmHeight)
-	// Right Arm
-	fastDraw(bodyImg, raImg, LaWidth+TorsoWidth, HelmHeight)
+	// Create a blank canvas for us to draw our body on. Expand bodyImg so
+	// that we can draw on our legs.
+	bodyImg := skin.Processed.(*image.NRGBA)
+	bodyImg.Pix = append(bodyImg.Pix, make([]uint8, LlHeight*bodyImg.Stride)...)
+	bodyImg.Rect.Max.Y += LlHeight
 	// Left Leg
 	fastDraw(bodyImg, llImg.(*image.NRGBA), LaWidth, HelmHeight+TorsoHeight)
 	// Right Leg
 	fastDraw(bodyImg, rlImg, LaWidth+LlWidth, HelmHeight+TorsoHeight)
 
 	skin.Processed = bodyImg
-	return nil
-}
-
-// Returns the upper portion of the body - like GetBody, but without the legs.
-func (skin *mcSkin) GetBust() error {
-	err := skin.GetBody()
-	if err != nil {
-		return err
-	}
-
-	skin.Processed = imaging.Crop(skin.Processed, image.Rect(0, 0, 16, 16))
 	return nil
 }
 
@@ -155,6 +174,12 @@ func (skin *mcSkin) removeAlpha(img *image.NRGBA) {
 			img.Pix[i+3] = 0
 		}
 	}
+}
+
+// Checks if the skin is a 1.8 skin using its height.
+func (skin *mcSkin) is18Skin() bool {
+	bounds := skin.Image.Bounds()
+	return bounds.Max.Y == 64
 }
 
 // Returns the head of the skin image.
