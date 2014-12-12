@@ -53,24 +53,29 @@ type mcSkin struct {
 	minecraft.Skin
 }
 
+// Returns the "face" of the skin.
 func (skin *mcSkin) GetHead() error {
 	skin.Processed = skin.cropHead(skin.Image)
 	return nil
 }
 
+// Returns the face of the skin overlayed with the helmet texture.
 func (skin *mcSkin) GetHelm() error {
 	skin.Processed = skin.cropHelm(skin.Image)
 	return nil
 }
 
+// Gets the full frontal body shot of the image.
 func (skin *mcSkin) GetBody() error {
-	// Check if 1.8 skin (the max Y bound should be 64)
+	// Check if 1.8 skin (the max Y bound should be 64). Pre-1.8 skins are
+	// 32 pixels in height.
 	render18Skin := true
 	bounds := skin.Image.Bounds()
 	if bounds.Max.Y != 64 {
 		render18Skin = false
 	}
 
+	// Crop out the parts we'll need to piece together in the image.
 	helmImg := skin.cropHelm(skin.Image)
 	torsoImg := imaging.Crop(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+TorsoHeight))
 	raImg := imaging.Crop(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+RaHeight))
@@ -78,13 +83,13 @@ func (skin *mcSkin) GetBody() error {
 
 	var laImg, llImg image.Image
 
-	// If the skin is 1.8 then we will use the left arms and legs, otherwise flip the right ones and use them.
+	// If the skin is 1.8 then we will use the left arms and legs, otherwise
+	// flip the right ones and use them.
 	if render18Skin {
 		laImg = imaging.Crop(skin.Image, image.Rect(LaX, LaY, LaX+LaWidth, LaY+LaHeight))
 		llImg = imaging.Crop(skin.Image, image.Rect(LlX, LlY, LlX+LlWidth, LlY+LlHeight))
 	} else {
 		laImg = imaging.FlipH(raImg)
-
 		llImg = imaging.FlipH(rlImg)
 	}
 
@@ -107,6 +112,7 @@ func (skin *mcSkin) GetBody() error {
 	return nil
 }
 
+// Returns the upper portion of the body - like GetBody, but without the legs.
 func (skin *mcSkin) GetBust() error {
 	err := skin.GetBody()
 	if err != nil {
@@ -117,14 +123,17 @@ func (skin *mcSkin) GetBust() error {
 	return nil
 }
 
+// Writes the *processed* image as a PNG to the given writer.
 func (skin *mcSkin) WritePNG(w io.Writer) error {
 	return png.Encode(w, skin.Processed)
 }
 
+// Writes the *original* skin image as a png to the given writer.
 func (skin *mcSkin) WriteSkin(w io.Writer) error {
 	return png.Encode(w, skin.Image)
 }
 
+// Resizes the skin to the given dimensions, keeping aspect ratio.
 func (skin *mcSkin) Resize(width uint) {
 	skin.Processed = imaging.Resize(skin.Processed, int(width), 0, imaging.NearestNeighbor)
 }
@@ -136,7 +145,8 @@ func (skin *mcSkin) removeAlpha(img *image.NRGBA) {
 		return
 	}
 
-	// Otherwise loop through all the pixels and fix em
+	// Otherwise loop through all the pixels. Check to see which ones match
+	// the alpha signature and set their opacity to be zero.
 	for i := 0; i < len(img.Pix); i += 4 {
 		if img.Pix[i+0] == skin.AlphaSig[0] &&
 			img.Pix[i+1] == skin.AlphaSig[1] &&
@@ -147,10 +157,12 @@ func (skin *mcSkin) removeAlpha(img *image.NRGBA) {
 	}
 }
 
+// Returns the head of the skin image.
 func (skin *mcSkin) cropHead(img image.Image) image.Image {
 	return imaging.Crop(img, image.Rect(HeadX, HeadY, HeadX+HeadWidth, HeadY+HeadHeight))
 }
 
+// Returns the head of the skin image overlayed with the helm.
 func (skin *mcSkin) cropHelm(img image.Image) image.Image {
 	headImg := skin.cropHead(img)
 	helmImg := imaging.Crop(img, image.Rect(HelmX, HelmY, HelmX+HelmWidth, HelmY+HelmHeight))
@@ -160,6 +172,9 @@ func (skin *mcSkin) cropHelm(img image.Image) image.Image {
 	return headImg
 }
 
+// Draws the "src" onto the "dst" image at the given x/y bounds, maintaining
+// the original size. Pixels with have an alpha of 0x00 are not draw, and
+// all others are drawn with an alpha of 0xFF
 func fastDraw(dst *image.NRGBA, src *image.NRGBA, x, y int) {
 	bounds := src.Bounds()
 	maxY := bounds.Max.Y
