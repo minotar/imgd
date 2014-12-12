@@ -244,7 +244,7 @@ func main() {
 
 	r.HandleFunc("/skin/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", skinPage)
 
-	r.HandleFunc("/remove/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", cacheRemove)
+	r.HandleFunc("/remove/{username:"+minecraft.ValidUsernameRegex+"}", cacheRemove)
 
 	r.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s", MinotarVersion)
