@@ -73,7 +73,7 @@ func (skin *mcSkin) GetHelm(width int) error {
 
 // Returns the head, torso, and arms part of the body image.
 func (skin *mcSkin) RenderUpperBody() error {
-	helmImg := skin.cropHelm(skin.Image)
+	helmImg := skin.cropHead(skin.Image)
 	torsoImg := imaging.Crop(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+TorsoHeight))
 	raImg := imaging.Crop(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+TorsoHeight))
 
