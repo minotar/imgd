@@ -1,29 +1,32 @@
 package main
 
 import (
-	"encoding/json"
+	"code.google.com/p/gcfg"
 	"io"
 	"os"
 )
 
 const (
 	// The file we read from
-	CONFIG_FILE = "config.json"
+	CONFIG_FILE = "config.gcfg"
 	// The example file kept in version control. We'll copy and load from this
 	// by default.
-	CONFIG_EXAMPLE = "config.example.json"
+	CONFIG_EXAMPLE = "config.example.gcfg"
 )
 
 type Configuration struct {
-	Address string
-	Cache   string
+	Server struct {
+		Address           string
+		Cache             string
+		StatisticsEnabled bool
+	}
 
 	Redis struct {
 		Address  string
 		Ttl      string
 		Auth     string
 		Prefix   string
-		PoolSize int `json:"pool_size"`
+		PoolSize int
 	}
 }
 
@@ -35,13 +38,7 @@ func (c *Configuration) load() error {
 		return err
 	}
 
-	file, err := os.Open(CONFIG_FILE)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	return json.NewDecoder(file).Decode(c)
+	return gcfg.ReadFileInto(c, CONFIG_FILE)
 }
 
 // Creates the config.json if it does not exist.

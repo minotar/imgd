@@ -203,7 +203,7 @@ func setupConfig() {
 }
 
 func setupCache() {
-	cache = MakeCache(config.Cache)
+	cache = MakeCache(config.Server.Cache)
 	cache.setup()
 }
 
@@ -261,6 +261,6 @@ func main() {
 	})
 
 	http.Handle("/", r)
-	err := http.ListenAndServe(config.Address, nil)
+	err := http.ListenAndServe(config.Server.Address, nil)
 	log.Critical(err.Error())
 }
