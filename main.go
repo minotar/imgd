@@ -145,6 +145,16 @@ func downloadPage(w http.ResponseWriter, r *http.Request) {
 	skinPage(w, r)
 }
 
+func cacheRemove(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	username := vars["username"]
+
+	cache.remove(strings.ToLower(username))
+
+	w.WriteHeader(204)
+}
+
 func fetchSkin(username string) *mcSkin {
 	if cache.has(strings.ToLower(username)) {
 		return &mcSkin{Processed: nil, Skin: cache.pull(strings.ToLower(username))}
@@ -233,6 +243,8 @@ func main() {
 	r.HandleFunc("/download/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", downloadPage)
 
 	r.HandleFunc("/skin/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", skinPage)
+
+	r.HandleFunc("/remove/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", cacheRemove)
 
 	r.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s", MinotarVersion)

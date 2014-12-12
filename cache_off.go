@@ -23,3 +23,6 @@ func (c *CacheOff) pull(username string) minecraft.Skin {
 
 func (c *CacheOff) add(username string, skin minecraft.Skin) {
 }
+
+func (c *CacheOff) remove(username string) {
+}
