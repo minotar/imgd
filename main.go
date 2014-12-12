@@ -10,6 +10,7 @@ import (
 	"os"
 	"runtime/debug"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -26,7 +27,7 @@ const (
 	TimeoutActualSkin       = 2 * Days
 	TimeoutFailedFetch      = 15 * Minutes
 
-	MinotarVersion = "2.2"
+	MinotarVersion = "2.5"
 )
 
 var (
@@ -116,7 +117,11 @@ func fetchImageProcessThen(callback func(*mcSkin, int) error) func(w http.Respon
 		addCacheTimeoutHeader(w, timeout)
 		skin.WritePNG(w)
 
-		log.Info("Serving skin for " + username + " (" + timing + ") md5: " + skin.Hash)
+		if skin.Source == "" {
+			skin.Source = "Cached"
+		}
+
+		log.Info("Serving " + skin.Source + " skin for " + username + " (" + timing + ") md5: " + skin.Hash)
 	}
 }
 
@@ -141,17 +146,24 @@ func downloadPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func fetchSkin(username string) *mcSkin {
-	if cache.has(username) {
-		return &mcSkin{Processed: nil, Skin: cache.pull(username)}
+	if cache.has(strings.ToLower(username)) {
+		return &mcSkin{Processed: nil, Skin: cache.pull(strings.ToLower(username))}
 	}
 
-	skin, err := minecraft.FetchSkinFromUrl(username)
+	skin, err := minecraft.FetchSkinFromMojang(username)
 	if err != nil {
-		log.Error("Failed to get skin for " + username + " from Mojang (" + err.Error() + ")")
-		skin, _ = minecraft.FetchSkinForChar()
+		log.Error("Failed Skin Mojang: " + username + " (" + err.Error() + ")")
+		// Let's fallback to S3 and try and serve at least an old skin...
+		skin, err = minecraft.FetchSkinFromS3(username)
+		if err != nil {
+			log.Error("Failed Skin S3: " + username + " (" + err.Error() + ")")
+			// Well, looks like they don't exist after all.
+			skin, _ = minecraft.FetchSkinForChar()
+		}
 	}
 
-	cache.add(username, skin)
+	cache.add(strings.ToLower(username), skin)
+
 	return &mcSkin{Processed: nil, Skin: skin}
 }
 
