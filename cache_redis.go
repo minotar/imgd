@@ -7,6 +7,7 @@ import (
 	"github.com/fzzy/radix/redis"
 	"github.com/minotar/minecraft"
 	"image/png"
+	"strconv"
 )
 
 type CacheRedis struct {
@@ -109,7 +110,7 @@ func (c *CacheRedis) add(username string, skin minecraft.Skin) {
 	_ = png.Encode(skinBuf, skin.Image)
 
 	// read into err so that it's set for the defer
-	err = client.Cmd("SETEX", "skins:"+username, config.Redis.Ttl, skinBuf.Bytes()).Err
+	err = client.Cmd("SETEX", "skins:"+username, strconv.Itoa(config.Server.Ttl), skinBuf.Bytes()).Err
 }
 
 func (c *CacheRedis) remove(username string) {

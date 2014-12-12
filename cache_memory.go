@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/minotar/minecraft"
+	"time"
 )
 
 const (
@@ -65,6 +66,17 @@ func (c *CacheMemory) pull(username string) minecraft.Skin {
 	return c.Skins[username]
 }
 
+// Removes the username from the cache
+func (c *CacheMemory) remove(username string) {
+	index := indexOf(username, c.Usernames)
+	if index == -1 {
+		return
+	}
+
+	key := c.Usernames[index]
+	delete(c.Skins, key)
+}
+
 // Adds the skin to the cache, remove the oldest, expired skin if the cache
 // list is full.
 func (c *CacheMemory) add(username string, skin minecraft.Skin) {
@@ -77,4 +89,9 @@ func (c *CacheMemory) add(username string, skin minecraft.Skin) {
 	}
 
 	c.Skins[username] = skin
+
+	// After the expiration time, remove the item from the cache.
+	time.AfterFunc(time.Duration(config.Server.Ttl)*time.Second, func() {
+		c.remove(username)
+	})
 }

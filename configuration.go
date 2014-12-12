@@ -19,11 +19,11 @@ type Configuration struct {
 		Address           string
 		Cache             string
 		StatisticsEnabled bool
+		Ttl               int
 	}
 
 	Redis struct {
 		Address  string
-		Ttl      string
 		Auth     string
 		Prefix   string
 		PoolSize int
