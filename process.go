@@ -20,33 +20,46 @@ const (
 
 	HelmX      = 40
 	HelmY      = 8
-	HelmWidth  = 8
-	HelmHeight = 8
 
 	TorsoX      = 20
 	TorsoY      = 20
 	TorsoWidth  = 8
 	TorsoHeight = 12
 
+	Torso2X      = 20
+	Torso2Y      = 36
+
 	RaX      = 44
 	RaY      = 20
 	RaWidth  = 4
 	RaHeight = 12
+
+	Ra2X      = 44
+	Ra2Y      = 36
 
 	RlX      = 4
 	RlY      = 20
 	RlWidth  = 4
 	RlHeight = 12
 
+	Rl2X      = 4
+	Rl2Y      = 36
+
 	LaX      = 36
 	LaY      = 52
 	LaWidth  = 4
 	LaHeight = 12
 
+	La2X      = 52
+	La2Y      = 52
+
 	LlX      = 20
 	LlY      = 52
 	LlWidth  = 4
 	LlHeight = 12
+
+	Ll2X      = 4
+	Ll2Y      = 52
 
 	// The height of the 'bust' relative to the width of the body (16)
 	BustHeight = 16
@@ -92,11 +105,11 @@ func (skin *mcSkin) RenderUpperBody() error {
 	// Helm
 	fastDraw(upperBodyImg, helmImg.(*image.NRGBA), LaWidth, 0)
 	// Torso
-	fastDraw(upperBodyImg, torsoImg, LaWidth, HelmHeight)
+	fastDraw(upperBodyImg, torsoImg, LaWidth, HeadHeight)
 	// Left Arm
-	fastDraw(upperBodyImg, laImg.(*image.NRGBA), 0, HelmHeight)
+	fastDraw(upperBodyImg, laImg.(*image.NRGBA), 0, HeadHeight)
 	// Right Arm
-	fastDraw(upperBodyImg, raImg, LaWidth+TorsoWidth, HelmHeight)
+	fastDraw(upperBodyImg, raImg, LaWidth+TorsoWidth, HeadHeight)
 
 	skin.Processed = upperBodyImg
 	return nil
@@ -176,9 +189,9 @@ func (skin *mcSkin) GetBody(width int) error {
 	bodyImg.Pix = append(bodyImg.Pix, make([]uint8, LlHeight*bodyImg.Stride)...)
 	bodyImg.Rect.Max.Y += LlHeight
 	// Left Leg
-	fastDraw(bodyImg, llImg.(*image.NRGBA), LaWidth, HelmHeight+TorsoHeight)
+	fastDraw(bodyImg, llImg.(*image.NRGBA), LaWidth, HeadHeight+TorsoHeight)
 	// Right Leg
-	fastDraw(bodyImg, rlImg, LaWidth+LlWidth, HelmHeight+TorsoHeight)
+	fastDraw(bodyImg, rlImg, LaWidth+LlWidth, HeadHeight+TorsoHeight)
 
 	skin.Processed = bodyImg
 	skin.Resize(width, imaging.NearestNeighbor)
@@ -234,7 +247,7 @@ func (skin *mcSkin) cropHead(img image.Image) image.Image {
 // Returns the head of the skin image overlayed with the helm.
 func (skin *mcSkin) cropHelm(img image.Image) image.Image {
 	headImg := skin.cropHead(img)
-	helmImg := imaging.Crop(img, image.Rect(HelmX, HelmY, HelmX+HelmWidth, HelmY+HelmHeight))
+	helmImg := imaging.Crop(img, image.Rect(HelmX, HelmY, HelmX+HeadWidth, HelmY+HeadHeight))
 	skin.removeAlpha(helmImg)
 	fastDraw(headImg.(*image.NRGBA), helmImg, 0, 0)
 
