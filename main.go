@@ -8,6 +8,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"runtime"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -199,6 +200,7 @@ func main() {
 	setupCache()
 
 	debug.SetGCPercent(10)
+	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	avatarPage := fetchImageProcessThen(func(skin *mcSkin, width int) error {
 		stats.Served("avatar")
