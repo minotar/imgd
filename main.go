@@ -33,6 +33,7 @@ const (
 var (
 	config = &Configuration{}
 	cache  Cache
+	stats  *StatusCollector
 )
 
 type NotFoundHandler struct{}
@@ -147,6 +148,7 @@ func downloadPage(w http.ResponseWriter, r *http.Request) {
 
 func fetchSkin(username string) *mcSkin {
 	if cache.has(strings.ToLower(username)) {
+		stats.HitCache()
 		return &mcSkin{Processed: nil, Skin: cache.pull(strings.ToLower(username))}
 	}
 
@@ -162,6 +164,7 @@ func fetchSkin(username string) *mcSkin {
 		}
 	}
 
+	stats.MissCache()
 	cache.add(strings.ToLower(username), skin)
 
 	return &mcSkin{Processed: nil, Skin: skin}
@@ -190,6 +193,7 @@ func setupLog(logBackend *logging.LogBackend) {
 
 func main() {
 	logBackend := logging.NewLogBackend(os.Stdout, "", 0)
+	stats = MakeStatsCollector()
 	setupConfig()
 	setupLog(logBackend)
 	setupCache()
@@ -197,18 +201,23 @@ func main() {
 	debug.SetGCPercent(10)
 
 	avatarPage := fetchImageProcessThen(func(skin *mcSkin, width int) error {
+		stats.Served("avatar")
 		return skin.GetHead(width)
 	})
 	helmPage := fetchImageProcessThen(func(skin *mcSkin, width int) error {
+		stats.Served("helm")
 		return skin.GetHelm(width)
 	})
 	bodyPage := fetchImageProcessThen(func(skin *mcSkin, width int) error {
+		stats.Served("body")
 		return skin.GetBody(width)
 	})
 	bustPage := fetchImageProcessThen(func(skin *mcSkin, width int) error {
+		stats.Served("bust")
 		return skin.GetBust(width)
 	})
 	cubePage := fetchImageProcessThen(func(skin *mcSkin, width int) error {
+		stats.Served("cube")
 		return skin.GetCube(width)
 	})
 
@@ -236,6 +245,11 @@ func main() {
 
 	r.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s", MinotarVersion)
+	})
+
+	r.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(stats.ToJSON())
 	})
 
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

@@ -5,11 +5,10 @@ import (
 )
 
 const (
-	// Get the skin size in bytes. Skins have an 8-bit channel depth and are
-	// 64x32 pixels. Maximum of 8*64*32 plus 13 bytes for png metadata. They'll
-	// rarely (never) be that large due to compression, but we'll leave some
-	// extra wiggle to account for map overhead.
-	SKIN_SIZE = 8 * (64 * 32)
+	// Get the skin size in bytes. Stored as a []uint8, one byte each,
+	// plus bounces. So 64 * 64 bytes and we'll throw in an extra 16
+	// bytes of overhead.
+	SKIN_SIZE = (64 * 64) + 16
 
 	// Define a 64 MB cache size.
 	CACHE_SIZE = 2 << 25
@@ -77,4 +76,10 @@ func (c *CacheMemory) add(username string, skin minecraft.Skin) {
 	}
 
 	c.Skins[username] = skin
+}
+
+// The byte size of the cache. Fairly rough... don't really want to venture
+// into the land of manual memory management, because there be dragons.
+func (c *CacheMemory) memory() uint64 {
+	return uint64(len(c.Usernames) * SKIN_SIZE)
 }
