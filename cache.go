@@ -19,5 +19,4 @@ func MakeCache(cacheType string) Cache {
 	} else {
 		return &CacheOff{}
 	}
-
 }
