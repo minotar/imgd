@@ -38,11 +38,12 @@ func indexOf(str string, list []string) int {
 	return -1
 }
 
-func (c *CacheMemory) setup() {
+func (c *CacheMemory) setup() error {
 	c.Skins = map[string]minecraft.Skin{}
 	c.Usernames = []string{}
 
 	log.Info("Loaded Memory cache")
+	return nil
 }
 
 // Returns whether the item exists in the cache.

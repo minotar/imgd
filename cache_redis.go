@@ -31,7 +31,7 @@ func dialFunc(network, addr string) (*redis.Client, error) {
 	return client, nil
 }
 
-func (c *CacheRedis) setup() {
+func (c *CacheRedis) setup() error {
 	pool, err := pool.NewCustomPool(
 		"tcp",
 		config.Redis.Address,
@@ -40,12 +40,13 @@ func (c *CacheRedis) setup() {
 	)
 	if err != nil {
 		log.Error("Error connecting to redis database")
-		return
+		return err
 	}
 
 	c.Pool = pool
 
 	log.Info("Loaded Redis cache (pool: " + fmt.Sprintf("%v", config.Redis.PoolSize) + ")")
+	return nil
 }
 
 func (c *CacheRedis) getFromPool() *redis.Client {
