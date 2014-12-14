@@ -144,11 +144,11 @@ func (skin *mcSkin) GetCube(width int) error {
 
 	// Create a new image to assemble upon
 	skin.Processed = image.NewNRGBA(image.Rect(0, 0, width, width))
-	// Draw each side
-	draw.Draw(skin.Processed.(draw.Image), image.Rect(0, width/6, width/2, width), side, image.Pt(0, 0), draw.Src)
-	draw.Draw(skin.Processed.(draw.Image), image.Rect(width/2, width/6, width, width), front, image.Pt(0, 0), draw.Src)
 	// Draw the top we created
-	draw.Draw(skin.Processed.(draw.Image), image.Rect(-1, 0, width+1, width/3), top, image.Pt(0, 0), draw.Over)
+	draw.Draw(skin.Processed.(draw.Image), image.Rect(-1, 0, width+1, width/3), top, image.Pt(0, 0), draw.Src)
+	// Draw each side
+	draw.Draw(skin.Processed.(draw.Image), image.Rect(0, width/6, width/2, width), side, image.Pt(0, 0), draw.Over)
+	draw.Draw(skin.Processed.(draw.Image), image.Rect(width/2, width/6, width, width), front, image.Pt(0, 0), draw.Over)
 
 	return nil
 }
@@ -287,15 +287,16 @@ func skewVertical(src *image.NRGBA, degrees float64) *image.NRGBA {
 			_, delta := math.Modf(step)
 
 			if src.Pix[srcPx+3] != 0 {
-				dst.Pix[dstLower+0] += uint8(float64(src.Pix[srcPx+0]) * (1 - delta))
-				dst.Pix[dstLower+1] += uint8(float64(src.Pix[srcPx+1]) * (1 - delta))
-				dst.Pix[dstLower+2] += uint8(float64(src.Pix[srcPx+2]) * (1 - delta))
-				dst.Pix[dstLower+3] += uint8(float64(src.Pix[srcPx+3]) * (1 - delta))
-
-				dst.Pix[dstUpper+0] += uint8(float64(src.Pix[srcPx+0]) * delta)
-				dst.Pix[dstUpper+1] += uint8(float64(src.Pix[srcPx+1]) * delta)
-				dst.Pix[dstUpper+2] += uint8(float64(src.Pix[srcPx+2]) * delta)
-				dst.Pix[dstUpper+3] += uint8(float64(src.Pix[srcPx+3]) * delta)
+				drawPixel(dst, dstLower,
+					src.Pix[srcPx+0],
+					src.Pix[srcPx+1],
+					src.Pix[srcPx+2],
+					uint8(255*1-delta))
+				drawPixel(dst, dstUpper,
+					src.Pix[srcPx+0],
+					src.Pix[srcPx+1],
+					src.Pix[srcPx+2],
+					uint8(255*delta))
 			}
 		}
 
@@ -306,5 +307,35 @@ func skewVertical(src *image.NRGBA, degrees float64) *image.NRGBA {
 		return imaging.FlipH(dst)
 	} else {
 		return dst
+	}
+}
+
+func drawPixel(src *image.NRGBA, offset int, red, green, blue, alpha uint8) {
+	if src.Pix[offset+3] == 0 {
+		// If the opacity is nothing, update the pixel color to match exactly.
+		src.Pix[offset+0] = red
+		src.Pix[offset+1] = green
+		src.Pix[offset+2] = blue
+		src.Pix[offset+3] = alpha
+	} else {
+		// Otherwise take the average. We have to screw around with types
+		// otherwise uint8 wraps and it looks terrible.
+		alphaPercent := float64(alpha) / 0xFF
+		src.Pix[offset+0] = toUint8(uint((float64(src.Pix[offset+0]) + alphaPercent*float64(red)) / (1 + alphaPercent)))
+		src.Pix[offset+1] = toUint8(uint((float64(src.Pix[offset+1]) + alphaPercent*float64(green)) / (1 + alphaPercent)))
+		src.Pix[offset+2] = toUint8(uint((float64(src.Pix[offset+2]) + alphaPercent*float64(blue)) / (1 + alphaPercent)))
+		src.Pix[offset+3] = clampToUint8(src.Pix[offset+3], alpha)
+	}
+}
+
+func clampToUint8(a, b uint8) uint8 {
+	return toUint8(uint(a) + uint(b))
+}
+
+func toUint8(a uint) uint8 {
+	if a > 0xFF {
+		return 0xFF
+	} else {
+		return uint8(a)
 	}
 }
