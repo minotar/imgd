@@ -44,7 +44,11 @@ func setupConfig() {
 
 func setupCache() {
 	cache = MakeCache(config.Server.Cache)
-	cache.setup()
+	err := cache.setup()
+	if err != nil {
+		log.Critical("Unable to setup Cache. (" + fmt.Sprintf("%v", err) + ")")
+		os.Exit(1)
+	}
 }
 
 func setupLog(logBackend *logging.LogBackend) {
