@@ -7,8 +7,9 @@ import (
 type CacheOff struct {
 }
 
-func (c *CacheOff) setup() {
+func (c *CacheOff) setup() error {
 	log.Info("Loaded without cache")
+	return nil
 }
 
 func (c *CacheOff) has(username string) bool {

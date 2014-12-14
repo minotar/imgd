@@ -5,7 +5,7 @@ import (
 )
 
 type Cache interface {
-	setup()
+	setup() error
 	has(username string) bool
 	pull(username string) minecraft.Skin
 	add(username string, skin minecraft.Skin)
