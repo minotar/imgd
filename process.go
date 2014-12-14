@@ -18,48 +18,48 @@ const (
 	HeadWidth  = 8
 	HeadHeight = 8
 
-	HelmX      = 40
-	HelmY      = 8
+	HelmX = 40
+	HelmY = 8
 
 	TorsoX      = 20
 	TorsoY      = 20
 	TorsoWidth  = 8
 	TorsoHeight = 12
 
-	Torso2X      = 20
-	Torso2Y      = 36
+	Torso2X = 20
+	Torso2Y = 36
 
 	RaX      = 44
 	RaY      = 20
 	RaWidth  = 4
 	RaHeight = 12
 
-	Ra2X      = 44
-	Ra2Y      = 36
+	Ra2X = 44
+	Ra2Y = 36
 
 	RlX      = 4
 	RlY      = 20
 	RlWidth  = 4
 	RlHeight = 12
 
-	Rl2X      = 4
-	Rl2Y      = 36
+	Rl2X = 4
+	Rl2Y = 36
 
 	LaX      = 36
 	LaY      = 52
 	LaWidth  = 4
 	LaHeight = 12
 
-	La2X      = 52
-	La2Y      = 52
+	La2X = 52
+	La2Y = 52
 
 	LlX      = 20
 	LlY      = 52
 	LlWidth  = 4
 	LlHeight = 12
 
-	Ll2X      = 4
-	Ll2Y      = 52
+	Ll2X = 4
+	Ll2Y = 52
 
 	// The height of the 'bust' relative to the width of the body (16)
 	BustHeight = 16
@@ -84,6 +84,40 @@ func (skin *mcSkin) GetHelm(width int) error {
 	return nil
 }
 
+func (skin *mcSkin) GetCube(width int) error {
+	// Crop out the top of the head
+	topFlat := imaging.Crop(skin.Image, image.Rect(8, 0, 16, 8))
+	// Resize appropriately, so that it fills the `width` when rotated 45 def.
+	topFlat = imaging.Resize(topFlat, int(float64(width)*math.Sqrt(2)/3+1), 0, imaging.NearestNeighbor)
+	// Create the Gift filter
+	filter := gift.New(
+		gift.Rotate(45, color.Transparent, gift.LinearInterpolation),
+	)
+	bounds := filter.Bounds(topFlat.Bounds())
+	top := image.NewNRGBA(bounds)
+	// Draw it on the filter, then smush it!
+	filter.Draw(top, topFlat)
+	top = imaging.Resize(top, width+2, width/3, imaging.NearestNeighbor)
+	// Skew the front and sides at 15 degree angles to match up with the
+	// head that has been smushed
+	front := skin.cropHead(skin.Image).(*image.NRGBA)
+	side := imaging.Crop(skin.Image, image.Rect(0, 8, 8, 16))
+	front = imaging.Resize(front, width/2, int(float64(width)/1.75), imaging.NearestNeighbor)
+	side = imaging.Resize(side, width/2, int(float64(width)/1.75), imaging.NearestNeighbor)
+	front = skewVertical(front, math.Pi/12)
+	side = skewVertical(imaging.FlipH(side), math.Pi/-12)
+
+	// Create a new image to assemble upon
+	skin.Processed = image.NewNRGBA(image.Rect(0, 0, width, width))
+	// Draw each side
+	draw.Draw(skin.Processed.(draw.Image), image.Rect(0, width/6, width/2, width), side, image.Pt(0, 0), draw.Src)
+	draw.Draw(skin.Processed.(draw.Image), image.Rect(width/2, width/6, width, width), front, image.Pt(0, 0), draw.Src)
+	// Draw the top we created
+	draw.Draw(skin.Processed.(draw.Image), image.Rect(-1, 0, width+1, width/3), top, image.Pt(0, 0), draw.Over)
+
+	return nil
+}
+
 // Returns the head, torso, and arms part of the body image.
 func (skin *mcSkin) RenderUpperBody() error {
 	helmImg := skin.cropHead(skin.Image)
@@ -91,7 +125,6 @@ func (skin *mcSkin) RenderUpperBody() error {
 	raImg := imaging.Crop(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+TorsoHeight))
 
 	var laImg image.Image
-
 	// If the skin is 1.8 then we will use the left arm, otherwise
 	// flip the right ones and use them.
 	if skin.is18Skin() {
@@ -132,40 +165,6 @@ func (skin *mcSkin) GetBust(width int) error {
 	return nil
 }
 
-func (skin *mcSkin) GetCube(width int) error {
-	// Crop out the top of the head
-	topFlat := imaging.Crop(skin.Image, image.Rect(8, 0, 16, 8))
-	// Resize appropriately, so that it fills the `width` when rotated 45 def.
-	topFlat = imaging.Resize(topFlat, int(float64(width)*math.Sqrt(2)/3+1), 0, imaging.NearestNeighbor)
-	// Create the Gift filter
-	filter := gift.New(
-		gift.Rotate(45, color.Transparent, gift.LinearInterpolation),
-	)
-	bounds := filter.Bounds(topFlat.Bounds())
-	top := image.NewNRGBA(bounds)
-	// Draw it on the filter, then smush it!
-	filter.Draw(top, topFlat)
-	top = imaging.Resize(top, width+2, width/3, imaging.NearestNeighbor)
-	// Skew the front and sides at 15 degree angles to match up with the
-	// head that has been smushed
-	front := skin.cropHead(skin.Image).(*image.NRGBA)
-	side := imaging.Crop(skin.Image, image.Rect(0, 8, 8, 16))
-	front = imaging.Resize(front, width/2, int(float64(width)/1.75), imaging.NearestNeighbor)
-	side = imaging.Resize(side, width/2, int(float64(width)/1.75), imaging.NearestNeighbor)
-	front = skewVertical(front, math.Pi/12)
-	side = skewVertical(imaging.FlipH(side), math.Pi/-12)
-
-	// Create a new image to assemble upon
-	skin.Processed = image.NewNRGBA(image.Rect(0, 0, width, width))
-	// Draw each side
-	draw.Draw(skin.Processed.(draw.Image), image.Rect(0, width/6, width/2, width), side, image.Pt(0, 0), draw.Src)
-	draw.Draw(skin.Processed.(draw.Image), image.Rect(width/2, width/6, width, width), front, image.Pt(0, 0), draw.Src)
-	// Draw the top we created
-	draw.Draw(skin.Processed.(draw.Image), image.Rect(-1, 0, width+1, width/3), top, image.Pt(0, 0), draw.Over)
-
-	return nil
-}
-
 func (skin *mcSkin) GetBody(width int) error {
 	// Go get the upper body (all of it).
 	err := skin.RenderUpperBody()
@@ -194,6 +193,64 @@ func (skin *mcSkin) GetBody(width int) error {
 	fastDraw(bodyImg, rlImg, LaWidth+LlWidth, HeadHeight+TorsoHeight)
 
 	skin.Processed = bodyImg
+	skin.Resize(width, imaging.NearestNeighbor)
+
+	return nil
+}
+
+// Returns the head, torso, and arms part of the body image.
+func (skin *mcSkin) RenderUpperArmor() error {
+	// Go get the upper body (all of it).
+	err := skin.RenderUpperBody()
+	if err != nil {
+		return err
+	}
+
+	helmImg := imaging.Crop(skin.Image, image.Rect(HelmX, HelmY, HelmX+HeadWidth, HelmY+HeadHeight))
+	skin.removeAlpha(helmImg)
+
+	torso2Img := imaging.Crop(skin.Image, image.Rect(Torso2X, Torso2Y, Torso2X+TorsoWidth, Torso2Y+TorsoHeight))
+	skin.removeAlpha(torso2Img)
+
+	ra2Img := imaging.Crop(skin.Image, image.Rect(Ra2X, Ra2Y, Ra2X+RaWidth, Ra2Y+TorsoHeight))
+	skin.removeAlpha(ra2Img)
+
+	var la2Img image.Image
+	// If the skin is 1.8 then we will use the left arms and legs, otherwise flip the right ones and use them.
+	if skin.is18Skin() {
+		la2Img = imaging.Crop(skin.Image, image.Rect(La2X, La2Y, La2X+LaWidth, La2Y+TorsoHeight))
+		skin.removeAlpha(la2Img.(*image.NRGBA))
+	} else {
+		la2Img = imaging.FlipH(ra2Img)
+	}
+
+	// Create a blank canvas for us to draw our upper body on
+	upperBodyImg := skin.Processed.(*image.NRGBA)
+	// Helm
+	fastDraw(upperBodyImg, helmImg, LaWidth, 0)
+	// Torso
+	fastDraw(upperBodyImg, torso2Img, LaWidth, HeadHeight)
+	// Left Arm
+	fastDraw(upperBodyImg, la2Img.(*image.NRGBA), 0, HeadHeight)
+	// Right Arm
+	fastDraw(upperBodyImg, ra2Img, LaWidth+TorsoWidth, HeadHeight)
+
+	skin.Processed = upperBodyImg
+	return nil
+}
+
+// Returns the upper portion of the body - like GetBody, but without the legs.
+func (skin *mcSkin) GetArmorBust(width int) error {
+	// Go get the upper body but not all of it.
+	err := skin.RenderUpperArmor()
+	if err != nil {
+		return err
+	}
+
+	// Slice off the last little tidbit of the image.
+	img := skin.Processed.(*image.NRGBA)
+	img.Rect.Max.Y = BustHeight
+
 	skin.Resize(width, imaging.NearestNeighbor)
 
 	return nil

@@ -210,17 +210,20 @@ func main() {
 		stats.Served("helm")
 		return skin.GetHelm(width)
 	})
-	bodyPage := fetchImageProcessThen(func(skin *mcSkin, width int) error {
-		stats.Served("body")
-		return skin.GetBody(width)
+	cubePage := fetchImageProcessThen(func(skin *mcSkin, width int) error {
+		stats.Served("cube")
+		return skin.GetCube(width)
 	})
 	bustPage := fetchImageProcessThen(func(skin *mcSkin, width int) error {
 		stats.Served("bust")
 		return skin.GetBust(width)
 	})
-	cubePage := fetchImageProcessThen(func(skin *mcSkin, width int) error {
-		stats.Served("cube")
-		return skin.GetCube(width)
+	bodyPage := fetchImageProcessThen(func(skin *mcSkin, width int) error {
+		stats.Served("body")
+		return skin.GetBody(width)
+	})
+	armorBustPage := fetchImageProcessThen(func(skin *mcSkin, width int) error {
+		return skin.GetArmorBust(width)
 	})
 
 	r := mux.NewRouter()
@@ -232,14 +235,17 @@ func main() {
 	r.HandleFunc("/helm/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", helmPage)
 	r.HandleFunc("/helm/{username:"+minecraft.ValidUsernameRegex+"}/{size:[0-9]+}{extension:(.png)?}", helmPage)
 
-	r.HandleFunc("/body/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", bodyPage)
-	r.HandleFunc("/body/{username:"+minecraft.ValidUsernameRegex+"}/{size:[0-9]+}{extension:(.png)?}", bodyPage)
+	r.HandleFunc("/cube/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", cubePage)
+	r.HandleFunc("/cube/{username:"+minecraft.ValidUsernameRegex+"}/{size:[0-9]+}{extension:(.png)?}", cubePage)
 
 	r.HandleFunc("/bust/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", bustPage)
 	r.HandleFunc("/bust/{username:"+minecraft.ValidUsernameRegex+"}/{size:[0-9]+}{extension:(.png)?}", bustPage)
 
-	r.HandleFunc("/cube/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", cubePage)
-	r.HandleFunc("/cube/{username:"+minecraft.ValidUsernameRegex+"}/{size:[0-9]+}{extension:(.png)?}", cubePage)
+	r.HandleFunc("/body/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", bodyPage)
+	r.HandleFunc("/body/{username:"+minecraft.ValidUsernameRegex+"}/{size:[0-9]+}{extension:(.png)?}", bodyPage)
+
+	r.HandleFunc("/armor/bust/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", armorBustPage)
+	r.HandleFunc("/armor/bust/{username:"+minecraft.ValidUsernameRegex+"}/{size:[0-9]+}{extension:(.png)?}", armorBustPage)
 
 	r.HandleFunc("/download/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", downloadPage)
 
