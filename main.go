@@ -5,9 +5,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/op/go-logging"
 	"net/http"
-	_ "net/http/pprof"
 	"os"
-	"runtime/debug"
+	"runtime"
 )
 
 const (
@@ -62,8 +61,10 @@ func startServer() {
 }
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
 	logBackend := logging.NewLogBackend(os.Stdout, "", 0)
-	debug.SetGCPercent(10)
+
 	stats = MakeStatsCollector()
 	setupLog(logBackend)
 	setupConfig()
