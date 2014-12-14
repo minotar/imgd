@@ -10,6 +10,7 @@ type Cache interface {
 	pull(username string) minecraft.Skin
 	add(username string, skin minecraft.Skin)
 	remove(username string)
+	memory() uint64
 }
 
 func MakeCache(cacheType string) Cache {

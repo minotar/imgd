@@ -18,6 +18,7 @@ func TestNothing(t *testing.T) {
 
 func BenchmarkSetup(b *testing.B) {
 	logBackend := logging.NewLogBackend(SilentWriter{}, "", 0)
+	stats = MakeStatsCollector()
 	setupConfig()
 	setupLog(logBackend)
 	setupCache()
