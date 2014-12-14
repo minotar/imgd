@@ -73,7 +73,7 @@ func (router *Router) ResolveMethod(skin *mcSkin, resource string) func(int) err
 		return skin.GetBust
 	case "Body":
 		return skin.GetBody
-	case "ArmorBust":
+	case "Armor/Bust":
 		return skin.GetArmorBust
 	default:
 		return skin.GetHelm
@@ -114,7 +114,7 @@ func (router *Router) Bind() {
 	router.Serve("Cube")
 	router.Serve("Bust")
 	router.Serve("Body")
-	router.Serve("ArmorBust")
+	router.Serve("Armor/Bust")
 
 	router.Mux.HandleFunc("/download/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", router.DownloadPage)
 	router.Mux.HandleFunc("/skin/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", router.SkinPage)
