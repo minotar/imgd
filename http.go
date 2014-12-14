@@ -60,6 +60,8 @@ func (router *Router) DownloadPage(w http.ResponseWriter, r *http.Request) {
 // Pull the Get<resource> method from the skin. Originally this used
 // reflection, but that was slow.
 func (router *Router) ResolveMethod(skin *mcSkin, resource string) func(int) error {
+	stats.Served(resource)
+
 	switch resource {
 	case "Helm":
 		return skin.GetHelm
