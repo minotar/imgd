@@ -69,11 +69,20 @@ func BenchmarkGetBody(b *testing.B) {
 	}
 }
 
-func GetArmorBust(b *testing.B) {
+func BenchmarkGetArmorBust(b *testing.B) {
 	skin := fetchSkin("clone1018")
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
 		skin.GetArmorBust(20)
+	}
+}
+
+func BenchmarkGetArmorBody(b *testing.B) {
+	skin := fetchSkin("clone1018")
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		skin.GetArmorBody(20)
 	}
 }
