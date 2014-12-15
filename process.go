@@ -70,20 +70,21 @@ type mcSkin struct {
 	minecraft.Skin
 }
 
-// Returns the "face" of the skin.
+// Sets skin.Processed to the face of the user.
 func (skin *mcSkin) GetHead(width int) error {
 	skin.Processed = skin.cropHead(skin.Image)
 	skin.resize(width, imaging.NearestNeighbor)
 	return nil
 }
 
-// Returns the face of the skin overlayed with the helmet texture.
+// Sets skin.Processed to the face of the user overlaid with their helmet. 
 func (skin *mcSkin) GetHelm(width int) error {
 	skin.Processed = skin.cropHelm(skin.Image)
 	skin.resize(width, imaging.NearestNeighbor)
 	return nil
 }
 
+// Sets skin.Processed to an isometric render of the head from a top-left angle (showing 3 sides).
 func (skin *mcSkin) GetCube(width int) error {
 	// Crop out the top of the head
 	topFlat := imaging.Crop(skin.Image, image.Rect(8, 0, 16, 8))
@@ -118,7 +119,7 @@ func (skin *mcSkin) GetCube(width int) error {
 	return nil
 }
 
-// Returns the upper portion of the body - like GetBody, but without the legs.
+// Sets skin.Processed to the upper portion of the body (slightly higher cutoff than waist).
 func (skin *mcSkin) GetBust(width int) error {
 	headImg := skin.cropHead(skin.Image).(*image.NRGBA)
 	upperBodyImg := skin.renderUpperBody()
@@ -131,7 +132,7 @@ func (skin *mcSkin) GetBust(width int) error {
 	return nil
 }
 
-// Returns the upper portion of the body - like GetBody, but without the legs.
+// Sets skin.Processed to the upper portion of the body (slightly higher cutoff than waist) but with any armor which the user has.
 func (skin *mcSkin) GetArmorBust(width int) error {
 	helmImg := skin.cropHelm(skin.Image).(*image.NRGBA)
 	upperArmorImg := skin.renderUpperArmor()
@@ -144,6 +145,7 @@ func (skin *mcSkin) GetArmorBust(width int) error {
 	return nil
 }
 
+// Sets skin.Processed to a front render of the body.
 func (skin *mcSkin) GetBody(width int) error {
 	headImg := skin.cropHead(skin.Image).(*image.NRGBA)
 	upperBodyImg := skin.renderUpperBody()
@@ -157,6 +159,7 @@ func (skin *mcSkin) GetBody(width int) error {
 	return nil
 }
 
+// Sets skin.Processed to a front render of the body but with any armor which the user has.
 func (skin *mcSkin) GetArmorBody(width int) error {
 	helmImg := skin.cropHelm(skin.Image).(*image.NRGBA)
 	upperArmorImg := skin.renderUpperArmor()
@@ -170,14 +173,15 @@ func (skin *mcSkin) GetArmorBody(width int) error {
 	return nil
 }
 
-// Returns the torso and arms
+// Returns the torso and arms.
 func (skin *mcSkin) renderUpperBody() (*image.NRGBA) {
-	// This will be the base
+	// This will be the base.
 	upperBodyImg := image.NewNRGBA(image.Rect(0, 0, LaWidth+TorsoWidth+RaWidth, TorsoHeight))
 
 	torsoImg := imaging.Crop(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+TorsoHeight))
 	raImg := imaging.Crop(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+TorsoHeight))
 
+	// If it's an old skin, they don't have a Left Arm, so we'll just flip their right.
 	var laImg image.Image
 	if skin.is18Skin() {
 		laImg = imaging.Crop(skin.Image, image.Rect(LaX, LaY, LaX+LaWidth, LaY+TorsoHeight))
@@ -188,25 +192,29 @@ func (skin *mcSkin) renderUpperBody() (*image.NRGBA) {
 	return skin.drawUpper(upperBodyImg, torsoImg, raImg, laImg.(*image.NRGBA))
 }
 
-// Returns the torso and arms with the 2nd layers of them
+// Returns the torso and arms but with any armor which the user has.
 func (skin *mcSkin) renderUpperArmor() (*image.NRGBA) {
-	// This will be the base
+	// This will be the base.
 	upperArmorBodyImg := skin.renderUpperBody()
 
-	// Get the 2nd layers from the skin and remove the Alpha
-	torso2Img := imaging.Crop(skin.Image, image.Rect(Torso2X, Torso2Y, Torso2X+TorsoWidth, Torso2Y+TorsoHeight))
-	skin.removeAlpha(torso2Img)
-
-	la2Img := imaging.Crop(skin.Image, image.Rect(La2X, La2Y, La2X+LaWidth, La2Y+TorsoHeight))
-	skin.removeAlpha(la2Img)
-
-	ra2Img := imaging.Crop(skin.Image, image.Rect(Ra2X, Ra2Y, Ra2X+RaWidth, Ra2Y+TorsoHeight))
-	skin.removeAlpha(ra2Img)
-
-	return skin.drawUpper(upperArmorBodyImg, torso2Img, ra2Img, la2Img)
+	// If it's an old skin, they don't have armor here.
+	if skin.is18Skin() {
+	// Get the armor layers from the skin and remove the Alpha.
+		torso2Img := imaging.Crop(skin.Image, image.Rect(Torso2X, Torso2Y, Torso2X+TorsoWidth, Torso2Y+TorsoHeight))
+		skin.removeAlpha(torso2Img)
+	
+		la2Img := imaging.Crop(skin.Image, image.Rect(La2X, La2Y, La2X+LaWidth, La2Y+TorsoHeight))
+		skin.removeAlpha(la2Img)
+	
+		ra2Img := imaging.Crop(skin.Image, image.Rect(Ra2X, Ra2Y, Ra2X+RaWidth, Ra2Y+TorsoHeight))
+		skin.removeAlpha(ra2Img)
+	
+		return skin.drawUpper(upperArmorBodyImg, torso2Img, ra2Img, la2Img)
+	}
+	return upperArmorBodyImg
 }
 
-// Returns the head, torso, and arms part of the body image.
+// Given a base, torso and arms, it will return them all arranged correctly.
 func (skin *mcSkin) drawUpper(base, torso, la, ra *image.NRGBA) (*image.NRGBA) {
 	// Torso
 	fastDraw(base, torso, LaWidth, 0)
@@ -218,14 +226,14 @@ func (skin *mcSkin) drawUpper(base, torso, la, ra *image.NRGBA) (*image.NRGBA) {
 	return base
 }
 
-// Returns the legs
+// Returns the legs.
 func (skin *mcSkin) renderLowerBody() (*image.NRGBA) {
-	// This will be the base
+	// This will be the base.
 	lowerBodyImg := image.NewNRGBA(image.Rect(0, 0, LlWidth+RlWidth, LlHeight))
 
 	rlImg := imaging.Crop(skin.Image, image.Rect(RlX, RlY, RlX+RlWidth, RlY+RlHeight))
 
-	// If the skin is 1.8 then we will use the left arms and legs, otherwise flip the right ones and use them.
+	// If it's an old skin, they don't have a Left Leg, so we'll just flip their right.
 	var llImg image.Image
 	if skin.is18Skin() {
 		llImg = imaging.Crop(skin.Image, image.Rect(LlX, LlY, LlX+LlWidth, LlY+LlHeight))
@@ -236,21 +244,26 @@ func (skin *mcSkin) renderLowerBody() (*image.NRGBA) {
 	return skin.drawLower(lowerBodyImg, rlImg, llImg.(*image.NRGBA))
 }
 
-// Returns the torso and arms with the 2nd layers of them
+// Returns the legs but with any armor which the user has.
 func (skin *mcSkin) renderLowerArmor() (*image.NRGBA) {
-	// This will be the base
+	// This will be the base.
 	lowerArmorBodyImg := skin.renderLowerBody()
 
-	ll2Img := imaging.Crop(skin.Image, image.Rect(Ll2X, Ll2Y, Ll2X+LlWidth, Ll2Y+LlHeight))
-	skin.removeAlpha(ll2Img)
-
-	rl2Img := imaging.Crop(skin.Image, image.Rect(Rl2X, Rl2Y, Rl2X+RlWidth, Rl2Y+RlHeight))
-	skin.removeAlpha(rl2Img)
-
-	return skin.drawLower(lowerArmorBodyImg, ll2Img, rl2Img)
+	// If it's an old skin, they don't have armor here.
+	if skin.is18Skin() {
+		// Get the armor layers from the skin and remove the Alpha.
+		ll2Img := imaging.Crop(skin.Image, image.Rect(Ll2X, Ll2Y, Ll2X+LlWidth, Ll2Y+LlHeight))
+		skin.removeAlpha(ll2Img)
+	
+		rl2Img := imaging.Crop(skin.Image, image.Rect(Rl2X, Rl2Y, Rl2X+RlWidth, Rl2Y+RlHeight))
+		skin.removeAlpha(rl2Img)
+	
+		return skin.drawLower(lowerArmorBodyImg, ll2Img, rl2Img)
+	}
+	return lowerArmorBodyImg
 }
 
-// Returns the head, torso, and arms part of the body image.
+// Given a base and legs, it will return them all arranged correctly.
 func (skin *mcSkin) drawLower(base, ll, rl *image.NRGBA) (*image.NRGBA) {
 	// Left Leg
 	fastDraw(base, ll, 0, 0)
@@ -260,7 +273,7 @@ func (skin *mcSkin) drawLower(base, ll, rl *image.NRGBA) (*image.NRGBA) {
 	return base
 }
 
-// Let's stick them TOGETHER Mwhahahaha
+// Rams the head onto the base (hopefully body...) to return a Frankenstein.
 func (skin *mcSkin) addHead(base, head *image.NRGBA) (*image.NRGBA) {
 	base.Pix = append(make([]uint8, HeadHeight*base.Stride), base.Pix...)
 	base.Rect.Max.Y += HeadHeight
@@ -269,6 +282,7 @@ func (skin *mcSkin) addHead(base, head *image.NRGBA) (*image.NRGBA) {
 	return base
 }
 
+// Attached the legs onto the base (likely body).
 func (skin *mcSkin) addLegs(base, legs *image.NRGBA) (*image.NRGBA) {
 	base.Pix = append(base.Pix, make([]uint8, LlHeight*base.Stride)...)
 	base.Rect.Max.Y += LlHeight
@@ -277,7 +291,7 @@ func (skin *mcSkin) addLegs(base, legs *image.NRGBA) (*image.NRGBA) {
 	return base
 }
 
-// Returns the upper portion of the body - like GetBody, but without the legs.
+// Given a bust, it will set the skin.Processed to a cropped version if it.
 func (skin *mcSkin) renderBust(bust *image.NRGBA) {
 	bust.Rect.Max.Y = BustHeight
 	skin.Processed = bust
