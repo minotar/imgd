@@ -126,7 +126,9 @@ func (skin *mcSkin) GetBust(width int) error {
 
 	bustImg := skin.addHead(upperBodyImg, headImg)
 
-	skin.renderBust(bustImg)
+	bustImg.Rect.Max.Y = BustHeight
+	skin.Processed = bustImg
+
 	skin.resize(width, imaging.NearestNeighbor)
 
 	return nil
@@ -139,7 +141,9 @@ func (skin *mcSkin) GetArmorBust(width int) error {
 
 	bustImg := skin.addHead(upperArmorImg, helmImg)
 
-	skin.renderBust(bustImg)
+	bustImg.Rect.Max.Y = BustHeight
+	skin.Processed = bustImg
+
 	skin.resize(width, imaging.NearestNeighbor)
 
 	return nil
@@ -289,14 +293,6 @@ func (skin *mcSkin) addLegs(base, legs *image.NRGBA) (*image.NRGBA) {
 	fastDraw(base, legs, LaWidth, HeadHeight+TorsoHeight)
 
 	return base
-}
-
-// Given a bust, it will set the skin.Processed to a cropped version if it.
-func (skin *mcSkin) renderBust(bust *image.NRGBA) {
-	bust.Rect.Max.Y = BustHeight
-	skin.Processed = bust
-
-	return
 }
 
 // Writes the *processed* image as a PNG to the given writer.
