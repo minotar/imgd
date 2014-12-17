@@ -2,12 +2,14 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/fzzy/radix/extra/pool"
 	"github.com/fzzy/radix/redis"
 	"github.com/minotar/minecraft"
 	"image/png"
 	"strconv"
+	"strings"
 )
 
 type CacheRedis struct {
@@ -29,7 +31,7 @@ func dialFunc(network, addr string) (*redis.Client, error) {
 	return client, nil
 }
 
-func (c *CacheRedis) setup() {
+func (c *CacheRedis) setup() error {
 	pool, err := pool.NewCustomPool(
 		"tcp",
 		config.Redis.Address,
@@ -38,12 +40,13 @@ func (c *CacheRedis) setup() {
 	)
 	if err != nil {
 		log.Error("Error connecting to redis database")
-		return
+		return err
 	}
 
 	c.Pool = pool
 
 	log.Info("Loaded Redis cache (pool: " + fmt.Sprintf("%v", config.Redis.PoolSize) + ")")
+	return nil
 }
 
 func (c *CacheRedis) getFromPool() *redis.Client {
@@ -125,6 +128,23 @@ func (c *CacheRedis) remove(username string) {
 	err = client.Cmd("DEL", config.Redis.Prefix+username).Err
 }
 
+func (c *CacheRedis) memory() uint64 {
+	var err error
+	client := c.getFromPool()
+	if client == nil {
+		return 0
+	}
+	defer c.Pool.CarefullyPut(client, &err)
+
+	data, err := parseStats(client.Cmd("INFO"))
+	if err != nil {
+		return 0
+	}
+
+	mem, _ := strconv.ParseUint(data["used_memory"], 10, 64)
+	return mem
+}
+
 func getSkinFromReply(resp *redis.Reply) (minecraft.Skin, error) {
 	respBytes, respErr := resp.Bytes()
 	if respErr != nil {
@@ -139,4 +159,30 @@ func getSkinFromReply(resp *redis.Reply) (minecraft.Skin, error) {
 	}
 
 	return skin, nil
+}
+
+// Parses a reply from redis INFO into a nice map.
+func parseStats(resp *redis.Reply) (map[string]string, error) {
+	r, err := resp.Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	raw := strings.Split(string(r), "\r\n")
+	output := map[string]string{}
+
+	for _, line := range raw {
+		// Skip blank lines or comment lines
+		if len(line) == 0 || string(line[0]) == "#" {
+			continue
+		}
+		// Get the position the seperator breaks
+		sep := strings.Index(line, ":")
+		if sep == -1 {
+			return nil, errors.New("Invalid line: " + line)
+		}
+		output[line[:sep]] = line[sep+1:]
+	}
+
+	return output, nil
 }

@@ -18,6 +18,7 @@ func TestNothing(t *testing.T) {
 
 func BenchmarkSetup(b *testing.B) {
 	logBackend := logging.NewLogBackend(SilentWriter{}, "", 0)
+	stats = MakeStatsCollector()
 	setupConfig()
 	setupLog(logBackend)
 	setupCache()
@@ -41,12 +42,12 @@ func BenchmarkGetHelm(b *testing.B) {
 	}
 }
 
-func BenchmarkGetBody(b *testing.B) {
+func BenchmarkGetCube(b *testing.B) {
 	skin := fetchSkin("clone1018")
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		skin.GetBody(20)
+		skin.GetCube(20)
 	}
 }
 
@@ -59,11 +60,29 @@ func BenchmarkGetBust(b *testing.B) {
 	}
 }
 
-func BenchmarkGetCube(b *testing.B) {
+func BenchmarkGetBody(b *testing.B) {
 	skin := fetchSkin("clone1018")
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		skin.GetCube(20)
+		skin.GetBody(20)
+	}
+}
+
+func BenchmarkGetArmorBust(b *testing.B) {
+	skin := fetchSkin("clone1018")
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		skin.GetArmorBust(20)
+	}
+}
+
+func BenchmarkGetArmorBody(b *testing.B) {
+	skin := fetchSkin("clone1018")
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		skin.GetArmorBody(20)
 	}
 }

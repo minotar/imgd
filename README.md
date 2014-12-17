@@ -19,23 +19,5 @@ $ ./imgd
 ```
 There you have it! Go visit your installation at *your-ip*:8000 to view it in action. If you wish to change the address the server listens on, you can do so by editing `config.gcfg` (it's like an `ini` file).
 
-## Understanding Headers
-We use a couple of headers to help in understanding how something is served, here they are:
-
-x-requested
-
-- returns: processed
-- explain: if Minotar processed your avatar
-
-x-result:
-
-- returns: ok,failed
-- explain: ok on successful GET from s3, failed on failed GET from s3
-
-x-timing:
-
-- returns: fetch time, process time, resize time, whole process
-- example: 48+0+4=52
-
 ## Thanks
 Big thanks to [lukegb](https://github.com/lukegb) for porting the old version of this script from PHP to Go.

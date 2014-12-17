@@ -6,11 +6,10 @@ import (
 )
 
 const (
-	// Get the skin size in bytes. Skins have an 8-bit channel depth and are
-	// 64x32 pixels. Maximum of 8*64*32 plus 13 bytes for png metadata. They'll
-	// rarely (never) be that large due to compression, but we'll leave some
-	// extra wiggle to account for map overhead.
-	SKIN_SIZE = 8 * (64 * 32)
+	// Get the skin size in bytes. Stored as a []uint8, one byte each,
+	// plus bounces. So 64 * 64 bytes and we'll throw in an extra 16
+	// bytes of overhead.
+	SKIN_SIZE = (64 * 64) + 16
 
 	// Define a 64 MB cache size.
 	CACHE_SIZE = 2 << 25
@@ -40,11 +39,12 @@ func indexOf(str string, list []string) int {
 	return -1
 }
 
-func (c *CacheMemory) setup() {
+func (c *CacheMemory) setup() error {
 	c.Skins = map[string]minecraft.Skin{}
 	c.Usernames = []string{}
 
 	log.Info("Loaded Memory cache")
+	return nil
 }
 
 // Returns whether the item exists in the cache.
@@ -94,4 +94,10 @@ func (c *CacheMemory) add(username string, skin minecraft.Skin) {
 	time.AfterFunc(time.Duration(config.Server.Ttl)*time.Second, func() {
 		c.remove(username)
 	})
+}
+
+// The byte size of the cache. Fairly rough... don't really want to venture
+// into the land of manual memory management, because there be dragons.
+func (c *CacheMemory) memory() uint64 {
+	return uint64(len(c.Usernames) * SKIN_SIZE)
 }

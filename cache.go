@@ -5,10 +5,11 @@ import (
 )
 
 type Cache interface {
-	setup()
+	setup() error
 	has(username string) bool
 	pull(username string) minecraft.Skin
 	add(username string, skin minecraft.Skin)
+	memory() uint64
 }
 
 func MakeCache(cacheType string) Cache {
@@ -19,5 +20,4 @@ func MakeCache(cacheType string) Cache {
 	} else {
 		return &CacheOff{}
 	}
-
 }

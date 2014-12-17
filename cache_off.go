@@ -7,8 +7,9 @@ import (
 type CacheOff struct {
 }
 
-func (c *CacheOff) setup() {
+func (c *CacheOff) setup() error {
 	log.Info("Loaded without cache")
+	return nil
 }
 
 func (c *CacheOff) has(username string) bool {
@@ -22,4 +23,8 @@ func (c *CacheOff) pull(username string) minecraft.Skin {
 }
 
 func (c *CacheOff) add(username string, skin minecraft.Skin) {
+}
+
+func (c *CacheOff) memory() uint64 {
+	return 0
 }
