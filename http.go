@@ -63,16 +63,24 @@ func (router *Router) ResolveMethod(skin *mcSkin, resource string) func(int) err
 	stats.Served(resource)
 
 	switch resource {
-	case "Helm":
-		return skin.GetHelm
 	case "Avatar":
 		return skin.GetHead
+	case "Helm":
+		return skin.GetHelm
 	case "Cube":
 		return skin.GetCube
-	case "Body":
-		return skin.GetBody
 	case "Bust":
 		return skin.GetBust
+	case "Body":
+		return skin.GetBody
+	case "Armor/Bust":
+		return skin.GetArmorBust
+	case "Armour/Bust":
+		return skin.GetArmorBust
+	case "Armor/Body":
+		return skin.GetArmorBody
+	case "Armour/Body":
+		return skin.GetArmorBody
 	default:
 		return skin.GetHelm
 	}
@@ -109,9 +117,13 @@ func (router *Router) Bind() {
 
 	router.Serve("Avatar")
 	router.Serve("Helm")
-	router.Serve("Body")
-	router.Serve("Bust")
 	router.Serve("Cube")
+	router.Serve("Bust")
+	router.Serve("Body")
+	router.Serve("Armor/Bust")
+	router.Serve("Armour/Bust")
+	router.Serve("Armor/Body")
+	router.Serve("Armour/Body")
 
 	router.Mux.HandleFunc("/download/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", router.DownloadPage)
 	router.Mux.HandleFunc("/skin/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", router.SkinPage)

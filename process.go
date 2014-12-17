@@ -18,35 +18,48 @@ const (
 	HeadWidth  = 8
 	HeadHeight = 8
 
-	HelmX      = 40
-	HelmY      = 8
-	HelmWidth  = 8
-	HelmHeight = 8
+	HelmX = 40
+	HelmY = 8
 
 	TorsoX      = 20
 	TorsoY      = 20
 	TorsoWidth  = 8
 	TorsoHeight = 12
 
+	Torso2X = 20
+	Torso2Y = 36
+
 	RaX      = 44
 	RaY      = 20
 	RaWidth  = 4
 	RaHeight = 12
+
+	Ra2X = 44
+	Ra2Y = 36
 
 	RlX      = 4
 	RlY      = 20
 	RlWidth  = 4
 	RlHeight = 12
 
+	Rl2X = 4
+	Rl2Y = 36
+
 	LaX      = 36
 	LaY      = 52
 	LaWidth  = 4
 	LaHeight = 12
 
+	La2X = 52
+	La2Y = 52
+
 	LlX      = 20
 	LlY      = 52
 	LlWidth  = 4
 	LlHeight = 12
+
+	Ll2X = 4
+	Ll2Y = 52
 
 	// The height of the 'bust' relative to the width of the body (16)
 	BustHeight = 16
@@ -57,68 +70,21 @@ type mcSkin struct {
 	minecraft.Skin
 }
 
-// Returns the "face" of the skin.
+// Sets skin.Processed to the face of the user.
 func (skin *mcSkin) GetHead(width int) error {
 	skin.Processed = skin.cropHead(skin.Image)
-	skin.Resize(width, imaging.NearestNeighbor)
+	skin.resize(width, imaging.NearestNeighbor)
 	return nil
 }
 
-// Returns the face of the skin overlayed with the helmet texture.
+// Sets skin.Processed to the face of the user overlaid with their helmet. 
 func (skin *mcSkin) GetHelm(width int) error {
 	skin.Processed = skin.cropHelm(skin.Image)
-	skin.Resize(width, imaging.NearestNeighbor)
+	skin.resize(width, imaging.NearestNeighbor)
 	return nil
 }
 
-// Returns the head, torso, and arms part of the body image.
-func (skin *mcSkin) RenderUpperBody() error {
-	helmImg := skin.cropHead(skin.Image)
-	torsoImg := imaging.Crop(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+TorsoHeight))
-	raImg := imaging.Crop(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+TorsoHeight))
-
-	var laImg image.Image
-
-	// If the skin is 1.8 then we will use the left arm, otherwise
-	// flip the right ones and use them.
-	if skin.is18Skin() {
-		laImg = imaging.Crop(skin.Image, image.Rect(LaX, LaY, LaX+LaWidth, LaY+TorsoHeight))
-	} else {
-		laImg = imaging.FlipH(raImg)
-	}
-
-	// Create a blank canvas for us to draw our upper body on
-	upperBodyImg := image.NewNRGBA(image.Rect(0, 0, LaWidth+TorsoWidth+RaWidth, HeadHeight+TorsoHeight))
-	// Helm
-	fastDraw(upperBodyImg, helmImg.(*image.NRGBA), LaWidth, 0)
-	// Torso
-	fastDraw(upperBodyImg, torsoImg, LaWidth, HelmHeight)
-	// Left Arm
-	fastDraw(upperBodyImg, laImg.(*image.NRGBA), 0, HelmHeight)
-	// Right Arm
-	fastDraw(upperBodyImg, raImg, LaWidth+TorsoWidth, HelmHeight)
-
-	skin.Processed = upperBodyImg
-	return nil
-}
-
-// Returns the upper portion of the body - like GetBody, but without the legs.
-func (skin *mcSkin) GetBust(width int) error {
-	// Go get the upper body but not all of it.
-	err := skin.RenderUpperBody()
-	if err != nil {
-		return err
-	}
-
-	// Slice off the last little tidbit of the image.
-	img := skin.Processed.(*image.NRGBA)
-	img.Rect.Max.Y = BustHeight
-
-	skin.Resize(width, imaging.NearestNeighbor)
-
-	return nil
-}
-
+// Sets skin.Processed to an isometric render of the head from a top-left angle (showing 3 sides).
 func (skin *mcSkin) GetCube(width int) error {
 	// Crop out the top of the head
 	topFlat := imaging.Crop(skin.Image, image.Rect(8, 0, 16, 8))
@@ -153,16 +119,125 @@ func (skin *mcSkin) GetCube(width int) error {
 	return nil
 }
 
+// Sets skin.Processed to the upper portion of the body (slightly higher cutoff than waist).
+func (skin *mcSkin) GetBust(width int) error {
+	headImg := skin.cropHead(skin.Image).(*image.NRGBA)
+	upperBodyImg := skin.renderUpperBody()
+
+	bustImg := skin.addHead(upperBodyImg, headImg)
+
+	bustImg.Rect.Max.Y = BustHeight
+	skin.Processed = bustImg
+
+	skin.resize(width, imaging.NearestNeighbor)
+
+	return nil
+}
+
+// Sets skin.Processed to the upper portion of the body (slightly higher cutoff than waist) but with any armor which the user has.
+func (skin *mcSkin) GetArmorBust(width int) error {
+	helmImg := skin.cropHelm(skin.Image).(*image.NRGBA)
+	upperArmorImg := skin.renderUpperArmor()
+
+	bustImg := skin.addHead(upperArmorImg, helmImg)
+
+	bustImg.Rect.Max.Y = BustHeight
+	skin.Processed = bustImg
+
+	skin.resize(width, imaging.NearestNeighbor)
+
+	return nil
+}
+
+// Sets skin.Processed to a front render of the body.
 func (skin *mcSkin) GetBody(width int) error {
-	// Go get the upper body (all of it).
-	err := skin.RenderUpperBody()
-	if err != nil {
-		return err
+	headImg := skin.cropHead(skin.Image).(*image.NRGBA)
+	upperBodyImg := skin.renderUpperBody()
+	lowerBodyImg := skin.renderLowerBody()
+
+	bodyImg := skin.addHead(upperBodyImg, headImg)
+	skin.Processed = skin.addLegs(bodyImg, lowerBodyImg)
+
+	skin.resize(width, imaging.NearestNeighbor)
+
+	return nil
+}
+
+// Sets skin.Processed to a front render of the body but with any armor which the user has.
+func (skin *mcSkin) GetArmorBody(width int) error {
+	helmImg := skin.cropHelm(skin.Image).(*image.NRGBA)
+	upperArmorImg := skin.renderUpperArmor()
+	lowerArmorImg := skin.renderLowerArmor()
+
+	bodyImg := skin.addHead(upperArmorImg, helmImg)
+	skin.Processed = skin.addLegs(bodyImg, lowerArmorImg)
+
+	skin.resize(width, imaging.NearestNeighbor)
+
+	return nil
+}
+
+// Returns the torso and arms.
+func (skin *mcSkin) renderUpperBody() (*image.NRGBA) {
+	// This will be the base.
+	upperBodyImg := image.NewNRGBA(image.Rect(0, 0, LaWidth+TorsoWidth+RaWidth, TorsoHeight))
+
+	torsoImg := imaging.Crop(skin.Image, image.Rect(TorsoX, TorsoY, TorsoX+TorsoWidth, TorsoY+TorsoHeight))
+	raImg := imaging.Crop(skin.Image, image.Rect(RaX, RaY, RaX+RaWidth, RaY+TorsoHeight))
+
+	// If it's an old skin, they don't have a Left Arm, so we'll just flip their right.
+	var laImg image.Image
+	if skin.is18Skin() {
+		laImg = imaging.Crop(skin.Image, image.Rect(LaX, LaY, LaX+LaWidth, LaY+TorsoHeight))
+	} else {
+		laImg = imaging.FlipH(raImg)
 	}
+
+	return skin.drawUpper(upperBodyImg, torsoImg, raImg, laImg.(*image.NRGBA))
+}
+
+// Returns the torso and arms but with any armor which the user has.
+func (skin *mcSkin) renderUpperArmor() (*image.NRGBA) {
+	// This will be the base.
+	upperArmorBodyImg := skin.renderUpperBody()
+
+	// If it's an old skin, they don't have armor here.
+	if skin.is18Skin() {
+	// Get the armor layers from the skin and remove the Alpha.
+		torso2Img := imaging.Crop(skin.Image, image.Rect(Torso2X, Torso2Y, Torso2X+TorsoWidth, Torso2Y+TorsoHeight))
+		skin.removeAlpha(torso2Img)
+	
+		la2Img := imaging.Crop(skin.Image, image.Rect(La2X, La2Y, La2X+LaWidth, La2Y+TorsoHeight))
+		skin.removeAlpha(la2Img)
+	
+		ra2Img := imaging.Crop(skin.Image, image.Rect(Ra2X, Ra2Y, Ra2X+RaWidth, Ra2Y+TorsoHeight))
+		skin.removeAlpha(ra2Img)
+	
+		return skin.drawUpper(upperArmorBodyImg, torso2Img, ra2Img, la2Img)
+	}
+	return upperArmorBodyImg
+}
+
+// Given a base, torso and arms, it will return them all arranged correctly.
+func (skin *mcSkin) drawUpper(base, torso, la, ra *image.NRGBA) (*image.NRGBA) {
+	// Torso
+	fastDraw(base, torso, LaWidth, 0)
+	// Left Arm
+	fastDraw(base, la, 0, 0)
+	// Right Arm
+	fastDraw(base, ra, LaWidth+TorsoWidth, 0)
+
+	return base
+}
+
+// Returns the legs.
+func (skin *mcSkin) renderLowerBody() (*image.NRGBA) {
+	// This will be the base.
+	lowerBodyImg := image.NewNRGBA(image.Rect(0, 0, LlWidth+RlWidth, LlHeight))
 
 	rlImg := imaging.Crop(skin.Image, image.Rect(RlX, RlY, RlX+RlWidth, RlY+RlHeight))
 
-	// If the skin is 1.8 then we will use the left arms and legs, otherwise flip the right ones and use them.
+	// If it's an old skin, they don't have a Left Leg, so we'll just flip their right.
 	var llImg image.Image
 	if skin.is18Skin() {
 		llImg = imaging.Crop(skin.Image, image.Rect(LlX, LlY, LlX+LlWidth, LlY+LlHeight))
@@ -170,20 +245,54 @@ func (skin *mcSkin) GetBody(width int) error {
 		llImg = imaging.FlipH(rlImg)
 	}
 
-	// Create a blank canvas for us to draw our body on. Expand bodyImg so
-	// that we can draw on our legs.
-	bodyImg := skin.Processed.(*image.NRGBA)
-	bodyImg.Pix = append(bodyImg.Pix, make([]uint8, LlHeight*bodyImg.Stride)...)
-	bodyImg.Rect.Max.Y += LlHeight
+	return skin.drawLower(lowerBodyImg, rlImg, llImg.(*image.NRGBA))
+}
+
+// Returns the legs but with any armor which the user has.
+func (skin *mcSkin) renderLowerArmor() (*image.NRGBA) {
+	// This will be the base.
+	lowerArmorBodyImg := skin.renderLowerBody()
+
+	// If it's an old skin, they don't have armor here.
+	if skin.is18Skin() {
+		// Get the armor layers from the skin and remove the Alpha.
+		ll2Img := imaging.Crop(skin.Image, image.Rect(Ll2X, Ll2Y, Ll2X+LlWidth, Ll2Y+LlHeight))
+		skin.removeAlpha(ll2Img)
+	
+		rl2Img := imaging.Crop(skin.Image, image.Rect(Rl2X, Rl2Y, Rl2X+RlWidth, Rl2Y+RlHeight))
+		skin.removeAlpha(rl2Img)
+	
+		return skin.drawLower(lowerArmorBodyImg, ll2Img, rl2Img)
+	}
+	return lowerArmorBodyImg
+}
+
+// Given a base and legs, it will return them all arranged correctly.
+func (skin *mcSkin) drawLower(base, ll, rl *image.NRGBA) (*image.NRGBA) {
 	// Left Leg
-	fastDraw(bodyImg, llImg.(*image.NRGBA), LaWidth, HelmHeight+TorsoHeight)
+	fastDraw(base, ll, 0, 0)
 	// Right Leg
-	fastDraw(bodyImg, rlImg, LaWidth+LlWidth, HelmHeight+TorsoHeight)
+	fastDraw(base, rl, LlWidth, 0)
 
-	skin.Processed = bodyImg
-	skin.Resize(width, imaging.NearestNeighbor)
+	return base
+}
 
-	return nil
+// Rams the head onto the base (hopefully body...) to return a Frankenstein.
+func (skin *mcSkin) addHead(base, head *image.NRGBA) (*image.NRGBA) {
+	base.Pix = append(make([]uint8, HeadHeight*base.Stride), base.Pix...)
+	base.Rect.Max.Y += HeadHeight
+	fastDraw(base, head, LaWidth, 0)
+
+	return base
+}
+
+// Attached the legs onto the base (likely body).
+func (skin *mcSkin) addLegs(base, legs *image.NRGBA) (*image.NRGBA) {
+	base.Pix = append(base.Pix, make([]uint8, LlHeight*base.Stride)...)
+	base.Rect.Max.Y += LlHeight
+	fastDraw(base, legs, LaWidth, HeadHeight+TorsoHeight)
+
+	return base
 }
 
 // Writes the *processed* image as a PNG to the given writer.
@@ -197,7 +306,7 @@ func (skin *mcSkin) WriteSkin(w io.Writer) error {
 }
 
 // Resizes the skin to the given dimensions, keeping aspect ratio.
-func (skin *mcSkin) Resize(width int, filter imaging.ResampleFilter) {
+func (skin *mcSkin) resize(width int, filter imaging.ResampleFilter) {
 	skin.Processed = imaging.Resize(skin.Processed, width, 0, filter)
 }
 
@@ -234,7 +343,7 @@ func (skin *mcSkin) cropHead(img image.Image) image.Image {
 // Returns the head of the skin image overlayed with the helm.
 func (skin *mcSkin) cropHelm(img image.Image) image.Image {
 	headImg := skin.cropHead(img)
-	helmImg := imaging.Crop(img, image.Rect(HelmX, HelmY, HelmX+HelmWidth, HelmY+HelmHeight))
+	helmImg := imaging.Crop(img, image.Rect(HelmX, HelmY, HelmX+HeadWidth, HelmY+HeadHeight))
 	skin.removeAlpha(helmImg)
 	fastDraw(headImg.(*image.NRGBA), helmImg, 0, 0)
 
