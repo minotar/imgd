@@ -143,6 +143,11 @@ func (router *Router) Bind() {
 }
 
 func fetchSkin(username string) *mcSkin {
+	if username == "char" {
+		skin, _ := minecraft.FetchSkinForChar()
+		return &mcSkin{Skin: skin}
+	}
+
 	if cache.has(strings.ToLower(username)) {
 		stats.HitCache()
 		return &mcSkin{Processed: nil, Skin: cache.pull(strings.ToLower(username))}
