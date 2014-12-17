@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Router struct {
@@ -101,8 +102,8 @@ func (router *Router) Serve(resource string) {
 		}
 
 		w.Header().Add("Content-Type", "image/png")
-		w.Header().Add("X-Skin-Hash", skin.Hash)
-		w.Header().Add("Cache-Control", fmt.Sprintf("max-age=%d", TimeoutActualSkin))
+		w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", TimeoutActualSkin))
+		w.Header().Add("ETag", skin.Hash)
 		skin.WritePNG(w)
 	}
 
