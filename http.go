@@ -93,6 +93,11 @@ func (router *Router) Serve(resource string) {
 		size := router.GetSize(vars["size"])
 		skin := fetchSkin(vars["username"])
 
+		if r.Header.Get("If-None-Match") == skin.Skin.Hash {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+
 		err := router.ResolveMethod(skin, resource)(int(size))
 		if err != nil {
 			w.WriteHeader(500)
