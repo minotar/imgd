@@ -77,7 +77,7 @@ func (skin *mcSkin) GetHead(width int) error {
 	return nil
 }
 
-// Sets skin.Processed to the face of the user overlaid with their helmet. 
+// Sets skin.Processed to the face of the user overlaid with their helmet.
 func (skin *mcSkin) GetHelm(width int) error {
 	skin.Processed = skin.cropHelm(skin.Image)
 	skin.resize(width, imaging.NearestNeighbor)
@@ -178,7 +178,7 @@ func (skin *mcSkin) GetArmorBody(width int) error {
 }
 
 // Returns the torso and arms.
-func (skin *mcSkin) renderUpperBody() (*image.NRGBA) {
+func (skin *mcSkin) renderUpperBody() *image.NRGBA {
 	// This will be the base.
 	upperBodyImg := image.NewNRGBA(image.Rect(0, 0, LaWidth+TorsoWidth+RaWidth, TorsoHeight))
 
@@ -197,29 +197,29 @@ func (skin *mcSkin) renderUpperBody() (*image.NRGBA) {
 }
 
 // Returns the torso and arms but with any armor which the user has.
-func (skin *mcSkin) renderUpperArmor() (*image.NRGBA) {
+func (skin *mcSkin) renderUpperArmor() *image.NRGBA {
 	// This will be the base.
 	upperArmorBodyImg := skin.renderUpperBody()
 
 	// If it's an old skin, they don't have armor here.
 	if skin.is18Skin() {
-	// Get the armor layers from the skin and remove the Alpha.
+		// Get the armor layers from the skin and remove the Alpha.
 		torso2Img := imaging.Crop(skin.Image, image.Rect(Torso2X, Torso2Y, Torso2X+TorsoWidth, Torso2Y+TorsoHeight))
 		skin.removeAlpha(torso2Img)
-	
+
 		la2Img := imaging.Crop(skin.Image, image.Rect(La2X, La2Y, La2X+LaWidth, La2Y+TorsoHeight))
 		skin.removeAlpha(la2Img)
-	
+
 		ra2Img := imaging.Crop(skin.Image, image.Rect(Ra2X, Ra2Y, Ra2X+RaWidth, Ra2Y+TorsoHeight))
 		skin.removeAlpha(ra2Img)
-	
+
 		return skin.drawUpper(upperArmorBodyImg, torso2Img, ra2Img, la2Img)
 	}
 	return upperArmorBodyImg
 }
 
 // Given a base, torso and arms, it will return them all arranged correctly.
-func (skin *mcSkin) drawUpper(base, torso, la, ra *image.NRGBA) (*image.NRGBA) {
+func (skin *mcSkin) drawUpper(base, torso, la, ra *image.NRGBA) *image.NRGBA {
 	// Torso
 	fastDraw(base, torso, LaWidth, 0)
 	// Left Arm
@@ -231,7 +231,7 @@ func (skin *mcSkin) drawUpper(base, torso, la, ra *image.NRGBA) (*image.NRGBA) {
 }
 
 // Returns the legs.
-func (skin *mcSkin) renderLowerBody() (*image.NRGBA) {
+func (skin *mcSkin) renderLowerBody() *image.NRGBA {
 	// This will be the base.
 	lowerBodyImg := image.NewNRGBA(image.Rect(0, 0, LlWidth+RlWidth, LlHeight))
 
@@ -249,7 +249,7 @@ func (skin *mcSkin) renderLowerBody() (*image.NRGBA) {
 }
 
 // Returns the legs but with any armor which the user has.
-func (skin *mcSkin) renderLowerArmor() (*image.NRGBA) {
+func (skin *mcSkin) renderLowerArmor() *image.NRGBA {
 	// This will be the base.
 	lowerArmorBodyImg := skin.renderLowerBody()
 
@@ -258,17 +258,17 @@ func (skin *mcSkin) renderLowerArmor() (*image.NRGBA) {
 		// Get the armor layers from the skin and remove the Alpha.
 		ll2Img := imaging.Crop(skin.Image, image.Rect(Ll2X, Ll2Y, Ll2X+LlWidth, Ll2Y+LlHeight))
 		skin.removeAlpha(ll2Img)
-	
+
 		rl2Img := imaging.Crop(skin.Image, image.Rect(Rl2X, Rl2Y, Rl2X+RlWidth, Rl2Y+RlHeight))
 		skin.removeAlpha(rl2Img)
-	
+
 		return skin.drawLower(lowerArmorBodyImg, ll2Img, rl2Img)
 	}
 	return lowerArmorBodyImg
 }
 
 // Given a base and legs, it will return them all arranged correctly.
-func (skin *mcSkin) drawLower(base, ll, rl *image.NRGBA) (*image.NRGBA) {
+func (skin *mcSkin) drawLower(base, ll, rl *image.NRGBA) *image.NRGBA {
 	// Left Leg
 	fastDraw(base, ll, 0, 0)
 	// Right Leg
@@ -278,7 +278,7 @@ func (skin *mcSkin) drawLower(base, ll, rl *image.NRGBA) (*image.NRGBA) {
 }
 
 // Rams the head onto the base (hopefully body...) to return a Frankenstein.
-func (skin *mcSkin) addHead(base, head *image.NRGBA) (*image.NRGBA) {
+func (skin *mcSkin) addHead(base, head *image.NRGBA) *image.NRGBA {
 	base.Pix = append(make([]uint8, HeadHeight*base.Stride), base.Pix...)
 	base.Rect.Max.Y += HeadHeight
 	fastDraw(base, head, LaWidth, 0)
@@ -287,7 +287,7 @@ func (skin *mcSkin) addHead(base, head *image.NRGBA) (*image.NRGBA) {
 }
 
 // Attached the legs onto the base (likely body).
-func (skin *mcSkin) addLegs(base, legs *image.NRGBA) (*image.NRGBA) {
+func (skin *mcSkin) addLegs(base, legs *image.NRGBA) *image.NRGBA {
 	base.Pix = append(base.Pix, make([]uint8, LlHeight*base.Stride)...)
 	base.Rect.Max.Y += LlHeight
 	fastDraw(base, legs, LaWidth, HeadHeight+TorsoHeight)
