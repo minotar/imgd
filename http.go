@@ -96,8 +96,8 @@ func (router *Router) getResizeMode(ext string) string {
 }
 
 func (router *Router) writeType(ext string, skin *mcSkin, w http.ResponseWriter) {
-	w.Header().Add("X-Skin-Hash", skin.Hash)
-	w.Header().Add("Cache-Control", fmt.Sprintf("max-age=%d", TimeoutActualSkin))
+	w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", TimeoutActualSkin))
+	w.Header().Add("ETag", skin.Hash)
 	switch ext {
 	case ".svg":
 		w.Header().Add("Content-Type", "image/svg+xml")
@@ -115,6 +115,11 @@ func (router *Router) Serve(resource string) {
 		size := router.GetSize(vars["size"])
 		skin := fetchSkin(vars["username"])
 		skin.Mode = router.getResizeMode(vars["extension"])
+
+		if r.Header.Get("If-None-Match") == skin.Skin.Hash {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
 
 		err := router.ResolveMethod(skin, resource)(int(size))
 		if err != nil {

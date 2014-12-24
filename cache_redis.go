@@ -151,7 +151,7 @@ func getSkinFromReply(resp *redis.Reply) (minecraft.Skin, error) {
 		return minecraft.Skin{}, respErr
 	}
 
-	imgBuf := bytes.NewBuffer(respBytes)
+	imgBuf := bytes.NewReader(respBytes)
 
 	skin, skinErr := minecraft.DecodeSkin(imgBuf)
 	if skinErr != nil {
