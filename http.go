@@ -86,12 +86,35 @@ func (router *Router) ResolveMethod(skin *mcSkin, resource string) func(int) err
 	}
 }
 
+func (router *Router) getResizeMode(ext string) string {
+	switch ext {
+	case ".svg":
+		return "None"
+	default:
+		return "Normal"
+	}
+}
+
+func (router *Router) writeType(ext string, skin *mcSkin, w http.ResponseWriter) {
+	w.Header().Add("X-Skin-Hash", skin.Hash)
+	w.Header().Add("Cache-Control", fmt.Sprintf("max-age=%d", TimeoutActualSkin))
+	switch ext {
+	case ".svg":
+		w.Header().Add("Content-Type", "image/svg+xml")
+		skin.WriteSVG(w)
+	default:
+		w.Header().Add("Content-Type", "image/png")
+		skin.WritePNG(w)
+	}
+}
+
 // Binds the route and makes a handler function for the requested resource.
 func (router *Router) Serve(resource string) {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		size := router.GetSize(vars["size"])
 		skin := fetchSkin(vars["username"])
+		skin.Mode = router.getResizeMode(vars["extension"])
 
 		err := router.ResolveMethod(skin, resource)(int(size))
 		if err != nil {
@@ -99,15 +122,11 @@ func (router *Router) Serve(resource string) {
 			fmt.Fprintf(w, "500 internal server error")
 			return
 		}
-
-		w.Header().Add("Content-Type", "image/png")
-		w.Header().Add("X-Skin-Hash", skin.Hash)
-		w.Header().Add("Cache-Control", fmt.Sprintf("max-age=%d", TimeoutActualSkin))
-		skin.WritePNG(w)
+		router.writeType(vars["extension"], skin, w)
 	}
 
-	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", fn)
-	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}/{size:[0-9]+}{extension:(.png)?}", fn)
+	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}{extension:(\\..*)?}", fn)
+	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}/{size:[0-9]+}{extension:(\\..*)?}", fn)
 }
 
 // Binds routes to the ServerMux.

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/ajstarks/svgo"
 	"github.com/disintegration/gift"
 	"github.com/disintegration/imaging"
 	"github.com/minotar/minecraft"
@@ -10,6 +11,7 @@ import (
 	"image/png"
 	"io"
 	"math"
+	"strconv"
 )
 
 const (
@@ -67,6 +69,7 @@ const (
 
 type mcSkin struct {
 	Processed image.Image
+	Mode      string
 	minecraft.Skin
 }
 
@@ -300,6 +303,33 @@ func (skin *mcSkin) WritePNG(w io.Writer) error {
 	return png.Encode(w, skin.Processed)
 }
 
+// Writes the processed image as an svg.
+func (skin *mcSkin) WriteSVG(w io.Writer) error {
+	canvas := svg.New(w)
+	bounds := skin.Processed.Bounds()
+	img := skin.Processed.(*image.NRGBA)
+
+	// Make a canvas the same size as the image.
+	canvas.Start(bounds.Max.X, bounds.Max.Y)
+	// Loop through every pixel in the image.
+	for y := 0; y < bounds.Max.Y; y += 1 {
+		for x := 0; x < bounds.Max.X; x += 1 {
+			ptr := y*img.Stride + x*4
+
+			// Only draw opaque pixels.
+			if img.Pix[ptr+3] == 0xFF {
+				canvas.Rect(x, y, 1, 1, "fill:rgb("+
+					strconv.Itoa(int(img.Pix[ptr]))+","+
+					strconv.Itoa(int(img.Pix[ptr+1]))+","+
+					strconv.Itoa(int(img.Pix[ptr+2]))+")")
+			}
+
+		}
+	}
+	canvas.End()
+	return nil
+}
+
 // Writes the *original* skin image as a png to the given writer.
 func (skin *mcSkin) WriteSkin(w io.Writer) error {
 	return png.Encode(w, skin.Image)
@@ -307,7 +337,9 @@ func (skin *mcSkin) WriteSkin(w io.Writer) error {
 
 // Resizes the skin to the given dimensions, keeping aspect ratio.
 func (skin *mcSkin) resize(width int, filter imaging.ResampleFilter) {
-	skin.Processed = imaging.Resize(skin.Processed, width, 0, filter)
+	if skin.Mode != "None" {
+		skin.Processed = imaging.Resize(skin.Processed, width, 0, filter)
+	}
 }
 
 // Removes the skin's alpha matte from the given image.
