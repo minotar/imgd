@@ -93,6 +93,11 @@ func (router *Router) Serve(resource string) {
 		size := router.GetSize(vars["size"])
 		skin := fetchSkin(vars["username"])
 
+		if r.Header.Get("If-None-Match") == skin.Skin.Hash {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+
 		err := router.ResolveMethod(skin, resource)(int(size))
 		if err != nil {
 			w.WriteHeader(500)
@@ -101,8 +106,8 @@ func (router *Router) Serve(resource string) {
 		}
 
 		w.Header().Add("Content-Type", "image/png")
-		w.Header().Add("X-Skin-Hash", skin.Hash)
-		w.Header().Add("Cache-Control", fmt.Sprintf("max-age=%d", TimeoutActualSkin))
+		w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", TimeoutActualSkin))
+		w.Header().Add("ETag", skin.Hash)
 		skin.WritePNG(w)
 	}
 
