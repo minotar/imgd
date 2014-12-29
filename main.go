@@ -26,9 +26,10 @@ const (
 )
 
 var (
-	config = &Configuration{}
-	cache  Cache
-	stats  *StatusCollector
+	config        = &Configuration{}
+	cache         Cache
+	stats         *StatusCollector
+	signalHandler *SignalHandler
 )
 
 var log = logging.MustGetLogger("imgd")
@@ -69,6 +70,7 @@ func main() {
 
 	logBackend := logging.NewLogBackend(os.Stdout, "", 0)
 
+	signalHandler = MakeSignalHandler()
 	stats = MakeStatsCollector()
 	setupLog(logBackend)
 	setupConfig()
