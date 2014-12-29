@@ -8,22 +8,19 @@ import (
 	"syscall"
 )
 
-var (
-	signalChannel chan<- os.Signal
-)
-
 type SignalHandler struct {
-	stopChannel chan int
+	signalChannel chan os.Signal
+	stopChannel   chan int
 }
 
-func (s *SignalHandler) run(signalChannel chan os.Signal) {
+func (s *SignalHandler) run() {
 	run := true
 	for run {
 		select {
-		case sig := <-signalChannel:
+		case sig := <-s.signalChannel:
 			s.handleSignal(sig)
 		case <-s.stopChannel:
-			signal.Stop(signalChannel)
+			signal.Stop(s.signalChannel)
 			run = false
 		}
 	}
@@ -79,8 +76,8 @@ func (s *SignalHandler) Stop() {
 func MakeSignalHandler() *SignalHandler {
 	s := new(SignalHandler)
 	s.stopChannel = make(chan int)
-	ch := make(chan os.Signal, 2)
-	signal.Notify(ch, syscall.SIGUSR1, syscall.SIGUSR2)
-	go s.run(ch)
+	s.signalChannel = make(chan os.Signal, 2)
+	signal.Notify(s.signalChannel, syscall.SIGUSR1, syscall.SIGUSR2)
+	go s.run()
 	return s
 }
