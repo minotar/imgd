@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/op/go-logging"
+	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
 
@@ -12,8 +13,70 @@ func (w SilentWriter) Write(p []byte) (n int, err error) {
 	return 0, nil
 }
 
-func TestNothing(t *testing.T) {
+func TestSetup(t *testing.T) {
+	logBackend := logging.NewLogBackend(SilentWriter{}, "", 0)
+	stats = MakeStatsCollector()
+	setupConfig()
+	setupLog(logBackend)
+	setupCache()
+}
 
+func TestRenders(t *testing.T) {
+	Convey("GetHead should return valid a image", t, func() {
+		skin := fetchSkin("clone1018")
+		err := skin.GetHead(20)
+
+		So(skin.Processed, ShouldNotBeNil)
+		So(err, ShouldBeNil)
+	})
+
+	Convey("GetHelm should return valid a image", t, func() {
+		skin := fetchSkin("clone1018")
+		err := skin.GetHelm(20)
+
+		So(skin.Processed, ShouldNotBeNil)
+		So(err, ShouldBeNil)
+	})
+
+	Convey("GetCube should return valid a image", t, func() {
+		skin := fetchSkin("clone1018")
+		err := skin.GetCube(20)
+
+		So(skin.Processed, ShouldNotBeNil)
+		So(err, ShouldBeNil)
+	})
+
+	Convey("GetBust should return valid a image", t, func() {
+		skin := fetchSkin("clone1018")
+		err := skin.GetBust(20)
+
+		So(skin.Processed, ShouldNotBeNil)
+		So(err, ShouldBeNil)
+	})
+
+	Convey("GetBody should return valida  image", t, func() {
+		skin := fetchSkin("clone1018")
+		err := skin.GetBody(20)
+
+		So(skin.Processed, ShouldNotBeNil)
+		So(err, ShouldBeNil)
+	})
+
+	Convey("GetArmorBust should return a valid image", t, func() {
+		skin := fetchSkin("clone1018")
+		err := skin.GetArmorBust(20)
+
+		So(skin.Processed, ShouldNotBeNil)
+		So(err, ShouldBeNil)
+	})
+
+	Convey("GetArmorBody should return a valid image", t, func() {
+		skin := fetchSkin("clone1018")
+		err := skin.GetArmorBody(20)
+
+		So(skin.Processed, ShouldNotBeNil)
+		So(err, ShouldBeNil)
+	})
 }
 
 func BenchmarkSetup(b *testing.B) {
