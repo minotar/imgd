@@ -7,12 +7,13 @@ cache = memory
 # Whether to store statistics about API usage. This requires a
 # redis connection if true (fill the config below).
 statisticsEnabled = false
+# The duration, in seconds we should store item in our cache. Default: 48 hrs
+ttl = 172800
 
 [redis]
 # If you're using Redis caching, you should fill this section out.
 # Otherwise, don't worry about it
 address = 127.0.0.1:6379
-ttl = 172800
 # "auth" is optional, it can be left blank if you don't need authentication.
 auth =
 # We'll place this before skin caches in Redis to prevent conflicts.
