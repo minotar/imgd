@@ -130,8 +130,8 @@ func (router *Router) Serve(resource string) {
 		router.writeType(vars["extension"], skin, w)
 	}
 
-	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}{extension:(\\..*)?}", fn)
-	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}/{size:[0-9]+}{extension:(\\..*)?}", fn)
+	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameOrUuidRegex+"}{extension:(\\..*)?}", fn)
+	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameOrUuidRegex+"}/{size:[0-9]+}{extension:(\\..*)?}", fn)
 }
 
 // Binds routes to the ServerMux.
@@ -149,8 +149,8 @@ func (router *Router) Bind() {
 	router.Serve("Armor/Body")
 	router.Serve("Armour/Body")
 
-	router.Mux.HandleFunc("/download/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", router.DownloadPage)
-	router.Mux.HandleFunc("/skin/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", router.SkinPage)
+	router.Mux.HandleFunc("/download/{username:"+minecraft.ValidUsernameOrUuidRegex+"}{extension:(.png)?}", router.DownloadPage)
+	router.Mux.HandleFunc("/skin/{username:"+minecraft.ValidUsernameOrUuidRegex+"}{extension:(.png)?}", router.SkinPage)
 
 	router.Mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s", MinotarVersion)
@@ -177,15 +177,26 @@ func fetchSkin(username string) *mcSkin {
 		return &mcSkin{Processed: nil, Skin: cache.pull(strings.ToLower(username))}
 	}
 
-	skin, err := minecraft.FetchSkinFromMojang(username)
-	if err != nil {
-		log.Error("Failed Skin Mojang: " + username + " (" + err.Error() + ")")
-		// Let's fallback to S3 and try and serve at least an old skin...
-		skin, err = minecraft.FetchSkinFromS3(username)
+	var skin minecraft.Skin
+	var err error
+
+	if len(username) == 32 { // it's a UUID!
+		skin, err = minecraft.FetchSkinFromMojangByUuid(username)
 		if err != nil {
-			log.Error("Failed Skin S3: " + username + " (" + err.Error() + ")")
-			// Well, looks like they don't exist after all.
+			log.Error("Failed Skin MojangUuid: " + username + " (" + err.Error() + ")")
 			skin, _ = minecraft.FetchSkinForChar()
+		}
+	} else {
+		skin, err = minecraft.FetchSkinFromMojang(username)
+		if err != nil {
+			log.Error("Failed Skin Mojang: " + username + " (" + err.Error() + ")")
+			// Let's fallback to S3 and try and serve at least an old skin...
+			skin, err = minecraft.FetchSkinFromS3(username)
+			if err != nil {
+				log.Error("Failed Skin S3: " + username + " (" + err.Error() + ")")
+				// Well, looks like they don't exist after all.
+				skin, _ = minecraft.FetchSkinForChar()
+			}
 		}
 	}
 
