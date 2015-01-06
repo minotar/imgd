@@ -167,25 +167,28 @@ func (router *Router) Bind() {
 }
 
 func fetchSkin(username string) *mcSkin {
+	normalizeUsername := strings.Replace(strings.ToLower(username), "-", "", 4)
 	if username == "char" {
 		skin, _ := minecraft.FetchSkinForChar()
 		return &mcSkin{Skin: skin}
 	}
 
-	if cache.has(strings.ToLower(username)) {
+	if cache.has(normalizeUsername) {
 		stats.HitCache()
-		return &mcSkin{Processed: nil, Skin: cache.pull(strings.ToLower(username))}
+		return &mcSkin{Processed: nil, Skin: cache.pull(normalizeUsername)}
 	}
 
 	var skin minecraft.Skin
 	var err error
 
-	if len(username) == 32 { // it's a UUID!
+	if len(normalizeUsername) == 32 { // it's a UUID!
 		skin, err = minecraft.FetchSkinFromMojangByUuid(username)
 		if err != nil {
 			log.Error("Failed Skin MojangUuid: " + username + " (" + err.Error() + ")")
 			skin, _ = minecraft.FetchSkinForChar()
 		}
+		//
+		username = strings.Replace(username, "-", "", 4)
 	} else {
 		skin, err = minecraft.FetchSkinFromMojang(username)
 		if err != nil {
@@ -201,7 +204,7 @@ func fetchSkin(username string) *mcSkin {
 	}
 
 	stats.MissCache()
-	cache.add(strings.ToLower(username), skin)
+	cache.add(normalizeUsername, skin)
 
 	return &mcSkin{Processed: nil, Skin: skin}
 }
