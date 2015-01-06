@@ -187,8 +187,6 @@ func fetchSkin(username string) *mcSkin {
 			log.Error("Failed Skin MojangUuid: " + username + " (" + err.Error() + ")")
 			skin, _ = minecraft.FetchSkinForChar()
 		}
-		//
-		username = strings.Replace(username, "-", "", 4)
 	} else {
 		skin, err = minecraft.FetchSkinFromMojang(username)
 		if err != nil {
