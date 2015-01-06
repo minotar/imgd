@@ -96,7 +96,7 @@ func (router *Router) getResizeMode(ext string) string {
 }
 
 func (router *Router) writeType(ext string, skin *mcSkin, w http.ResponseWriter) {
-	w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", TimeoutActualSkin))
+	w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", config.Server.Ttl))
 	w.Header().Add("ETag", skin.Hash)
 	switch ext {
 	case ".svg":
