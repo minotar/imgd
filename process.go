@@ -310,7 +310,7 @@ func (skin *mcSkin) WriteSVG(w io.Writer) error {
 	img := skin.Processed.(*image.NRGBA)
 
 	// Make a canvas the same size as the image.
-	canvas.Start(bounds.Max.X, bounds.Max.Y)
+	canvas.Start(bounds.Max.X, bounds.Max.Y, `shape-rendering="crispEdges"`)
 	// Loop through every pixel in the image.
 	for y := 0; y < bounds.Max.Y; y += 1 {
 		for x := 0; x < bounds.Max.X; x += 1 {
