@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/op/go-logging"
-	"testing"
 	"runtime"
+	"testing"
 )
 
 func testSetupStatus() *StashingWriter {
