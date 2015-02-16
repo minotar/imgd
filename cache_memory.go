@@ -96,6 +96,13 @@ func (c *CacheMemory) add(username string, skin minecraft.Skin) {
 	})
 }
 
+// Removes the username from the cache
+func (c *CacheMemory) remove(username string) {
+	index := indexOf(username, c.Usernames)
+	key := c.Usernames[index]
+	delete(c.Skins, key)
+}
+
 // The byte size of the cache. Fairly rough... don't really want to venture
 // into the land of manual memory management, because there be dragons.
 func (c *CacheMemory) memory() uint64 {

@@ -57,6 +57,17 @@ func (router *Router) DownloadPage(w http.ResponseWriter, r *http.Request) {
 	router.SkinPage(w, r)
 }
 
+// Shows the skin and tells the browser to attempt to download it.
+func (router *Router) CacheRemovePage(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	username := vars["username"]
+
+	cache.remove(strings.ToLower(username))
+
+	w.WriteHeader(204)
+}
+
 // Pull the Get<resource> method from the skin. Originally this used
 // reflection, but that was slow.
 func (router *Router) ResolveMethod(skin *mcSkin, resource string) func(int) error {
@@ -151,6 +162,7 @@ func (router *Router) Bind() {
 
 	router.Mux.HandleFunc("/download/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", router.DownloadPage)
 	router.Mux.HandleFunc("/skin/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", router.SkinPage)
+	router.Mux.HandleFunc("/remove/{username:"+minecraft.ValidUsernameRegex+"}", router.CacheRemovePage)
 
 	router.Mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s", MinotarVersion)
