@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/op/go-logging"
 	"net/http"
 	"os"
 	"runtime"
+
+	"github.com/gorilla/mux"
+	"github.com/op/go-logging"
 )
 
 const (
@@ -22,7 +23,7 @@ const (
 	TimeoutActualSkin       = 2 * Days
 	TimeoutFailedFetch      = 15 * Minutes
 
-	MinotarVersion = "2.7"
+	ImgdVersion = "2.7"
 )
 
 var (

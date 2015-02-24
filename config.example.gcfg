@@ -4,9 +4,8 @@ address = 0.0.0.0:8000
 # Cache you want to use for skins. May be "redis", "memory", or "off".
 # If it's Redis, you should fill out the [redis] section below.
 cache = memory
-# Whether to store statistics about API usage. This requires a
-# redis connection if true (fill the config below).
-statisticsEnabled = false
+# Address to redirect users to upon browsing /
+url = https://minotar.net/
 # The duration, in seconds we should store item in our cache. Default: 48 hrs
 ttl = 172800
 

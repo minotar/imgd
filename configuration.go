@@ -1,9 +1,10 @@
 package main
 
 import (
-	"code.google.com/p/gcfg"
 	"io"
 	"os"
+
+	"code.google.com/p/gcfg"
 )
 
 const (
@@ -16,10 +17,10 @@ const (
 
 type Configuration struct {
 	Server struct {
-		Address           string
-		Cache             string
-		StatisticsEnabled bool
-		Ttl               int
+		Address string
+		Cache   string
+		URL     string
+		Ttl     int
 	}
 
 	Redis struct {

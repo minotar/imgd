@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/minotar/minecraft"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/gorilla/mux"
+	"github.com/minotar/minecraft"
 )
 
 type Router struct {
@@ -153,7 +154,7 @@ func (router *Router) Bind() {
 	router.Mux.HandleFunc("/skin/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", router.SkinPage)
 
 	router.Mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "%s", MinotarVersion)
+		fmt.Fprintf(w, "%s", ImgdVersion)
 	})
 
 	router.Mux.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
@@ -162,7 +163,7 @@ func (router *Router) Bind() {
 	})
 
 	router.Mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "https://minotar.net/", 302)
+		http.Redirect(w, r, config.Server.URL, 302)
 	})
 }
 
