@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/op/go-logging"
 	"net/http"
 	"os"
 	"runtime"
+
+	"github.com/gorilla/mux"
+	"github.com/op/go-logging"
 )
 
 const (
@@ -61,8 +62,12 @@ func startServer() {
 	r := Router{Mux: mux.NewRouter()}
 	r.Bind()
 	http.Handle("/", r.Mux)
+	log.Info("imgd %s starting on %s", MinotarVersion, config.Server.Address)
 	err := http.ListenAndServe(config.Server.Address, nil)
-	log.Critical(err.Error())
+	if err != nil {
+		log.Critical("ListenAndServe: \"%s\"", err.Error())
+		os.Exit(1)
+	}
 }
 
 func main() {
