@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/minotar/minecraft"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/gorilla/mux"
+	"github.com/minotar/minecraft"
 )
 
 type Router struct {
@@ -17,7 +18,7 @@ type NotFoundHandler struct{}
 
 // Handles 404 errors
 func (h NotFoundHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(404)
+	w.WriteHeader(http.StatusNotFound)
 	fmt.Fprintf(w, "404 not found")
 }
 
@@ -38,16 +39,12 @@ func (r *Router) GetSize(inp string) uint {
 
 // Shows only the user's skin.
 func (router *Router) SkinPage(w http.ResponseWriter, r *http.Request) {
+	stats.Served("Skin")
 	vars := mux.Vars(r)
-
 	username := vars["username"]
-
 	skin := fetchSkin(username)
 
 	w.Header().Add("Content-Type", "image/png")
-	w.Header().Add("X-Requested", "skin")
-	w.Header().Add("X-Result", "ok")
-
 	skin.WriteSkin(w)
 }
 
@@ -123,7 +120,7 @@ func (router *Router) Serve(resource string) {
 
 		err := router.ResolveMethod(skin, resource)(int(size))
 		if err != nil {
-			w.WriteHeader(500)
+			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "500 internal server error")
 			return
 		}
@@ -162,7 +159,7 @@ func (router *Router) Bind() {
 	})
 
 	router.Mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "https://minotar.net/", 302)
+		http.Redirect(w, r, "https://minotar.net/", http.StatusFound)
 	})
 }
 
