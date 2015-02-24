@@ -25,7 +25,7 @@ type statusCollectorMessage struct {
 type StatusCollector struct {
 	info struct {
 		// Number of bytes allocated to the process.
-		Memory uint64
+		ImgdMem uint64
 		// Time in seconds the process has been running for
 		Uptime int64
 		// Number of times a request type has been served.
@@ -98,7 +98,7 @@ func (s *StatusCollector) Collect() {
 	memstats := &runtime.MemStats{}
 	runtime.ReadMemStats(memstats)
 
-	s.info.Memory = memstats.Alloc
+	s.info.ImgdMem = memstats.Alloc
 	s.info.Uptime = time.Now().Unix() - s.StartedAt
 	s.info.CacheSize = cache.size()
 	s.info.CacheMem = cache.memory()
