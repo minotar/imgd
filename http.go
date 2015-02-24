@@ -39,14 +39,12 @@ func (r *Router) GetSize(inp string) uint {
 
 // Shows only the user's skin.
 func (router *Router) SkinPage(w http.ResponseWriter, r *http.Request) {
+	stats.Served("Skin")
 	vars := mux.Vars(r)
-
 	username := vars["username"]
-
 	skin := fetchSkin(username)
 
 	w.Header().Add("Content-Type", "image/png")
-
 	skin.WriteSkin(w)
 }
 
