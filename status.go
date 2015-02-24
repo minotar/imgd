@@ -34,8 +34,10 @@ type StatusCollector struct {
 		CacheHits uint
 		// Number of times skins have failed to be served from the cache.
 		CacheMisses uint
-		// Size of cached skins
-		Cached uint64
+		// Number of skins in cache.
+		CacheSize uint
+		// Size of cache memory.
+		CacheMem uint64
 	}
 
 	// Unix timestamp the process was booted at.
@@ -98,7 +100,8 @@ func (s *StatusCollector) Collect() {
 
 	s.info.Memory = memstats.Alloc
 	s.info.Uptime = time.Now().Unix() - s.StartedAt
-	s.info.Cached = cache.memory()
+	s.info.CacheSize = cache.size()
+	s.info.CacheMem = cache.memory()
 }
 
 // Increments the request counter for the specific type of request.

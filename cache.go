@@ -9,6 +9,7 @@ type Cache interface {
 	has(username string) bool
 	pull(username string) minecraft.Skin
 	add(username string, skin minecraft.Skin)
+	size() uint
 	memory() uint64
 }
 
