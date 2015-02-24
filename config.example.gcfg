@@ -6,9 +6,6 @@ address = 0.0.0.0:8000
 cache = memory
 # Address to redirect users to upon browsing /
 url = https://minotar.net/
-# Whether to store statistics about API usage. This requires a
-# redis connection if true (fill the config below).
-statisticsEnabled = false
 # The duration, in seconds we should store item in our cache. Default: 48 hrs
 ttl = 172800
 

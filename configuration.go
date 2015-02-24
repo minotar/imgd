@@ -17,11 +17,10 @@ const (
 
 type Configuration struct {
 	Server struct {
-		Address           string
-		Cache             string
-		URL               string
-		StatisticsEnabled bool
-		Ttl               int
+		Address string
+		Cache   string
+		URL     string
+		Ttl     int
 	}
 
 	Redis struct {
