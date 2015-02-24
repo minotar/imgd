@@ -1,9 +1,10 @@
 package main
 
 import (
-	"code.google.com/p/gcfg"
 	"io"
 	"os"
+
+	"code.google.com/p/gcfg"
 )
 
 const (
@@ -18,6 +19,7 @@ type Configuration struct {
 	Server struct {
 		Address           string
 		Cache             string
+		URL               string
 		StatisticsEnabled bool
 		Ttl               int
 	}
