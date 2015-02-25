@@ -10,10 +10,11 @@ import (
 	"github.com/op/go-logging"
 )
 
+// Set the default, min and max width to resize processed images to.
 const (
-	DefaultSize = uint(180)
-	MaxSize     = uint(300)
-	MinSize     = uint(8)
+	DefaultWidth = uint(180)
+	MinWidth     = uint(8)
+	MaxWidth     = uint(300)
 
 	MinotarVersion = "2.7"
 )
