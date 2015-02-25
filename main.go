@@ -2,25 +2,19 @@ package main
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/op/go-logging"
 	"net/http"
 	"os"
 	"runtime"
+
+	"github.com/gorilla/mux"
+	"github.com/op/go-logging"
 )
 
+// Set the default, min and max width to resize processed images to.
 const (
-	DefaultSize = uint(180)
-	MaxSize     = uint(300)
-	MinSize     = uint(8)
-
-	SkinCache
-
-	Minutes            uint = 60
-	Hours                   = 60 * Minutes
-	Days                    = 24 * Hours
-	TimeoutActualSkin       = 2 * Days
-	TimeoutFailedFetch      = 15 * Minutes
+	DefaultWidth = uint(180)
+	MinWidth     = uint(8)
+	MaxWidth     = uint(300)
 
 	MinotarVersion = "2.7"
 )
