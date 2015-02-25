@@ -1,9 +1,10 @@
 package main
 
 import (
-	"code.google.com/p/gcfg"
 	"io"
 	"os"
+
+	"code.google.com/p/gcfg"
 )
 
 const (
@@ -25,6 +26,7 @@ type Configuration struct {
 	Redis struct {
 		Address  string
 		Auth     string
+		DB       int
 		Prefix   string
 		PoolSize int
 	}

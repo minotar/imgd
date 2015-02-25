@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/fzzy/radix/extra/pool"
-	"github.com/fzzy/radix/redis"
-	"github.com/minotar/minecraft"
 	"image/png"
 	"strconv"
 	"strings"
+
+	"github.com/fzzy/radix/extra/pool"
+	"github.com/fzzy/radix/redis"
+	"github.com/minotar/minecraft"
 )
 
 type CacheRedis struct {
@@ -22,12 +23,22 @@ func dialFunc(network, addr string) (*redis.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if config.Redis.Auth != "" {
-		if err := client.Cmd("AUTH", config.Redis.Auth).Err; err != nil {
+		r := client.Cmd("AUTH", config.Redis.Auth)
+		if r.Err != nil {
 			client.Close()
 			return nil, err
 		}
 	}
+
+	// Select the DB within Redis
+	r := client.Cmd("SELECT", config.Redis.DB)
+	if r.Err != nil {
+		client.Close()
+		return nil, err
+	}
+
 	return client, nil
 }
 
