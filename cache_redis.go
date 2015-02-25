@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"image/png"
 	"strconv"
 	"strings"
@@ -56,7 +55,7 @@ func (c *CacheRedis) setup() error {
 
 	c.Pool = pool
 
-	log.Info("Loaded Redis cache (pool: " + fmt.Sprintf("%v", config.Redis.PoolSize) + ")")
+	log.Info("Loaded Redis cache (address: %s, db: %v, prefix: \"%s\", pool: %v)", config.Redis.Address, config.Redis.DB, config.Redis.Prefix, config.Redis.PoolSize)
 	return nil
 }
 
