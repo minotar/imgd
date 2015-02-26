@@ -22,16 +22,16 @@ func (h NotFoundHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "404 not found")
 }
 
-// Converts and sanitizes the string for the avatar size.
-func (r *Router) GetSize(inp string) uint {
+// GetWidth converts and sanitizes the string for the avatar width.
+func (r *Router) GetWidth(inp string) uint {
 	out64, err := strconv.ParseUint(inp, 10, 0)
 	out := uint(out64)
 	if err != nil {
-		return DefaultSize
-	} else if out > MaxSize {
-		return MaxSize
-	} else if out < MinSize {
-		return MinSize
+		return DefaultWidth
+	} else if out > MaxWidth {
+		return MaxWidth
+	} else if out < MinWidth {
+		return MinWidth
 	}
 	return out
 
@@ -109,7 +109,7 @@ func (router *Router) writeType(ext string, skin *mcSkin, w http.ResponseWriter)
 func (router *Router) Serve(resource string) {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		size := router.GetSize(vars["size"])
+		width := router.GetWidth(vars["width"])
 		skin := fetchSkin(vars["username"])
 		skin.Mode = router.getResizeMode(vars["extension"])
 
@@ -118,7 +118,7 @@ func (router *Router) Serve(resource string) {
 			return
 		}
 
-		err := router.ResolveMethod(skin, resource)(int(size))
+		err := router.ResolveMethod(skin, resource)(int(width))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "500 internal server error")
@@ -128,7 +128,7 @@ func (router *Router) Serve(resource string) {
 	}
 
 	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}{extension:(\\..*)?}", fn)
-	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}/{size:[0-9]+}{extension:(\\..*)?}", fn)
+	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}/{width:[0-9]+}{extension:(\\..*)?}", fn)
 }
 
 // Binds routes to the ServerMux.
