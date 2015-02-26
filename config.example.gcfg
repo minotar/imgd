@@ -15,6 +15,8 @@ ttl = 172800
 address = 127.0.0.1:6379
 # "auth" is optional, it can be left blank if you don't need authentication.
 auth =
+# If you use your Redis for other data it may be useful to further separate it with databases.
+db = 0
 # We'll place this before skin caches in Redis to prevent conflicts.
 prefix = skins:
 # The number of Redis connections to use. 10 is a good number.

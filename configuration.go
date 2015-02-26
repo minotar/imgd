@@ -26,6 +26,7 @@ type Configuration struct {
 	Redis struct {
 		Address  string
 		Auth     string
+		DB       int
 		Prefix   string
 		PoolSize int
 	}
