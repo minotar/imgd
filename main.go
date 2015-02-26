@@ -23,7 +23,7 @@ const (
 	TimeoutActualSkin       = 2 * Days
 	TimeoutFailedFetch      = 15 * Minutes
 
-	MinotarVersion = "2.7"
+	ImgdVersion = "2.7"
 )
 
 var (
@@ -62,7 +62,7 @@ func startServer() {
 	r := Router{Mux: mux.NewRouter()}
 	r.Bind()
 	http.Handle("/", r.Mux)
-	log.Info("imgd %s starting on %s", MinotarVersion, config.Server.Address)
+	log.Info("imgd %s starting on %s", ImgdVersion, config.Server.Address)
 	err := http.ListenAndServe(config.Server.Address, nil)
 	if err != nil {
 		log.Critical("ListenAndServe: \"%s\"", err.Error())
