@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/minotar/minecraft"
 	"time"
+
+	"github.com/minotar/minecraft"
 )
 
 const (
@@ -94,6 +95,11 @@ func (c *CacheMemory) add(username string, skin minecraft.Skin) {
 	time.AfterFunc(time.Duration(config.Server.Ttl)*time.Second, func() {
 		c.remove(username)
 	})
+}
+
+// The exact number of usernames in the map
+func (c *CacheMemory) size() uint {
+	return uint(len(c.Usernames))
 }
 
 // The byte size of the cache. Fairly rough... don't really want to venture

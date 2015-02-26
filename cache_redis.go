@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/fzzy/radix/extra/pool"
-	"github.com/fzzy/radix/redis"
-	"github.com/minotar/minecraft"
 	"image/png"
 	"strconv"
 	"strings"
+
+	"github.com/fzzy/radix/extra/pool"
+	"github.com/fzzy/radix/redis"
+	"github.com/minotar/minecraft"
 )
 
 type CacheRedis struct {
@@ -126,6 +127,24 @@ func (c *CacheRedis) remove(username string) {
 
 	// read into err so that it's set for the defer
 	err = client.Cmd("DEL", config.Redis.Prefix+username).Err
+}
+
+func (c *CacheRedis) size() uint {
+	var err error
+	client := c.getFromPool()
+	if client == nil {
+		return 0
+	}
+	defer c.Pool.CarefullyPut(client, &err)
+
+	resp := client.Cmd("DBSIZE")
+	size, err := resp.Int()
+	if err != nil {
+		log.Error(err.Error())
+		return 0
+	}
+
+	return uint(size)
 }
 
 func (c *CacheRedis) memory() uint64 {
