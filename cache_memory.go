@@ -99,11 +99,11 @@ func (c *CacheMemory) add(username string, skin minecraft.Skin) {
 
 // The exact number of usernames in the map
 func (c *CacheMemory) size() uint {
-	return uint(len(c.Usernames))
+	return uint(len(c.Skins))
 }
 
 // The byte size of the cache. Fairly rough... don't really want to venture
 // into the land of manual memory management, because there be dragons.
 func (c *CacheMemory) memory() uint64 {
-	return uint64(len(c.Usernames) * SKIN_SIZE)
+	return uint64(len(c.Skins) * SKIN_SIZE)
 }
