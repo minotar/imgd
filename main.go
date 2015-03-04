@@ -49,6 +49,14 @@ func setupCache() {
 func setupLog(logBackend *logging.LogBackend) {
 	logging.SetBackend(logBackend)
 	logging.SetFormatter(logging.MustStringFormatter(format))
+	logLevel, err := logging.LogLevel(config.Server.Logging)
+	logging.SetLevel(logLevel, "")
+	if err != nil {
+		log.Error("Invalid log type: %s", config.Server.Logging)
+		// If error it sets the logging to ERROR, let's change it to INFO
+		logging.SetLevel(4, "")
+	}
+	log.Notice("Log level set to %s", logging.GetLevel(""))
 }
 
 func startServer() {
@@ -70,8 +78,8 @@ func main() {
 
 	signalHandler = MakeSignalHandler()
 	stats = MakeStatsCollector()
-	setupLog(logBackend)
 	setupConfig()
+	setupLog(logBackend)
 	setupCache()
 	startServer()
 }

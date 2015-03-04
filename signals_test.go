@@ -2,11 +2,12 @@ package main
 
 import (
 	"bytes"
-	"github.com/op/go-logging"
 	"os"
 	"strings"
 	"syscall"
 	"testing"
+
+	"github.com/op/go-logging"
 )
 
 type StashingWriter struct {
@@ -27,6 +28,8 @@ func testSetupSignals() *StashingWriter {
 	stats = MakeStatsCollector()
 	setupConfig()
 	setupLog(logBackend)
+	// Ensure we have debug log level
+	logging.SetLevel(5, "")
 	setupCache()
 	return sw
 }
