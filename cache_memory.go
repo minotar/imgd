@@ -44,7 +44,7 @@ func (c *CacheMemory) setup() error {
 	c.Skins = map[string]minecraft.Skin{}
 	c.Usernames = []string{}
 
-	log.Info("Loaded Memory cache")
+	log.Notice("Loaded Memory cache")
 	return nil
 }
 

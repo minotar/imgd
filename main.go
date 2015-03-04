@@ -63,7 +63,7 @@ func startServer() {
 	r := Router{Mux: mux.NewRouter()}
 	r.Bind()
 	http.Handle("/", r.Mux)
-	log.Info("imgd %s starting on %s", ImgdVersion, config.Server.Address)
+	log.Notice("imgd %s starting on %s", ImgdVersion, config.Server.Address)
 	err := http.ListenAndServe(config.Server.Address, nil)
 	if err != nil {
 		log.Critical("ListenAndServe: \"%s\"", err.Error())
