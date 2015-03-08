@@ -11,15 +11,16 @@ const (
 	StatusTypeCacheHit = iota
 	StatusTypeCacheMiss
 
-	StatusTypeRequestServed
+	StatusTypeRequested
+	StatusTypeErrored
 )
 
 type statusCollectorMessage struct {
 	// The type of message this is.
 	MessageType uint
 
-	// If MessageType==StatusTypeRequestServed, then the type of request that was served.
-	RequestType string
+	// If MessageType==StatusTypeRequested, then the type of request that was requested.
+	StatusType string
 }
 
 type StatusCollector struct {
@@ -28,8 +29,10 @@ type StatusCollector struct {
 		ImgdMem uint64
 		// Time in seconds the process has been running for
 		Uptime int64
-		// Number of times a request type has been served.
-		Served map[string]uint
+		// Number of times a request type has been requested.
+		Errored map[string]uint
+		// Number of times a request type has been requested.
+		Requested map[string]uint
 		// Number of times skins have been served from the cache.
 		CacheHits uint
 		// Number of times skins have failed to be served from the cache.
@@ -50,7 +53,8 @@ type StatusCollector struct {
 func MakeStatsCollector() *StatusCollector {
 	collector := &StatusCollector{}
 	collector.StartedAt = time.Now().Unix()
-	collector.info.Served = map[string]uint{}
+	collector.info.Errored = map[string]uint{}
+	collector.info.Requested = map[string]uint{}
 	collector.inputData = make(chan statusCollectorMessage, 5)
 
 	// Run a function every five seconds to collect time-based info.
@@ -77,12 +81,19 @@ func (s *StatusCollector) handleMessage(msg statusCollectorMessage) {
 		s.info.CacheHits += 1
 	case StatusTypeCacheMiss:
 		s.info.CacheMisses += 1
-	case StatusTypeRequestServed:
-		req := msg.RequestType
-		if _, exists := s.info.Served[req]; exists {
-			s.info.Served[req] += 1
+	case StatusTypeErrored:
+		err := msg.StatusType
+		if _, exists := s.info.Requested[err]; exists {
+			s.info.Errored[err] += 1
 		} else {
-			s.info.Served[req] = 1
+			s.info.Errored[err] = 1
+		}
+	case StatusTypeRequested:
+		req := msg.StatusType
+		if _, exists := s.info.Requested[req]; exists {
+			s.info.Requested[req] += 1
+		} else {
+			s.info.Requested[req] = 1
 		}
 	}
 }
@@ -104,11 +115,19 @@ func (s *StatusCollector) Collect() {
 	s.info.CacheMem = cache.memory()
 }
 
-// Increments the request counter for the specific type of request.
-func (s *StatusCollector) Served(req string) {
+// Increments the error counter for the specific type.
+func (s *StatusCollector) Errored(errorType string) {
 	s.inputData <- statusCollectorMessage{
-		MessageType: StatusTypeRequestServed,
-		RequestType: req,
+		MessageType: StatusTypeErrored,
+		StatusType:  errorType,
+	}
+}
+
+// Increments the request counter for the specific type.
+func (s *StatusCollector) Requested(reqType string) {
+	s.inputData <- statusCollectorMessage{
+		MessageType: StatusTypeRequested,
+		StatusType:  reqType,
 	}
 }
 
