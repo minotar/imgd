@@ -39,7 +39,7 @@ func (r *Router) GetWidth(inp string) uint {
 
 // Shows only the user's skin.
 func (router *Router) SkinPage(w http.ResponseWriter, r *http.Request) {
-	stats.Served("Skin")
+	stats.Requested("Skin")
 	vars := mux.Vars(r)
 	username := vars["username"]
 	skin := fetchSkin(username)
@@ -57,8 +57,6 @@ func (router *Router) DownloadPage(w http.ResponseWriter, r *http.Request) {
 // Pull the Get<resource> method from the skin. Originally this used
 // reflection, but that was slow.
 func (router *Router) ResolveMethod(skin *mcSkin, resource string) func(int) error {
-	stats.Served(resource)
-
 	switch resource {
 	case "Avatar":
 		return skin.GetHead
@@ -112,6 +110,7 @@ func (router *Router) Serve(resource string) {
 		width := router.GetWidth(vars["width"])
 		skin := fetchSkin(vars["username"])
 		skin.Mode = router.getResizeMode(vars["extension"])
+		stats.Requested(resource)
 
 		if r.Header.Get("If-None-Match") == skin.Skin.Hash {
 			w.WriteHeader(http.StatusNotModified)
@@ -183,6 +182,9 @@ func fetchSkin(username string) *mcSkin {
 			log.Error("Failed Skin S3: " + username + " (" + err.Error() + ")")
 			// Well, looks like they don't exist after all.
 			skin, _ = minecraft.FetchSkinForChar()
+			stats.Errored("FallbackSteve")
+		} else {
+			stats.Errored("FallbackUsernameS3")
 		}
 	}
 
