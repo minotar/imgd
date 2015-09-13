@@ -45,6 +45,14 @@ func (router *Router) SkinPage(w http.ResponseWriter, r *http.Request) {
 	username := vars["username"]
 	skin := fetchSkin(username)
 
+	if r.Header.Get("If-None-Match") == skin.Skin.Hash {
+		w.WriteHeader(http.StatusNotModified)
+		log.Info(r.RemoteAddr + " " + r.RequestURI + " 304 " + skin.Skin.Source)
+		return
+	}
+
+	w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", config.Server.Ttl))
+	w.Header().Add("ETag", skin.Hash)
 	w.Header().Add("Content-Type", "image/png")
 	skin.WriteSkin(w)
 	log.Info(r.RemoteAddr + " " + r.RequestURI + " 200 " + skin.Skin.Source)
