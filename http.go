@@ -20,6 +20,7 @@ type NotFoundHandler struct{}
 func (h NotFoundHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotFound)
 	fmt.Fprintf(w, "404 not found")
+	log.Info(r.RemoteAddr + " " + r.RequestURI + " 404 ")
 }
 
 // GetWidth converts and sanitizes the string for the avatar width.
@@ -46,6 +47,7 @@ func (router *Router) SkinPage(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("Content-Type", "image/png")
 	skin.WriteSkin(w)
+	log.Info(r.RemoteAddr + " " + r.RequestURI + " 200 " + skin.Skin.Source)
 }
 
 // Shows the skin and tells the browser to attempt to download it.
@@ -114,6 +116,7 @@ func (router *Router) Serve(resource string) {
 
 		if r.Header.Get("If-None-Match") == skin.Skin.Hash {
 			w.WriteHeader(http.StatusNotModified)
+			log.Info(r.RemoteAddr + " " + r.RequestURI + " 304 " + skin.Skin.Source)
 			return
 		}
 
@@ -121,9 +124,11 @@ func (router *Router) Serve(resource string) {
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "500 internal server error")
+			log.Info(r.RemoteAddr + " " + r.RequestURI + " 500 " + skin.Skin.Source)
 			return
 		}
 		router.writeType(vars["extension"], skin, w)
+		log.Info(r.RemoteAddr + " " + r.RequestURI + " 200 " + skin.Skin.Source)
 	}
 
 	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}{extension:(\\..*)?}", fn)
@@ -149,16 +154,19 @@ func (router *Router) Bind() {
 	router.Mux.HandleFunc("/skin/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", router.SkinPage)
 
 	router.Mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "%s", ImgdVersion)
+		fmt.Fprintf(w, "%s\n", ImgdVersion)
+		log.Info(r.RemoteAddr + " " + r.RequestURI + " 200 ")
 	})
 
 	router.Mux.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(stats.ToJSON())
+		log.Info(r.RemoteAddr + " " + r.RequestURI + " 200 ")
 	})
 
 	router.Mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, config.Server.URL, http.StatusFound)
+		log.Info(r.RemoteAddr + " " + r.RequestURI + " 302 ")
 	})
 }
 
@@ -175,11 +183,11 @@ func fetchSkin(username string) *mcSkin {
 
 	skin, err := minecraft.FetchSkinFromMojang(username)
 	if err != nil {
-		log.Error("Failed Skin Mojang: " + username + " (" + err.Error() + ")")
+		log.Debug("Failed Skin Mojang: " + username + " (" + err.Error() + ")")
 		// Let's fallback to S3 and try and serve at least an old skin...
 		skin, err = minecraft.FetchSkinFromS3(username)
 		if err != nil {
-			log.Error("Failed Skin S3: " + username + " (" + err.Error() + ")")
+			log.Debug("Failed Skin S3: " + username + " (" + err.Error() + ")")
 			// Well, looks like they don't exist after all.
 			skin, _ = minecraft.FetchSkinForChar()
 			stats.Errored("FallbackSteve")
