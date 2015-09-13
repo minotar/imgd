@@ -1,10 +1,6 @@
 package main
 
 import (
-	"github.com/ajstarks/svgo"
-	"github.com/disintegration/gift"
-	"github.com/disintegration/imaging"
-	"github.com/minotar/minecraft"
 	"image"
 	"image/color"
 	"image/draw"
@@ -12,6 +8,11 @@ import (
 	"io"
 	"math"
 	"strconv"
+
+	"github.com/ajstarks/svgo"
+	"github.com/disintegration/gift"
+	"github.com/disintegration/imaging"
+	"github.com/minotar/minecraft"
 )
 
 const (
