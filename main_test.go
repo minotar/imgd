@@ -3,11 +3,12 @@ package main
 import (
 	"crypto/md5"
 	"fmt"
-	"github.com/op/go-logging"
-	. "github.com/smartystreets/goconvey/convey"
 	"image"
 	_ "image/png"
 	"testing"
+
+	"github.com/op/go-logging"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 const (
