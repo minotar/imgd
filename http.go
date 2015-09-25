@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+type handlerFn func(w http.ResponseWriter, r *http.Request)
+
 type Router struct {
 	Mux *mux.Router
 }
@@ -108,9 +110,19 @@ func (router *Router) writeType(ext string, skin *mcSkin, w http.ResponseWriter)
 	}
 }
 
+// Middleware function to add CORS to the response header.
+func addCors(fn handlerFn) handlerFn {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET")
+		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding")
+		fn(w, r)
+	}
+}
+
 // Binds the route and makes a handler function for the requested resource.
 func (router *Router) Serve(resource string) {
-	fn := func(w http.ResponseWriter, r *http.Request) {
+	fn := addCors(func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		size := router.GetSize(vars["size"])
 		skin := fetchSkin(vars["username"])
@@ -128,7 +140,7 @@ func (router *Router) Serve(resource string) {
 			return
 		}
 		router.writeType(vars["extension"], skin, w)
-	}
+	})
 
 	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}{extension:(\\..*)?}", fn)
 	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}/{size:[0-9]+}{extension:(\\..*)?}", fn)
@@ -149,21 +161,21 @@ func (router *Router) Bind() {
 	router.Serve("Armor/Body")
 	router.Serve("Armour/Body")
 
-	router.Mux.HandleFunc("/download/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", router.DownloadPage)
-	router.Mux.HandleFunc("/skin/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", router.SkinPage)
+	router.Mux.HandleFunc("/download/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", addCors(router.DownloadPage))
+	router.Mux.HandleFunc("/skin/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", addCors(router.SkinPage))
 
-	router.Mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
+	router.Mux.HandleFunc("/version", addCors(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s", MinotarVersion)
-	})
+	}))
 
-	router.Mux.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
+	router.Mux.HandleFunc("/stats", addCors(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(stats.ToJSON())
-	})
+	}))
 
-	router.Mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	router.Mux.HandleFunc("/", addCors(func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "https://minotar.net/", 302)
-	})
+	}))
 }
 
 func fetchSkin(username string) *mcSkin {
