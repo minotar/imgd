@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/minotar/minecraft"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/gorilla/mux"
+	"github.com/minotar/minecraft"
 )
 
 type Router struct {
@@ -17,20 +18,20 @@ type NotFoundHandler struct{}
 
 // Handles 404 errors
 func (h NotFoundHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(404)
+	w.WriteHeader(http.StatusNotFound)
 	fmt.Fprintf(w, "404 not found")
 }
 
-// Converts and sanitizes the string for the avatar size.
-func (r *Router) GetSize(inp string) uint {
+// GetWidth converts and sanitizes the string for the avatar width.
+func (r *Router) GetWidth(inp string) uint {
 	out64, err := strconv.ParseUint(inp, 10, 0)
 	out := uint(out64)
 	if err != nil {
-		return DefaultSize
-	} else if out > MaxSize {
-		return MaxSize
-	} else if out < MinSize {
-		return MinSize
+		return DefaultWidth
+	} else if out > MaxWidth {
+		return MaxWidth
+	} else if out < MinWidth {
+		return MinWidth
 	}
 	return out
 
@@ -38,16 +39,12 @@ func (r *Router) GetSize(inp string) uint {
 
 // Shows only the user's skin.
 func (router *Router) SkinPage(w http.ResponseWriter, r *http.Request) {
+	stats.Served("Skin")
 	vars := mux.Vars(r)
-
 	username := vars["username"]
-
 	skin := fetchSkin(username)
 
 	w.Header().Add("Content-Type", "image/png")
-	w.Header().Add("X-Requested", "skin")
-	w.Header().Add("X-Result", "ok")
-
 	skin.WriteSkin(w)
 }
 
@@ -112,7 +109,7 @@ func (router *Router) writeType(ext string, skin *mcSkin, w http.ResponseWriter)
 func (router *Router) Serve(resource string) {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		size := router.GetSize(vars["size"])
+		width := router.GetWidth(vars["width"])
 		skin := fetchSkin(vars["username"])
 		skin.Mode = router.getResizeMode(vars["extension"])
 
@@ -121,9 +118,9 @@ func (router *Router) Serve(resource string) {
 			return
 		}
 
-		err := router.ResolveMethod(skin, resource)(int(size))
+		err := router.ResolveMethod(skin, resource)(int(width))
 		if err != nil {
-			w.WriteHeader(500)
+			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "500 internal server error")
 			return
 		}
@@ -131,7 +128,7 @@ func (router *Router) Serve(resource string) {
 	}
 
 	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}{extension:(\\..*)?}", fn)
-	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}/{size:[0-9]+}{extension:(\\..*)?}", fn)
+	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}/{width:[0-9]+}{extension:(\\..*)?}", fn)
 }
 
 // Binds routes to the ServerMux.
@@ -153,7 +150,7 @@ func (router *Router) Bind() {
 	router.Mux.HandleFunc("/skin/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", router.SkinPage)
 
 	router.Mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "%s", MinotarVersion)
+		fmt.Fprintf(w, "%s", ImgdVersion)
 	})
 
 	router.Mux.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
@@ -162,7 +159,7 @@ func (router *Router) Bind() {
 	})
 
 	router.Mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "https://minotar.net/", 302)
+		http.Redirect(w, r, config.Server.URL, http.StatusFound)
 	})
 }
 

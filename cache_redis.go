@@ -3,13 +3,13 @@ package main
 import (
 	"bytes"
 	"errors"
-	"fmt"
-	"github.com/fzzy/radix/extra/pool"
-	"github.com/fzzy/radix/redis"
-	"github.com/minotar/minecraft"
 	"image/png"
 	"strconv"
 	"strings"
+
+	"github.com/fzzy/radix/extra/pool"
+	"github.com/fzzy/radix/redis"
+	"github.com/minotar/minecraft"
 )
 
 type CacheRedis struct {
@@ -22,12 +22,22 @@ func dialFunc(network, addr string) (*redis.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if config.Redis.Auth != "" {
-		if err := client.Cmd("AUTH", config.Redis.Auth).Err; err != nil {
+		r := client.Cmd("AUTH", config.Redis.Auth)
+		if r.Err != nil {
 			client.Close()
 			return nil, err
 		}
 	}
+
+	// Select the DB within Redis
+	r := client.Cmd("SELECT", config.Redis.DB)
+	if r.Err != nil {
+		client.Close()
+		return nil, err
+	}
+
 	return client, nil
 }
 
@@ -45,7 +55,7 @@ func (c *CacheRedis) setup() error {
 
 	c.Pool = pool
 
-	log.Info("Loaded Redis cache (pool: " + fmt.Sprintf("%v", config.Redis.PoolSize) + ")")
+	log.Info("Loaded Redis cache (address: %s, db: %v, prefix: \"%s\", pool: %v)", config.Redis.Address, config.Redis.DB, config.Redis.Prefix, config.Redis.PoolSize)
 	return nil
 }
 
@@ -126,6 +136,24 @@ func (c *CacheRedis) remove(username string) {
 
 	// read into err so that it's set for the defer
 	err = client.Cmd("DEL", config.Redis.Prefix+username).Err
+}
+
+func (c *CacheRedis) size() uint {
+	var err error
+	client := c.getFromPool()
+	if client == nil {
+		return 0
+	}
+	defer c.Pool.CarefullyPut(client, &err)
+
+	resp := client.Cmd("DBSIZE")
+	size, err := resp.Int()
+	if err != nil {
+		log.Error(err.Error())
+		return 0
+	}
+
+	return uint(size)
 }
 
 func (c *CacheRedis) memory() uint64 {

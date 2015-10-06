@@ -2,27 +2,21 @@ package main
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/op/go-logging"
 	"net/http"
 	"os"
 	"runtime"
+
+	"github.com/gorilla/mux"
+	"github.com/op/go-logging"
 )
 
+// Set the default, min and max width to resize processed images to.
 const (
-	DefaultSize = uint(180)
-	MaxSize     = uint(300)
-	MinSize     = uint(8)
+	DefaultWidth = uint(180)
+	MinWidth     = uint(8)
+	MaxWidth     = uint(300)
 
-	SkinCache
-
-	Minutes            uint = 60
-	Hours                   = 60 * Minutes
-	Days                    = 24 * Hours
-	TimeoutActualSkin       = 2 * Days
-	TimeoutFailedFetch      = 15 * Minutes
-
-	MinotarVersion = "2.7"
+	ImgdVersion = "2.8"
 )
 
 var (
@@ -61,8 +55,12 @@ func startServer() {
 	r := Router{Mux: mux.NewRouter()}
 	r.Bind()
 	http.Handle("/", r.Mux)
+	log.Info("imgd %s starting on %s", ImgdVersion, config.Server.Address)
 	err := http.ListenAndServe(config.Server.Address, nil)
-	log.Critical(err.Error())
+	if err != nil {
+		log.Critical("ListenAndServe: \"%s\"", err.Error())
+		os.Exit(1)
+	}
 }
 
 func main() {
