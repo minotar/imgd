@@ -70,7 +70,7 @@ func TestRenders(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		hash := hashRender(skin.Processed)
-		So(hash, ShouldEqual, "a579af057377c35cbd4e53ed6bc5f03e")
+		So(hash, ShouldEqual, "a253bb68f5ed938eb235ff1e3807940c")
 	})
 
 	Convey("GetBust should return a valid image", t, func() {
