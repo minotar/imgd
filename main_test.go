@@ -53,7 +53,7 @@ func TestRenders(t *testing.T) {
 	})
 
 	Convey("GetHelm should return a valid image", t, func() {
-    		skin := fetchSkin(testUser)
+		skin := fetchSkin(testUser)
 		err := skin.GetHelm(20)
 
 		So(skin.Processed, ShouldNotBeNil)

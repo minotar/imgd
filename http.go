@@ -179,7 +179,7 @@ func (router *Router) Bind() {
 }
 
 func fetchSkin(username string) *mcSkin {
-	if username == "char" {
+	if username == "char" || username == "MHF_Steve" {
 		skin, _ := minecraft.FetchSkinForChar()
 		return &mcSkin{Skin: skin}
 	}
