@@ -143,6 +143,7 @@ func (router *Router) Serve(resource string) {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "500 internal server error")
 			log.Info(r.RemoteAddr + " " + r.RequestURI + " 500 " + skin.Skin.Source)
+			stats.Errored("InternalServerError")
 			return
 		}
 		router.writeType(vars["extension"], skin, w)
