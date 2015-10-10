@@ -16,7 +16,7 @@ const (
 	MinWidth     = uint(8)
 	MaxWidth     = uint(300)
 
-	ImgdVersion = "2.8"
+	ImgdVersion = "2.9.1"
 )
 
 var (
@@ -49,13 +49,21 @@ func setupCache() {
 func setupLog(logBackend *logging.LogBackend) {
 	logging.SetBackend(logBackend)
 	logging.SetFormatter(logging.MustStringFormatter(format))
+	logLevel, err := logging.LogLevel(config.Server.Logging)
+	logging.SetLevel(logLevel, "")
+	if err != nil {
+		log.Error("Invalid log type: %s", config.Server.Logging)
+		// If error it sets the logging to ERROR, let's change it to INFO
+		logging.SetLevel(4, "")
+	}
+	log.Notice("Log level set to %s", logging.GetLevel(""))
 }
 
 func startServer() {
 	r := Router{Mux: mux.NewRouter()}
 	r.Bind()
-	http.Handle("/", r.Mux)
-	log.Info("imgd %s starting on %s", ImgdVersion, config.Server.Address)
+	http.Handle("/", imgdHandler(r.Mux))
+	log.Notice("imgd %s starting on %s", ImgdVersion, config.Server.Address)
 	err := http.ListenAndServe(config.Server.Address, nil)
 	if err != nil {
 		log.Critical("ListenAndServe: \"%s\"", err.Error())
@@ -70,8 +78,8 @@ func main() {
 
 	signalHandler = MakeSignalHandler()
 	stats = MakeStatsCollector()
-	setupLog(logBackend)
 	setupConfig()
+	setupLog(logBackend)
 	setupCache()
 	startServer()
 }

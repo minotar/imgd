@@ -4,6 +4,8 @@ address = 0.0.0.0:8000
 # Cache you want to use for skins. May be "redis", "memory", or "off".
 # If it's Redis, you should fill out the [redis] section below.
 cache = memory
+# Log level to use: DEBUG, INFO, NOTICE, WARNING, ERROR, CRITICAL
+logging = NOTICE
 # Address to redirect users to upon browsing /
 url = https://minotar.net/
 # The duration, in seconds we should store item in our cache. Default: 48 hrs

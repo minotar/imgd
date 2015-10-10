@@ -19,6 +19,7 @@ type Configuration struct {
 	Server struct {
 		Address string
 		Cache   string
+		Logging string
 		URL     string
 		Ttl     int
 	}

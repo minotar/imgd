@@ -8,7 +8,7 @@ type CacheOff struct {
 }
 
 func (c *CacheOff) setup() error {
-	log.Info("Loaded without cache")
+	log.Notice("Loaded without cache")
 	return nil
 }
 
