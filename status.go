@@ -29,7 +29,7 @@ type StatusCollector struct {
 		ImgdMem uint64
 		// Time in seconds the process has been running for
 		Uptime int64
-		// Number of times a request type has been requested.
+		// Number of times an error has been recorded.
 		Errored map[string]uint
 		// Number of times a request type has been requested.
 		Requested map[string]uint
