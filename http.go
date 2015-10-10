@@ -14,6 +14,16 @@ type Router struct {
 	Mux *mux.Router
 }
 
+// Middleware function to manipulate our request and response.
+func imgdHandler(router http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET")
+		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding")
+		router.ServeHTTP(w, r)
+	})
+}
+
 type NotFoundHandler struct{}
 
 // Handles 404 errors

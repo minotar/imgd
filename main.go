@@ -62,7 +62,7 @@ func setupLog(logBackend *logging.LogBackend) {
 func startServer() {
 	r := Router{Mux: mux.NewRouter()}
 	r.Bind()
-	http.Handle("/", r.Mux)
+	http.Handle("/", imgdHandler(r.Mux))
 	log.Notice("imgd %s starting on %s", ImgdVersion, config.Server.Address)
 	err := http.ListenAndServe(config.Server.Address, nil)
 	if err != nil {
