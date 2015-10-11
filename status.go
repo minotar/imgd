@@ -83,7 +83,7 @@ func (s *StatusCollector) handleMessage(msg statusCollectorMessage) {
 		s.info.CacheMisses += 1
 	case StatusTypeErrored:
 		err := msg.StatusType
-		if _, exists := s.info.Requested[err]; exists {
+		if _, exists := s.info.Errored[err]; exists {
 			s.info.Errored[err] += 1
 		} else {
 			s.info.Errored[err] = 1
