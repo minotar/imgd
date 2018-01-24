@@ -150,8 +150,8 @@ func (router *Router) Serve(resource string) {
 		log.Info(r.RemoteAddr + " " + r.RequestURI + " 200 " + skin.Skin.Source)
 	}
 
-	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}{extension:(\\..*)?}", fn)
-	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}/{width:[0-9]+}{extension:(\\..*)?}", fn)
+	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}{extension:(?:\\..*)?}", fn)
+	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}/{width:[0-9]+}{extension:(?:\\..*)?}", fn)
 }
 
 // Binds routes to the ServerMux.
@@ -169,8 +169,8 @@ func (router *Router) Bind() {
 	router.Serve("Armor/Body")
 	router.Serve("Armour/Body")
 
-	router.Mux.HandleFunc("/download/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", router.DownloadPage)
-	router.Mux.HandleFunc("/skin/{username:"+minecraft.ValidUsernameRegex+"}{extension:(.png)?}", router.SkinPage)
+	router.Mux.HandleFunc("/download/{username:"+minecraft.ValidUsernameRegex+"}{extension:(?:.png)?}", router.DownloadPage)
+	router.Mux.HandleFunc("/skin/{username:"+minecraft.ValidUsernameRegex+"}{extension:(?:.png)?}", router.SkinPage)
 
 	router.Mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s\n", ImgdVersion)
