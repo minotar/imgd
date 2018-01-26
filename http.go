@@ -6,6 +6,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/gorilla/mux"
 	"github.com/minotar/minecraft"
 )
@@ -16,12 +19,20 @@ type Router struct {
 
 // Middleware function to manipulate our request and response.
 func imgdHandler(router http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return metricChain(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET")
 		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding")
 		router.ServeHTTP(w, r)
-	})
+	}))
+}
+
+func metricChain(router http.Handler) http.Handler {
+	return promhttp.InstrumentHandlerInFlight(inFlightGauge,
+		promhttp.InstrumentHandlerDuration(requestDuration,
+			promhttp.InstrumentHandlerResponseSize(responseSize, router),
+		),
+	)
 }
 
 type NotFoundHandler struct{}
@@ -138,7 +149,9 @@ func (router *Router) Serve(resource string) {
 			return
 		}
 
+		processingTimer := prometheus.NewTimer(processingDuration.WithLabelValues(resource))
 		err := router.ResolveMethod(skin, resource)(int(width))
+		processingTimer.ObserveDuration()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "500 internal server error")
@@ -177,6 +190,8 @@ func (router *Router) Bind() {
 		log.Info(r.RemoteAddr + " " + r.RequestURI + " 200 ")
 	})
 
+	router.Mux.Handle("/metrics", promhttp.Handler())
+
 	router.Mux.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(stats.ToJSON())
@@ -195,16 +210,25 @@ func fetchSkin(username string) *mcSkin {
 		return &mcSkin{Skin: skin}
 	}
 
+	hasTimer := prometheus.NewTimer(cacheDuration.WithLabelValues("has"))
 	if cache.has(strings.ToLower(username)) {
+		hasTimer.ObserveDuration()
+		pullTimer := prometheus.NewTimer(cacheDuration.WithLabelValues("pull"))
+		defer pullTimer.ObserveDuration()
 		stats.HitCache()
 		return &mcSkin{Processed: nil, Skin: cache.pull(strings.ToLower(username))}
 	}
+	hasTimer.ObserveDuration()
 
+	mojangTimer := prometheus.NewTimer(getDuration.WithLabelValues("Mojang"))
 	skin, err := minecraft.FetchSkinFromMojang(username)
+	mojangTimer.ObserveDuration()
 	if err != nil {
 		log.Debug("Failed Skin Mojang: " + username + " (" + err.Error() + ")")
 		// Let's fallback to S3 and try and serve at least an old skin...
+		s3Timer := prometheus.NewTimer(getDuration.WithLabelValues("S3"))
 		skin, err = minecraft.FetchSkinFromS3(username)
+		s3Timer.ObserveDuration()
 		if err != nil {
 			log.Debug("Failed Skin S3: " + username + " (" + err.Error() + ")")
 			// Well, looks like they don't exist after all.
@@ -216,7 +240,8 @@ func fetchSkin(username string) *mcSkin {
 	}
 
 	stats.MissCache()
+	addTimer := prometheus.NewTimer(cacheDuration.WithLabelValues("add"))
 	cache.add(strings.ToLower(username), skin)
-
+	addTimer.ObserveDuration()
 	return &mcSkin{Processed: nil, Skin: skin}
 }
