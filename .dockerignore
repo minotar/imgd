@@ -1,0 +1,11 @@
+imgd
+Dockerfile*
+.dockerignore
+.git
+.gitignore
+README.md
+AUTHORS
+UNLICENSE
+LICENSE
+wercker.yml
+.travis.yml
