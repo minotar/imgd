@@ -12,5 +12,5 @@ RUN apk --no-cache add ca-certificates
 COPY --from=builder /go/bin/imgd /imgd
 COPY config.example.gcfg /config.gcfg
 ENTRYPOINT ./imgd
-LABEL Name=imgd Version=2.9.4
+LABEL Name=imgd Version=2.9.5
 EXPOSE 8000

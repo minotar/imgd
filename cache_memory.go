@@ -17,7 +17,7 @@ const (
 
 	// Based off those, calculate the maximum number of skins we'll store
 	// in memory.
-	skinCount = skinSize / cacheSize
+	skinCount = cacheSize / skinSize
 )
 
 // Cache object that stores skins in memory.
