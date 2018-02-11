@@ -1,19 +1,14 @@
-box: wercker/golang
-# Build definition
+box: golang
 build:
-  # The steps that will be executed on build
   steps:
-    # Sets the go workspace and places you package
-    # at the right place in the workspace tree
     - setup-go-workspace
 
     # Gets the dependencies
     - script:
         name: go get
         code: |
-          cd $WERCKER_SOURCE_DIR
           go version
-          go get -t ./...
+          go get
 
     # Build the project
     - script:
@@ -26,32 +21,3 @@ build:
         name: go test
         code: |
           go test ./...
-          
-    # Copy to output
-    - script:
-        name: copy output
-        code: |-
-          rsync -avz "$WERCKER_SOURCE_DIR/" "$WERCKER_OUTPUT_DIR"
-          
-deploy:
-  steps:
-    - add-to-known_hosts:
-        hostname: $MINOTAR_MASTER_IP
-    - mktemp:
-        envvar: PRIVATEKEY_PATH
-    - create-file:
-        name: write key
-        filename: $PRIVATEKEY_PATH
-        content: $MINOTAR_DEPLOY_KEY_PRIVATE
-        overwrite: true
-    - script:
-        name: transfer application
-        code: |
-          pwd
-          ls -l
-          rsync -a -e "ssh -i $PRIVATEKEY_PATH" imgd $MINOTAR_MASTER_USER@$MINOTAR_MASTER_IP:/srv/salt/imgd/deploy/
-    - script:
-        name: deploy to salt minions
-        code: |
-          ssh -i $PRIVATEKEY_PATH -l $MINOTAR_MASTER_USER $MINOTAR_MASTER_IP "salt 'imgd-*.minotar.net' state.sls imgd --out=quiet"
-    
