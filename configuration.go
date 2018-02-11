@@ -9,10 +9,10 @@ import (
 
 const (
 	// The file we read from
-	CONFIG_FILE = "config.gcfg"
+	configFile = "config.gcfg"
 	// The example file kept in version control. We'll copy and load from this
 	// by default.
-	CONFIG_EXAMPLE = "config.example.gcfg"
+	configExample = "config.example.gcfg"
 )
 
 type Configuration struct {
@@ -41,16 +41,16 @@ func (c *Configuration) load() error {
 		return err
 	}
 
-	return gcfg.ReadFileInto(c, CONFIG_FILE)
+	return gcfg.ReadFileInto(c, configFile)
 }
 
 // Creates the config.json if it does not exist.
 func (c *Configuration) ensureConfigExists() error {
-	if _, err := os.Stat(CONFIG_FILE); os.IsNotExist(err) {
-		return copyFile(CONFIG_EXAMPLE, CONFIG_FILE)
-	} else {
-		return nil
+	if _, err := os.Stat(configFile); os.IsNotExist(err) {
+		return copyFile(configExample, configFile)
 	}
+	return nil
+
 }
 
 // Copies *only the contents* of one file to a new path.
