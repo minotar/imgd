@@ -10,14 +10,14 @@ const (
 	// Get the skin size in bytes. Stored as a []uint8, one byte each,
 	// plus bounces. So 64 * 64 bytes and we'll throw in an extra 16
 	// bytes of overhead.
-	SKIN_SIZE = (64 * 64) + 16
+	skinSize = (64 * 64) + 16
 
 	// Define a 64 MB cache size.
-	CACHE_SIZE = 2 << 25
+	cacheSize = 2 << 25
 
 	// Based off those, calculate the maximum number of skins we'll store
 	// in memory.
-	SKIN_NUMBER = CACHE_SIZE / SKIN_SIZE
+	skinCount = skinSize / cacheSize
 )
 
 // Cache object that stores skins in memory.
@@ -52,9 +52,8 @@ func (c *CacheMemory) setup() error {
 func (c *CacheMemory) has(username string) bool {
 	if _, exists := c.Skins[username]; exists {
 		return true
-	} else {
-		return false
 	}
+	return false
 }
 
 // Retrieves the item from the cache. We'll promote it to the "top" of the
@@ -81,7 +80,7 @@ func (c *CacheMemory) remove(username string) {
 // Adds the skin to the cache, remove the oldest, expired skin if the cache
 // list is full.
 func (c *CacheMemory) add(username string, skin minecraft.Skin) {
-	if len(c.Usernames) >= SKIN_NUMBER {
+	if len(c.Usernames) >= skinCount {
 		first := c.Usernames[0]
 		delete(c.Skins, first)
 		c.Usernames = append(c.Usernames[1:], username)
@@ -105,5 +104,5 @@ func (c *CacheMemory) size() uint {
 // The byte size of the cache. Fairly rough... don't really want to venture
 // into the land of manual memory management, because there be dragons.
 func (c *CacheMemory) memory() uint64 {
-	return uint64(len(c.Skins) * SKIN_SIZE)
+	return uint64(len(c.Skins) * skinSize)
 }

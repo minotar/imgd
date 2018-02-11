@@ -55,7 +55,7 @@ func (c *CacheRedis) setup() error {
 
 	c.Pool = pool
 
-	log.Notice("Loaded Redis cache (address: %s, db: %v, prefix: \"%s\", pool: %v)", config.Redis.Address, config.Redis.DB, config.Redis.Prefix, config.Redis.PoolSize)
+	log.Noticef("Loaded Redis cache (address: %s, db: %v, prefix: \"%s\", pool: %v)", config.Redis.Address, config.Redis.DB, config.Redis.Prefix, config.Redis.PoolSize)
 	return nil
 }
 

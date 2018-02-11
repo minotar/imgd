@@ -30,11 +30,11 @@ type NotFoundHandler struct{}
 func (h NotFoundHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotFound)
 	fmt.Fprintf(w, "404 not found")
-	log.Info(r.RemoteAddr + " " + r.RequestURI + " 404 ")
+	log.Infof("%s %s 404", r.RemoteAddr, r.RequestURI)
 }
 
 // GetWidth converts and sanitizes the string for the avatar width.
-func (r *Router) GetWidth(inp string) uint {
+func (router *Router) GetWidth(inp string) uint {
 	out64, err := strconv.ParseUint(inp, 10, 0)
 	out := uint(out64)
 	if err != nil {
@@ -48,7 +48,7 @@ func (r *Router) GetWidth(inp string) uint {
 
 }
 
-// Shows only the user's skin.
+// SkinPage shows only the user's skin.
 func (router *Router) SkinPage(w http.ResponseWriter, r *http.Request) {
 	stats.Requested("Skin")
 	vars := mux.Vars(r)
@@ -57,7 +57,7 @@ func (router *Router) SkinPage(w http.ResponseWriter, r *http.Request) {
 
 	if r.Header.Get("If-None-Match") == skin.Skin.Hash {
 		w.WriteHeader(http.StatusNotModified)
-		log.Info(r.RemoteAddr + " " + r.RequestURI + " 304 " + skin.Skin.Source)
+		log.Infof("%s %s 304 %s", r.RemoteAddr, r.RequestURI, skin.Skin.Source)
 		return
 	}
 
@@ -65,16 +65,16 @@ func (router *Router) SkinPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("ETag", skin.Hash)
 	w.Header().Add("Content-Type", "image/png")
 	skin.WriteSkin(w)
-	log.Info(r.RemoteAddr + " " + r.RequestURI + " 200 " + skin.Skin.Source)
+	log.Infof("%s %s 200 %s", r.RemoteAddr, r.RequestURI, skin.Skin.Source)
 }
 
-// Shows the skin and tells the browser to attempt to download it.
+// DownloadPage shows the skin and tells the browser to attempt to download it.
 func (router *Router) DownloadPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Disposition", "attachment; filename=\"skin.png\"")
 	router.SkinPage(w, r)
 }
 
-// Pull the Get<resource> method from the skin. Originally this used
+// ResolveMethod pulls the Get<resource> method from the skin. Originally this used
 // reflection, but that was slow.
 func (router *Router) ResolveMethod(skin *mcSkin, resource string) func(int) error {
 	switch resource {
@@ -123,7 +123,7 @@ func (router *Router) writeType(ext string, skin *mcSkin, w http.ResponseWriter)
 	}
 }
 
-// Binds the route and makes a handler function for the requested resource.
+// Serve binds the route and makes a handler function for the requested resource.
 func (router *Router) Serve(resource string) {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
@@ -134,7 +134,7 @@ func (router *Router) Serve(resource string) {
 
 		if r.Header.Get("If-None-Match") == skin.Skin.Hash {
 			w.WriteHeader(http.StatusNotModified)
-			log.Info(r.RemoteAddr + " " + r.RequestURI + " 304 " + skin.Skin.Source)
+			log.Infof("%s %s 304 %s", r.RemoteAddr, r.RequestURI, skin.Skin.Source)
 			return
 		}
 
@@ -142,19 +142,19 @@ func (router *Router) Serve(resource string) {
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "500 internal server error")
-			log.Info(r.RemoteAddr + " " + r.RequestURI + " 500 " + skin.Skin.Source)
+			log.Infof("%s %s 500 %s", r.RemoteAddr, r.RequestURI, skin.Skin.Source)
 			stats.Errored("InternalServerError")
 			return
 		}
 		router.writeType(vars["extension"], skin, w)
-		log.Info(r.RemoteAddr + " " + r.RequestURI + " 200 " + skin.Skin.Source)
+		log.Infof("%s %s 200 %s", r.RemoteAddr, r.RequestURI, skin.Skin.Source)
 	}
 
 	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}{extension:(?:\\..*)?}", fn)
 	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}/{width:[0-9]+}{extension:(?:\\..*)?}", fn)
 }
 
-// Binds routes to the ServerMux.
+// Bind routes to the ServerMux.
 func (router *Router) Bind() {
 
 	router.Mux.NotFoundHandler = NotFoundHandler{}
@@ -174,18 +174,18 @@ func (router *Router) Bind() {
 
 	router.Mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s\n", ImgdVersion)
-		log.Info(r.RemoteAddr + " " + r.RequestURI + " 200 ")
+		log.Infof("%s %s 200", r.RemoteAddr, r.RequestURI)
 	})
 
 	router.Mux.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(stats.ToJSON())
-		log.Info(r.RemoteAddr + " " + r.RequestURI + " 200 ")
+		log.Infof("%s %s 200", r.RemoteAddr, r.RequestURI)
 	})
 
 	router.Mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, config.Server.URL, http.StatusFound)
-		log.Info(r.RemoteAddr + " " + r.RequestURI + " 302 ")
+		log.Infof("%s %s 200", r.RemoteAddr, r.RequestURI)
 	})
 }
 
@@ -202,11 +202,11 @@ func fetchSkin(username string) *mcSkin {
 
 	skin, err := minecraft.FetchSkinFromMojang(username)
 	if err != nil {
-		log.Debug("Failed Skin Mojang: " + username + " (" + err.Error() + ")")
+		log.Debugf("Failed Skin Mojang: %s (%s)", username, err.Error())
 		// Let's fallback to S3 and try and serve at least an old skin...
 		skin, err = minecraft.FetchSkinFromS3(username)
 		if err != nil {
-			log.Debug("Failed Skin S3: " + username + " (" + err.Error() + ")")
+			log.Debugf("Failed Skin S3: %s (%s)", username, err.Error())
 			// Well, looks like they don't exist after all.
 			skin, _ = minecraft.FetchSkinForChar()
 			stats.Errored("FallbackSteve")

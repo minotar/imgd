@@ -41,7 +41,7 @@ func setupCache() {
 	cache = MakeCache(config.Server.Cache)
 	err := cache.setup()
 	if err != nil {
-		log.Critical("Unable to setup Cache. (" + fmt.Sprintf("%v", err) + ")")
+		log.Criticalf("Unable to setup Cache. (%v)", err)
 		os.Exit(1)
 	}
 }
@@ -52,21 +52,21 @@ func setupLog(logBackend *logging.LogBackend) {
 	logLevel, err := logging.LogLevel(config.Server.Logging)
 	logging.SetLevel(logLevel, "")
 	if err != nil {
-		log.Error("Invalid log type: %s", config.Server.Logging)
+		log.Errorf("Invalid log type: %s", config.Server.Logging)
 		// If error it sets the logging to ERROR, let's change it to INFO
 		logging.SetLevel(4, "")
 	}
-	log.Notice("Log level set to %s", logging.GetLevel(""))
+	log.Noticef("Log level set to %s", logging.GetLevel(""))
 }
 
 func startServer() {
 	r := Router{Mux: mux.NewRouter()}
 	r.Bind()
 	http.Handle("/", imgdHandler(r.Mux))
-	log.Notice("imgd %s starting on %s", ImgdVersion, config.Server.Address)
+	log.Noticef("imgd %s starting on %s", ImgdVersion, config.Server.Address)
 	err := http.ListenAndServe(config.Server.Address, nil)
 	if err != nil {
-		log.Critical("ListenAndServe: \"%s\"", err.Error())
+		log.Criticalf("ListenAndServe: \"%s\"", err.Error())
 		os.Exit(1)
 	}
 }
