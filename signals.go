@@ -46,7 +46,7 @@ func (s *SignalHandler) handleSignal(signal os.Signal) {
 			log.Error(err.Error())
 			break
 		}
-		log.Notice("Dumped block pprof to " + tf.Name())
+		log.Noticef("Dumped block pprof to %s", tf.Name())
 	case syscall.SIGUSR2:
 		tf, err := ioutil.TempFile("", "goroutine")
 		if err != nil {
@@ -65,7 +65,7 @@ func (s *SignalHandler) handleSignal(signal os.Signal) {
 			log.Error(err.Error())
 			break
 		}
-		log.Notice("Dumped goroutine pprof to " + tf.Name())
+		log.Noticef("Dumped goroutine pprof to %s", tf.Name())
 	}
 }
 
