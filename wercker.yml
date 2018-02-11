@@ -8,7 +8,7 @@ build:
         name: go get
         code: |
           go version
-          go get
+          go get -t
 
     # Build the project
     - script:
