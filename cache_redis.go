@@ -89,7 +89,7 @@ func (c *CacheRedis) has(username string) bool {
 // What to do when failing to pull a skin from redis
 func (c *CacheRedis) pullFailed(username string) minecraft.Skin {
 	c.remove(username)
-	char, _ := minecraft.FetchSkinForChar()
+	char, _ := minecraft.FetchSkinForSteve()
 	return char
 }
 
@@ -174,6 +174,7 @@ func (c *CacheRedis) memory() uint64 {
 }
 
 func getSkinFromReply(resp *redis.Reply) (minecraft.Skin, error) {
+	skin := &minecraft.Skin{}
 	respBytes, respErr := resp.Bytes()
 	if respErr != nil {
 		return minecraft.Skin{}, respErr
@@ -181,12 +182,12 @@ func getSkinFromReply(resp *redis.Reply) (minecraft.Skin, error) {
 
 	imgBuf := bytes.NewReader(respBytes)
 
-	skin, skinErr := minecraft.DecodeSkin(imgBuf)
+	skinErr := skin.Decode(imgBuf)
 	if skinErr != nil {
 		return minecraft.Skin{}, skinErr
 	}
 
-	return skin, nil
+	return *skin, nil
 }
 
 // Parses a reply from redis INFO into a nice map.
