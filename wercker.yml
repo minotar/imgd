@@ -1,6 +1,7 @@
 box: golang:alpine
 build:
   steps:
+
     - setup-go-workspace
 
     - script:
@@ -30,6 +31,7 @@ build:
 
 release:
   steps:
+
     - script:
         name: install release dependencies
         code: |
