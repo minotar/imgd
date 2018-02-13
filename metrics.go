@@ -49,7 +49,7 @@ var (
 		Subsystem: "cache",
 		Name:      "operation_duration_seconds",
 		Help:      "Histogram of the time (in seconds) each cache operation took.",
-		Buckets:   []float64{.00005, .0001, .0005, 0.0025, .005, 0.0075, 0.01, 0.1},
+		Buckets:   []float64{.0005, .001, 0.0025, .005, 0.0075, 0.01, 0.1},
 	}, []string{"operation"})
 
 	errorCounter = prometheus.NewCounterVec(
