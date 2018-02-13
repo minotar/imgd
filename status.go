@@ -78,11 +78,14 @@ func MakeStatsCollector() *StatusCollector {
 func (s *StatusCollector) handleMessage(msg statusCollectorMessage) {
 	switch msg.MessageType {
 	case StatusTypeCacheHit:
+		cacheCounter.WithLabelValues("hit").Inc()
 		s.info.CacheHits += 1
 	case StatusTypeCacheMiss:
+		cacheCounter.WithLabelValues("miss").Inc()
 		s.info.CacheMisses += 1
 	case StatusTypeErrored:
 		err := msg.StatusType
+		errorCounter.WithLabelValues(err).Inc()
 		if _, exists := s.info.Errored[err]; exists {
 			s.info.Errored[err] += 1
 		} else {
@@ -90,6 +93,7 @@ func (s *StatusCollector) handleMessage(msg statusCollectorMessage) {
 		}
 	case StatusTypeRequested:
 		req := msg.StatusType
+		requestCounter.WithLabelValues(req).Inc()
 		if _, exists := s.info.Requested[req]; exists {
 			s.info.Requested[req] += 1
 		} else {
