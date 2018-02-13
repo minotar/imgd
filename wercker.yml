@@ -1,8 +1,13 @@
-box: golang
+box: golang:alpine
 build:
   steps:
     - setup-go-workspace
 
+    - script:
+        name: install build dependency
+        code: |
+          apk --no-cache add git    
+        
     # Gets the dependencies
     - script:
         name: go get
@@ -10,14 +15,37 @@ build:
           go version
           go get -t
 
-    # Build the project
+    # Build the project for Linux and Mac
     - script:
         name: go build
         code: |
-          go build ./...
+          GOOS=linux GOARCH=amd64 go build -o $WERCKER_OUTPUT_DIR/imgd_linux_amd64 ./...
+          GOOS=darwin GOARCH=amd64 go build -o $WERCKER_OUTPUT_DIR/imgd_darwin_amd64 ./...
 
     # Test the project
     - script:
         name: go test
         code: |
           go test ./...
+
+release:
+  steps:
+    - script:
+        name: install release dependencies
+        code: |
+          apk --no-cache add file curl
+
+    # Should ideally use some intelligence to get version, eg $(./imgd -version) would be cool
+    - github-create-release:
+        token: $GITHUB_TOKEN
+        tag: 2.9.5-dev
+        title: imgd 2.9.5-dev
+        draft: true
+
+    - github-upload-asset:
+        token: $GITHUB_TOKEN
+        file: $WERCKER_ROOT/imgd_linux_amd64
+
+    - github-upload-asset:
+        token: $GITHUB_TOKEN
+        file: $WERCKER_ROOT/imgd_darwin_amd64
