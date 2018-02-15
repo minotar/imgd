@@ -40,8 +40,8 @@ release:
     # Should ideally use some intelligence to get version, eg $(./imgd -version) would be cool
     - github-create-release:
         token: $GITHUB_TOKEN
-        tag: 2.9.5-dev
-        title: imgd 2.9.5-dev
+        tag: 2.10.0
+        title: imgd 2.10.0
         draft: true
 
     - github-upload-asset:
