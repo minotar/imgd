@@ -223,6 +223,7 @@ func fetchSkin(username string) *mcSkin {
 
 	// Everyone loves nested if statements, right?
 	var skin minecraft.Skin
+	stats.APIRequested("GetUUID")
 	uuid, err := minecraft.NormalizePlayerForUUID(username)
 	if err != nil && err.Error() == "unable to GetAPIProfile: user not found" {
 		log.Debugf("Failed UUID lookup: %s (%s)", username, err.Error())

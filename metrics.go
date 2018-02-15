@@ -82,6 +82,16 @@ var (
 		[]string{"resource"},
 	)
 
+	apiCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: "status",
+			Name:      "apirequests",
+			Help:      "Requests to external APIs",
+		},
+		[]string{"call"},
+	)
+
 	// Latency on Get (source of skin) :tick:
 	// Total latency for HTTP request (response code) :tick:
 	// Latency on cache  (has, puul or add) :tick:
@@ -100,4 +110,5 @@ func init() {
 	prometheus.MustRegister(errorCounter)
 	prometheus.MustRegister(cacheCounter)
 	prometheus.MustRegister(requestCounter)
+	prometheus.MustRegister(apiCounter)
 }
