@@ -6,6 +6,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/gorilla/mux"
 	"github.com/minotar/minecraft"
 )
@@ -16,12 +19,20 @@ type Router struct {
 
 // Middleware function to manipulate our request and response.
 func imgdHandler(router http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return metricChain(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET")
 		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding")
 		router.ServeHTTP(w, r)
-	})
+	}))
+}
+
+func metricChain(router http.Handler) http.Handler {
+	return promhttp.InstrumentHandlerInFlight(inFlightGauge,
+		promhttp.InstrumentHandlerDuration(requestDuration,
+			promhttp.InstrumentHandlerResponseSize(responseSize, router),
+		),
+	)
 }
 
 type NotFoundHandler struct{}
@@ -138,7 +149,9 @@ func (router *Router) Serve(resource string) {
 			return
 		}
 
+		processingTimer := prometheus.NewTimer(processingDuration.WithLabelValues(resource))
 		err := router.ResolveMethod(skin, resource)(int(width))
+		processingTimer.ObserveDuration()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "500 internal server error")
@@ -177,6 +190,8 @@ func (router *Router) Bind() {
 		log.Infof("%s %s 200", r.RemoteAddr, r.RequestURI)
 	})
 
+	router.Mux.Handle("/metrics", promhttp.Handler())
+
 	router.Mux.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(stats.ToJSON())
@@ -191,32 +206,70 @@ func (router *Router) Bind() {
 
 func fetchSkin(username string) *mcSkin {
 	if username == "char" || username == "MHF_Steve" {
-		skin, _ := minecraft.FetchSkinForChar()
+		skin, _ := minecraft.FetchSkinForSteve()
 		return &mcSkin{Skin: skin}
 	}
 
+	hasTimer := prometheus.NewTimer(cacheDuration.WithLabelValues("has"))
 	if cache.has(strings.ToLower(username)) {
+		hasTimer.ObserveDuration()
+		pullTimer := prometheus.NewTimer(cacheDuration.WithLabelValues("pull"))
+		defer pullTimer.ObserveDuration()
 		stats.HitCache()
 		return &mcSkin{Processed: nil, Skin: cache.pull(strings.ToLower(username))}
 	}
+	hasTimer.ObserveDuration()
+	stats.MissCache()
 
-	skin, err := minecraft.FetchSkinFromMojang(username)
-	if err != nil {
-		log.Debugf("Failed Skin Mojang: %s (%s)", username, err.Error())
-		// Let's fallback to S3 and try and serve at least an old skin...
-		skin, err = minecraft.FetchSkinFromS3(username)
-		if err != nil {
-			log.Debugf("Failed Skin S3: %s (%s)", username, err.Error())
-			// Well, looks like they don't exist after all.
-			skin, _ = minecraft.FetchSkinForChar()
-			stats.Errored("FallbackSteve")
+	// Everyone loves nested if statements, right?
+	var skin minecraft.Skin
+	stats.APIRequested("GetUUID")
+	uuid, err := minecraft.NormalizePlayerForUUID(username)
+	if err != nil && err.Error() == "unable to GetAPIProfile: user not found" {
+		log.Debugf("Failed UUID lookup: %s (%s)", username, err.Error())
+		skin, _ = minecraft.FetchSkinForSteve()
+		stats.Errored("UnknownUser")
+		// Don't return yet to ensure we cache the failure
+	} else {
+		var catchErr error
+		// Either no error, or there is one (eg. rate limit or network etc.), but they do possibly still exist
+		if err != nil && err.Error() == "unable to GetAPIProfile: rate limited" {
+			log.Noticef("Failed UUID lookup: %s (%s)", username, err.Error())
+			stats.Errored("LookupUUIDRateLimit")
+			catchErr = err
+		} else if err != nil {
+			// Other generic issues with looking up UUID, but still worth trying S3
+			log.Infof("Failed UUID lookup: %s (%s)", username, err.Error())
+			stats.Errored("LookupUUID")
+			catchErr = err
 		} else {
-			stats.Errored("FallbackUsernameS3")
+			// We have a UUID, so let's get a skin!
+			sPTimer := prometheus.NewTimer(getDuration.WithLabelValues("SessionProfile"))
+			skin, catchErr = minecraft.FetchSkinUUID(uuid)
+			sPTimer.ObserveDuration()
+			if catchErr != nil {
+				log.Noticef("Failed Skin SessionProfile: %s (%s)", username, catchErr.Error())
+				stats.Errored("SkinSessionProfile")
+			}
+		}
+		if catchErr != nil {
+			// Let's fallback to S3 and try and serve at least an old skin...
+			s3Timer := prometheus.NewTimer(getDuration.WithLabelValues("S3"))
+			skin, err = minecraft.FetchSkinUsernameS3(username)
+			s3Timer.ObserveDuration()
+			if err != nil {
+				log.Debugf("Failed Skin S3: %s (%s)", username, err.Error())
+				// Well, looks like they don't exist after all.
+				skin, _ = minecraft.FetchSkinForSteve()
+				stats.Errored("FallbackSteve")
+			} else {
+				stats.Errored("FallbackUsernameS3")
+			}
 		}
 	}
 
-	stats.MissCache()
+	addTimer := prometheus.NewTimer(cacheDuration.WithLabelValues("add"))
 	cache.add(strings.ToLower(username), skin)
-
+	addTimer.ObserveDuration()
 	return &mcSkin{Processed: nil, Skin: skin}
 }

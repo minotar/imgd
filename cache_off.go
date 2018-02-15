@@ -18,7 +18,7 @@ func (c *CacheOff) has(username string) bool {
 
 // Should never be called.
 func (c *CacheOff) pull(username string) minecraft.Skin {
-	char, _ := minecraft.FetchSkinForChar()
+	char, _ := minecraft.FetchSkinForSteve()
 	return char
 }
 

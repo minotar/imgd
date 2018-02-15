@@ -12,6 +12,7 @@ const (
 	StatusTypeCacheMiss
 
 	StatusTypeRequested
+	StatusTypeAPIRequested
 	StatusTypeErrored
 )
 
@@ -19,7 +20,7 @@ type statusCollectorMessage struct {
 	// The type of message this is.
 	MessageType uint
 
-	// If MessageType==StatusTypeRequested, then the type of request that was requested.
+	// If MessageType == StatusTypeRequested, StatusTypeAPIRequested or StatusTypeErrored then this is the state we are reporting.
 	StatusType string
 }
 
@@ -33,6 +34,8 @@ type StatusCollector struct {
 		Errored map[string]uint
 		// Number of times a request type has been requested.
 		Requested map[string]uint
+		// Number of times an API request type has been made.
+		APIRequested map[string]uint
 		// Number of times skins have been served from the cache.
 		CacheHits uint
 		// Number of times skins have failed to be served from the cache.
@@ -55,6 +58,7 @@ func MakeStatsCollector() *StatusCollector {
 	collector.StartedAt = time.Now().Unix()
 	collector.info.Errored = map[string]uint{}
 	collector.info.Requested = map[string]uint{}
+	collector.info.APIRequested = map[string]uint{}
 	collector.inputData = make(chan statusCollectorMessage, 5)
 
 	// Run a function every five seconds to collect time-based info.
@@ -78,22 +82,34 @@ func MakeStatsCollector() *StatusCollector {
 func (s *StatusCollector) handleMessage(msg statusCollectorMessage) {
 	switch msg.MessageType {
 	case StatusTypeCacheHit:
-		s.info.CacheHits += 1
+		cacheCounter.WithLabelValues("hit").Inc()
+		s.info.CacheHits++
 	case StatusTypeCacheMiss:
-		s.info.CacheMisses += 1
+		cacheCounter.WithLabelValues("miss").Inc()
+		s.info.CacheMisses++
 	case StatusTypeErrored:
 		err := msg.StatusType
+		errorCounter.WithLabelValues(err).Inc()
 		if _, exists := s.info.Errored[err]; exists {
-			s.info.Errored[err] += 1
+			s.info.Errored[err]++
 		} else {
 			s.info.Errored[err] = 1
 		}
 	case StatusTypeRequested:
 		req := msg.StatusType
+		requestCounter.WithLabelValues(req).Inc()
 		if _, exists := s.info.Requested[req]; exists {
-			s.info.Requested[req] += 1
+			s.info.Requested[req]++
 		} else {
 			s.info.Requested[req] = 1
+		}
+	case StatusTypeAPIRequested:
+		req := msg.StatusType
+		apiCounter.WithLabelValues(req).Inc()
+		if _, exists := s.info.APIRequested[req]; exists {
+			s.info.APIRequested[req]++
+		} else {
+			s.info.APIRequested[req] = 1
 		}
 	}
 }
@@ -127,6 +143,14 @@ func (s *StatusCollector) Errored(errorType string) {
 func (s *StatusCollector) Requested(reqType string) {
 	s.inputData <- statusCollectorMessage{
 		MessageType: StatusTypeRequested,
+		StatusType:  reqType,
+	}
+}
+
+// Increments the request counter for the specific type.
+func (s *StatusCollector) APIRequested(reqType string) {
+	s.inputData <- statusCollectorMessage{
+		MessageType: StatusTypeAPIRequested,
 		StatusType:  reqType,
 	}
 }

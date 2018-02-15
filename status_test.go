@@ -1,8 +1,8 @@
 package main
 
 import (
-	"runtime"
 	"testing"
+	"time"
 
 	"github.com/op/go-logging"
 )
@@ -19,7 +19,7 @@ func testSetupStatus() *StashingWriter {
 
 func TestStatusHandleMessageCacheHit(t *testing.T) {
 	stats.HitCache()
-	runtime.Gosched()
+	time.Sleep(time.Duration(1) * time.Millisecond)
 	if stats.info.CacheHits != 1 {
 		t.Fatalf("CacheHits not 1, was %d", stats.info.CacheHits)
 	}
@@ -27,7 +27,7 @@ func TestStatusHandleMessageCacheHit(t *testing.T) {
 
 func TestStatusHandleMessageCacheMiss(t *testing.T) {
 	stats.MissCache()
-	runtime.Gosched()
+	time.Sleep(time.Duration(1) * time.Millisecond)
 	if stats.info.CacheMisses != 1 {
 		t.Fatalf("CacheMisses not 1, was %d", stats.info.CacheMisses)
 	}
@@ -35,7 +35,7 @@ func TestStatusHandleMessageCacheMiss(t *testing.T) {
 
 func TestStatusHandleMessageRequested(t *testing.T) {
 	stats.Requested("test")
-	runtime.Gosched()
+	time.Sleep(time.Duration(1) * time.Millisecond)
 	if stats.info.Requested["test"] != 1 {
 		t.Fatalf("Requested[\"test\"] not 1, was %d", stats.info.Requested["test"])
 	}
@@ -44,7 +44,7 @@ func TestStatusHandleMessageRequested(t *testing.T) {
 	stats.Requested("test")
 	stats.Requested("bacon")
 	stats.Requested("fromage")
-	runtime.Gosched()
+	time.Sleep(time.Duration(1) * time.Millisecond)
 	if stats.info.Requested["test"] != 3 {
 		t.Fatalf("Requested[\"test\"] not 3, was %d", stats.info.Requested["test"])
 	}
@@ -58,7 +58,7 @@ func TestStatusHandleMessageRequested(t *testing.T) {
 
 func TestStatusHandleMessageErrored(t *testing.T) {
 	stats.Errored("test")
-	runtime.Gosched()
+	time.Sleep(time.Duration(1) * time.Millisecond)
 	if stats.info.Errored["test"] != 1 {
 		t.Fatalf("Errored[\"test\"] not 1, was %d", stats.info.Errored["test"])
 	}
@@ -67,7 +67,7 @@ func TestStatusHandleMessageErrored(t *testing.T) {
 	stats.Errored("test")
 	stats.Errored("bacon")
 	stats.Errored("fromage")
-	runtime.Gosched()
+	time.Sleep(time.Duration(1) * time.Millisecond)
 	if stats.info.Errored["test"] != 3 {
 		t.Fatalf("Errored[\"test\"] not 3, was %d", stats.info.Errored["test"])
 	}

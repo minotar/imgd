@@ -16,7 +16,7 @@ const (
 	MinWidth     = uint(8)
 	MaxWidth     = uint(300)
 
-	ImgdVersion = "2.9.5"
+	ImgdVersion = "2.10.0"
 )
 
 var (
