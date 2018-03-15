@@ -24,6 +24,12 @@ type Configuration struct {
 		Ttl     int
 	}
 
+	Minecraft struct {
+		UserAgent        string
+		SessionServerURL string
+		ProfileURL       string
+	}
+
 	Redis struct {
 		Address  string
 		Auth     string
