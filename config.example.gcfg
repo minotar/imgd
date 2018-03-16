@@ -11,6 +11,14 @@ url = https://minotar.net/
 # The duration, in seconds we should store item in our cache. Default: 48 hrs
 ttl = 172800
 
+[minecraft]
+# User Agent to use with each HTTP request
+useragent = "minotar/imgd (https://github.com/minotar/imgd)"
+# SessionServerURL is the address where we can append a UUID and get back a SessionProfileResponse (UUID, Username and Properties/Textures)
+sessionserverurl = https://sessionserver.mojang.com/session/minecraft/profile/
+# ProfileURL is the address where we can append a Username and get back a APIProfileResponse (UUID and Username)
+profileurl = https://api.mojang.com/users/profiles/minecraft/
+
 [redis]
 # If you're using Redis caching, you should fill this section out.
 # Otherwise, don't worry about it
