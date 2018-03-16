@@ -6,6 +6,8 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/minotar/minecraft"
+
 	"github.com/gorilla/mux"
 	"github.com/op/go-logging"
 )
@@ -16,12 +18,13 @@ const (
 	MinWidth     = uint(8)
 	MaxWidth     = uint(300)
 
-	ImgdVersion = "2.10.0"
+	ImgdVersion = "2.11.0"
 )
 
 var (
 	config        = &Configuration{}
 	cache         Cache
+	mcClient      *minecraft.Minecraft
 	stats         *StatusCollector
 	signalHandler *SignalHandler
 )
@@ -43,6 +46,17 @@ func setupCache() {
 	if err != nil {
 		log.Criticalf("Unable to setup Cache. (%v)", err)
 		os.Exit(1)
+	}
+}
+
+func setupMcClient() {
+	mcClient = &minecraft.Minecraft{
+		Client:    minecraft.NewHTTPClient(),
+		UserAgent: config.Minecraft.UserAgent,
+		UUIDAPI: minecraft.UUIDAPI{
+			SessionServerURL: config.Minecraft.SessionServerURL,
+			ProfileURL:       config.Minecraft.ProfileURL,
+		},
 	}
 }
 
@@ -81,5 +95,6 @@ func main() {
 	setupConfig()
 	setupLog(logBackend)
 	setupCache()
+	setupMcClient()
 	startServer()
 }

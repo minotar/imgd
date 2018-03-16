@@ -38,6 +38,7 @@ func TestSetup(t *testing.T) {
 	setupConfig()
 	setupLog(logBackend)
 	setupCache()
+	setupMcClient()
 }
 
 func TestRenders(t *testing.T) {
