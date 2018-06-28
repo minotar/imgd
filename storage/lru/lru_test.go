@@ -1,28 +1,19 @@
-package memory
+package lru
 
 import (
-	"math/rand"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/minotar/imgd/storage/util/helper"
 )
 
-var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-func randString(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
-	}
-	return string(b)
-}
-
-func TestInsertAndFind(t *testing.T) {
-	tree := New()
+func TestInsertAndRetrieve(t *testing.T) {
+	cache := New()
 	for i := 0; i < 10; i++ {
-		str := randString(32)
-		tree.Insert(str, []byte(strconv.Itoa(i)), time.Second)
-		item, _ := tree.Find(str)
+		str := helper.RandString(32)
+		cache.Insert(str, []byte(strconv.Itoa(i)), time.Second)
+		item, _ := cache.Retrieve(str)
 		if string(item) != strconv.Itoa(i) {
 			t.Fail()
 		}
@@ -31,7 +22,7 @@ func TestInsertAndFind(t *testing.T) {
 
 type testBucket struct {
 	keys  []string
-	cache *MemoryCache
+	cache *LruCache
 	size  int
 }
 
@@ -44,7 +35,7 @@ func initLargeBucket(n int) {
 	keys := make([]string, n)
 	cache := New()
 	for i := 0; i < n; i++ {
-		keys[i] = randString(32)
+		keys[i] = helper.RandString(32)
 		cache.Insert(keys[i], []byte(strconv.Itoa(i)), time.Second)
 	}
 
@@ -53,11 +44,11 @@ func initLargeBucket(n int) {
 
 func BenchmarkInsert(b *testing.B) {
 	initLargeBucket(b.N)
-	tree := New()
+	cache := New()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		tree.Insert(largeBucket.keys[i], []byte(strconv.Itoa(i)), time.Second)
+		cache.Insert(largeBucket.keys[i], []byte(strconv.Itoa(i)), time.Second)
 	}
 }
 
@@ -67,7 +58,7 @@ func BenchmarkLookup(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for k := 0; k < 10; k++ {
-			largeBucket.cache.Find(largeBucket.keys[k])
+			largeBucket.cache.Retrieve(largeBucket.keys[k])
 		}
 	}
 }

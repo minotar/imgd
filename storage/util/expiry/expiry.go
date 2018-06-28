@@ -1,4 +1,5 @@
-package memory
+// A non-thread safe library for handling TTL of keys
+package expiry
 
 import (
 	"sort"
@@ -19,17 +20,17 @@ type expiryTuple struct {
 }
 
 // Handles tracking of expiration times.
-type expiry struct {
+type Expiry struct {
 	clock  clock
 	tuples []expiryTuple
 }
 
-func newExpiry() *expiry {
-	return &expiry{clock: realClock{}}
+func NewExpiry() *Expiry {
+	return &Expiry{clock: realClock{}}
 }
 
 // Adds a key and associated TTL to the expiry records.
-func (e *expiry) Add(key string, ttl time.Duration) {
+func (e *Expiry) Add(key string, ttl time.Duration) {
 	expires := e.clock.Now().Add(ttl)
 	tuple := expiryTuple{key, expires}
 	list := e.tuples
@@ -55,7 +56,7 @@ func (e *expiry) Add(key string, ttl time.Duration) {
 
 // Returns all keys that have expired, removing them from the
 // expiry's records afterwards.
-func (e *expiry) Compact() []string {
+func (e *Expiry) Compact() []string {
 	now := e.clock.Now()
 	idx := 0
 	removed := []string{}

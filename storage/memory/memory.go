@@ -3,16 +3,23 @@ package memory
 import (
 	"sync"
 	"time"
+
+	"github.com/minotar/imgd/storage"
+	"github.com/minotar/imgd/storage/util/expiry"
 )
+
+// ensure that the storage.Storage interface is implemented
+var _ storage.Storage = new(MemoryCache)
 
 // Duration between times when we clear out all old data from
 // the memory cache.
 const COMPACTION_INTERVAL = 5 * time.Second
 
 type memoryCacher interface {
-	Find(path string) []byte
-	Delete(path string)
 	Insert(path string, ptr []byte)
+	Retrieve(path string) []byte
+	Delete(path string)
+	Len() uint
 }
 
 // This is a simple in-memory cache that uses prefix trees to insert
@@ -20,14 +27,16 @@ type memoryCacher interface {
 type MemoryCache struct {
 	mu     sync.Mutex
 	cache  memoryCacher
-	expiry *expiry
+	size   int
+	expiry *expiry.Expiry
 	closer chan bool
 }
 
-func New() *MemoryCache {
+func New(maxEntries int) *MemoryCache {
 	mc := &MemoryCache{
-		cache:  newMemoryMap(),
-		expiry: newExpiry(),
+		cache:  newMemoryMap(maxEntries),
+		size:   maxEntries,
+		expiry: expiry.NewExpiry(),
 		closer: make(chan bool),
 	}
 	go mc.runCompactor()
@@ -44,16 +53,25 @@ func (m *MemoryCache) Insert(key string, value []byte, ttl time.Duration) error 
 	return nil
 }
 
-func (m *MemoryCache) Find(key string) ([]byte, error) {
+func (m *MemoryCache) Retrieve(key string) ([]byte, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	return m.cache.Find(key), nil
+	return m.cache.Retrieve(key), nil
 }
 
 func (m *MemoryCache) Flush() error {
-	m.cache = newMemoryMap()
+	m.cache = newMemoryMap(m.size)
 	return nil
+}
+
+func (m *MemoryCache) Len() uint {
+	return m.cache.Len()
+}
+
+// Size will not be accurate for an in-memory Cache
+func (m *MemoryCache) Size() uint64 {
+	return 0
 }
 
 func (m *MemoryCache) Close() {

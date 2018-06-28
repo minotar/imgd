@@ -72,7 +72,7 @@ func (m *memoryTree) Insert(path string, ptr []byte) {
 	m.children = append(m.children, baby)
 }
 
-func (m *memoryTree) Find(path string) []byte {
+func (m *memoryTree) Retrieve(path string) []byte {
 	if len(path) == 0 {
 		return m.value
 	}
@@ -83,7 +83,7 @@ func (m *memoryTree) Find(path string) []byte {
 			continue
 		}
 
-		return child.Find(path[shared:])
+		return child.Retrieve(path[shared:])
 	}
 
 	return nil
