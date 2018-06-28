@@ -1,13 +1,19 @@
-package redis
+package redigo
 
 import (
-	"github.com/garyburd/redigo/redis"
 	"time"
+
+	"github.com/garyburd/redigo/redis"
+	"github.com/minotar/imgd/storage"
+	"github.com/minotar/imgd/storage/util/redisinfo"
 )
 
 type RedisCache struct {
 	pool *redis.Pool
 }
+
+// ensure that the storage.Storage interface is implemented
+var _ storage.Storage = new(RedisCache)
 
 func (r *RedisCache) Insert(key string, value []byte, ttl time.Duration) error {
 	cnx := r.pool.Get()
@@ -17,7 +23,7 @@ func (r *RedisCache) Insert(key string, value []byte, ttl time.Duration) error {
 	return err
 }
 
-func (r *RedisCache) Find(key string) ([]byte, error) {
+func (r *RedisCache) Retrieve(key string) ([]byte, error) {
 	cnx := r.pool.Get()
 	defer cnx.Close()
 
@@ -28,8 +34,30 @@ func (r *RedisCache) Flush() error {
 	cnx := r.pool.Get()
 	defer cnx.Close()
 
-	_, err := cnx.Do("FLUSHALL")
+	_, err := cnx.Do("FLUSHDB")
 	return err
+}
+
+func (r *RedisCache) Len() uint {
+	cnx := r.pool.Get()
+	defer cnx.Close()
+
+	size, err := redis.Int(cnx.Do("DBSIZE"))
+	if err != nil {
+		return 0
+	}
+	return uint(size)
+}
+
+func (r *RedisCache) Size() uint64 {
+	cnx := r.pool.Get()
+	defer cnx.Close()
+
+	resp, err := redis.Bytes(cnx.Do("INFO"))
+	if err != nil {
+		return 0
+	}
+	return redisinfo.ParseUsedMemory(resp)
 }
 
 func (r *RedisCache) Close() {
