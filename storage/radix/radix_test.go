@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/minotar/imgd/storage"
 	"github.com/minotar/imgd/storage/util/helper"
 )
 
-func TestInsertAndFind(t *testing.T) {
+func TestInsertAndRetrieve(t *testing.T) {
 	cache, _ := New(RedisConfig{
 		Network: "tcp",
 		Address: "127.0.0.1:6379",
@@ -29,6 +30,24 @@ func TestInsertAndFind(t *testing.T) {
 	if cache.Size() < preSize {
 		t.Fail()
 	}
+}
+
+func TestRetrieveMiss(t *testing.T) {
+	cache, _ := New(RedisConfig{
+		Network: "tcp",
+		Address: "127.0.0.1:6379",
+		Size:    1,
+	})
+	str := helper.RandString(32)
+	item, err := cache.Retrieve(str)
+	if err.Error() != storage.ErrNotFound.Error() {
+		t.Log("ErrNotFound was instead:", err.Error())
+		t.Fail()
+	}
+	if string(item) != "" {
+		t.Fail()
+	}
+
 }
 
 type testBucket struct {
@@ -74,9 +93,14 @@ func BenchmarkInsert(b *testing.B) {
 func BenchmarkLookup(b *testing.B) {
 	initLargeBucket(b.N)
 
+	iter := 10
+	if b.N < 10 {
+		iter = b.N
+	}
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		for k := 0; k < 10; k++ {
+		for k := 0; k < iter; k++ {
 			largeBucket.cache.Retrieve(largeBucket.keys[k])
 		}
 	}

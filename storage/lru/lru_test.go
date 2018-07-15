@@ -9,7 +9,7 @@ import (
 )
 
 func TestInsertAndRetrieve(t *testing.T) {
-	cache := New()
+	cache, _ := New(10)
 	for i := 0; i < 10; i++ {
 		str := helper.RandString(32)
 		cache.Insert(str, []byte(strconv.Itoa(i)), time.Second)
@@ -33,7 +33,7 @@ func initLargeBucket(n int) {
 		return
 	}
 	keys := make([]string, n)
-	cache := New()
+	cache, _ := New(n)
 	for i := 0; i < n; i++ {
 		keys[i] = helper.RandString(32)
 		cache.Insert(keys[i], []byte(strconv.Itoa(i)), time.Second)
@@ -44,7 +44,7 @@ func initLargeBucket(n int) {
 
 func BenchmarkInsert(b *testing.B) {
 	initLargeBucket(b.N)
-	cache := New()
+	cache, _ := New(b.N)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -55,9 +55,14 @@ func BenchmarkInsert(b *testing.B) {
 func BenchmarkLookup(b *testing.B) {
 	initLargeBucket(b.N)
 
+	iter := 10
+	if b.N < 10 {
+		iter = b.N
+	}
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		for k := 0; k < 10; k++ {
+		for k := 0; k < iter; k++ {
 			largeBucket.cache.Retrieve(largeBucket.keys[k])
 		}
 	}

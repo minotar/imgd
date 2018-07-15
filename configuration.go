@@ -18,7 +18,6 @@ const (
 type Configuration struct {
 	Server struct {
 		Address string
-		Cache   string
 		Logging string
 		URL     string
 		Ttl     int
@@ -30,7 +29,12 @@ type Configuration struct {
 		ProfileURL       string
 	}
 
-	Redis struct {
+	Cache map[string]*struct {
+		Storage string
+		Size    int
+	}
+
+	Redis map[string]*struct {
 		Address  string
 		Auth     string
 		DB       int

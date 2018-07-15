@@ -9,9 +9,6 @@ import (
 	"github.com/minotar/imgd/storage/util/expiry"
 )
 
-// ensure that the storage.Storage interface is implemented
-var _ storage.Storage = new(LruCache)
-
 // Duration between times when we clear out all old data from
 // the memory cache.
 const COMPACTION_INTERVAL = 5 * time.Second
@@ -23,10 +20,13 @@ type LruCache struct {
 	closer chan bool
 }
 
-func New() *LruCache {
-	freshCache, err := lru.New(512)
+// ensure that the storage.Storage interface is implemented
+var _ storage.Storage = new(LruCache)
+
+func New(maxEntries int) (*LruCache, error) {
+	freshCache, err := lru.New(maxEntries)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	lc := &LruCache{
 		cache:  freshCache,
@@ -35,7 +35,7 @@ func New() *LruCache {
 	}
 	go lc.runCompactor()
 
-	return lc
+	return lc, nil
 }
 
 func (l *LruCache) Insert(key string, value []byte, ttl time.Duration) error {

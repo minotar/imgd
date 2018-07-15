@@ -38,7 +38,11 @@ func (r *RedisCache) Retrieve(key string) ([]byte, error) {
 		return nil, resp.Err
 	}
 
-	return resp.Bytes()
+	bytes, err := resp.Bytes()
+	if err != nil && err.Error() == "response is nil" {
+		return bytes, storage.ErrNotFound
+	}
+	return bytes, err
 }
 
 func (r *RedisCache) Flush() error {
@@ -86,7 +90,6 @@ func New(config RedisConfig) (*RedisCache, error) {
 	return &RedisCache{pool}, err
 }
 
-// Almost straight from the Redigo docs
 func makePool(config RedisConfig) (*pool.Pool, error) {
 
 	df := func(net, addr string) (*redis.Client, error) {

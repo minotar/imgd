@@ -18,22 +18,43 @@ func testSetupStatus() *StashingWriter {
 }
 
 func TestStatusHandleMessageCacheHit(t *testing.T) {
-	stats.HitCache()
+	stats = MakeStatsCollector()
+	stats.CacheUUID("hit")
 	time.Sleep(time.Duration(1) * time.Millisecond)
-	if stats.info.CacheHits != 1 {
-		t.Fatalf("CacheHits not 1, was %d", stats.info.CacheHits)
+	if stats.info.CacheUUID.Hits != 1 {
+		t.Fatalf("CacheUUID.Hits not 1, was %d", stats.info.CacheUUID.Hits)
+	}
+}
+
+func TestStatusHandleMessageCacheFresh(t *testing.T) {
+	stats = MakeStatsCollector()
+	stats.CacheUUID("fresh")
+	time.Sleep(time.Duration(1) * time.Millisecond)
+	if stats.info.CacheUUID.FreshHits != 1 {
+		t.Fatalf("CacheUUID.FreshHits not 1, was %d", stats.info.CacheUUID.FreshHits)
+	}
+}
+
+func TestStatusHandleMessageCacheStale(t *testing.T) {
+	stats = MakeStatsCollector()
+	stats.CacheUUID("stale")
+	time.Sleep(time.Duration(1) * time.Millisecond)
+	if stats.info.CacheUUID.StaleHits != 1 {
+		t.Fatalf("CacheUUID.StaleHits not 1, was %d", stats.info.CacheUUID.StaleHits)
 	}
 }
 
 func TestStatusHandleMessageCacheMiss(t *testing.T) {
-	stats.MissCache()
+	stats = MakeStatsCollector()
+	stats.CacheUUID("miss")
 	time.Sleep(time.Duration(1) * time.Millisecond)
-	if stats.info.CacheMisses != 1 {
-		t.Fatalf("CacheMisses not 1, was %d", stats.info.CacheMisses)
+	if stats.info.CacheUUID.Misses != 1 {
+		t.Fatalf("CacheUUID.Misses not 1, was %d", stats.info.CacheUUID.Misses)
 	}
 }
 
 func TestStatusHandleMessageRequested(t *testing.T) {
+	stats = MakeStatsCollector()
 	stats.Requested("test")
 	time.Sleep(time.Duration(1) * time.Millisecond)
 	if stats.info.Requested["test"] != 1 {
@@ -57,6 +78,7 @@ func TestStatusHandleMessageRequested(t *testing.T) {
 }
 
 func TestStatusHandleMessageErrored(t *testing.T) {
+	stats = MakeStatsCollector()
 	stats.Errored("test")
 	time.Sleep(time.Duration(1) * time.Millisecond)
 	if stats.info.Errored["test"] != 1 {

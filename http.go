@@ -64,7 +64,7 @@ func (router *Router) SkinPage(w http.ResponseWriter, r *http.Request) {
 	stats.Requested("Skin")
 	vars := mux.Vars(r)
 	username := vars["username"]
-	skin := fetchSkin(username)
+	skin := fetchUsernameSkin(username)
 
 	if r.Header.Get("If-None-Match") == skin.Skin.Hash {
 		w.WriteHeader(http.StatusNotModified)
@@ -141,7 +141,7 @@ func (router *Router) Serve(resource string) {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		width := router.GetWidth(vars["width"])
-		skin := fetchSkin(vars["username"])
+		skin := fetchUsernameSkin(vars["username"])
 		skin.Mode = router.getResizeMode(vars["extension"])
 		stats.Requested(resource)
 
@@ -205,62 +205,4 @@ func (router *Router) Bind() {
 		http.Redirect(w, r, config.Server.URL, http.StatusFound)
 		log.Infof("%s %s 200", r.RemoteAddr, r.RequestURI)
 	})
-}
-
-func fetchSkin(username string) *mcSkin {
-	if username == "char" || username == "MHF_Steve" {
-		skin, _ := minecraft.FetchSkinForSteve()
-		return &mcSkin{Skin: skin}
-	}
-
-	hasTimer := prometheus.NewTimer(cacheDuration.WithLabelValues("has"))
-	if cache.has(strings.ToLower(username)) {
-		hasTimer.ObserveDuration()
-		pullTimer := prometheus.NewTimer(cacheDuration.WithLabelValues("pull"))
-		defer pullTimer.ObserveDuration()
-		stats.HitCache()
-		return &mcSkin{Processed: nil, Skin: cache.pull(strings.ToLower(username))}
-	}
-	hasTimer.ObserveDuration()
-	stats.MissCache()
-
-	var skin minecraft.Skin
-	stats.APIRequested("GetUUID")
-	uuid, err := mcClient.NormalizePlayerForUUID(username)
-	if err != nil {
-		switch errorMsg := err.Error(); errorMsg {
-
-		case "unable to GetAPIProfile: user not found":
-			log.Debugf("Failed UUID lookup: %s (%s)", username, errorMsg)
-			stats.Errored("UnknownUser")
-
-		case "unable to GetAPIProfile: rate limited":
-			log.Noticef("Failed UUID lookup: %s (%s)", username, errorMsg)
-			stats.Errored("LookupUUIDRateLimit")
-
-		default:
-			log.Infof("Failed UUID lookup: %s (%s)", username, errorMsg)
-			stats.Errored("LookupUUID")
-
-		}
-
-		skin, _ = minecraft.FetchSkinForSteve()
-		stats.Errored("FallbackSteve")
-	} else {
-		// We have a UUID, so let's get a skin!
-		sPTimer := prometheus.NewTimer(getDuration.WithLabelValues("SessionProfile"))
-		skin, err = mcClient.FetchSkinUUID(uuid)
-		sPTimer.ObserveDuration()
-		if err != nil {
-			log.Noticef("Failed Skin SessionProfile: %s (%s)", username, err.Error())
-			stats.Errored("SkinSessionProfile")
-			skin, _ = minecraft.FetchSkinForSteve()
-			stats.Errored("FallbackSteve")
-		}
-	}
-
-	addTimer := prometheus.NewTimer(cacheDuration.WithLabelValues("add"))
-	cache.add(strings.ToLower(username), skin)
-	addTimer.ObserveDuration()
-	return &mcSkin{Processed: nil, Skin: skin}
 }

@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"bytes"
+	"encoding/gob"
 	"errors"
 	"time"
 )
@@ -20,11 +22,12 @@ const (
 )
 
 // Storage is the basic interface implemented by associated stores
+// Todo: Standardise on how errors are returned when key is not in store
 type Storage interface {
-	// Insert a new entry into the store
+	// Insert a new value into the store
 	Insert(key string, value []byte, ttl time.Duration) error
-	// Retrieve will attempt to find a value in the store. Returns
-	// nil if it does not exist.
+	// Retrieve will attempt to find the key in the store. Returns
+	// nil if it does not exist with an ErrNotFound
 	Retrieve(key string) ([]byte, error)
 	// Flush will empty the store
 	Flush() error
@@ -40,3 +43,38 @@ type Storage interface {
 var (
 	ErrNotFound = errors.New("Key does not exist")
 )
+
+func InsertKV(cache Storage, key, value string, ttl time.Duration) error {
+	return cache.Insert(key, []byte(value), ttl)
+}
+
+func RetrieveKV(cache Storage, key string) (string, error) {
+	respBytes, err := cache.Retrieve(key)
+	return string(respBytes), err
+}
+
+func InsertGob(cache Storage, key string, e interface{}, ttl time.Duration) error {
+	var bytes bytes.Buffer
+	enc := gob.NewEncoder(&bytes)
+
+	err := enc.Encode(e)
+	if err != nil {
+		return errors.New("InsertGob: " + err.Error())
+	}
+
+	return cache.Insert(key, bytes.Bytes(), ttl)
+}
+
+func RetrieveGob(cache Storage, key string, e interface{}) error {
+	respBytes, err := cache.Retrieve(key)
+	if err != nil {
+		return err
+	}
+	reader := bytes.NewReader(respBytes)
+	dec := gob.NewDecoder(reader)
+	err = dec.Decode(e)
+	if err != nil {
+		return errors.New("RetrieveGob: " + err.Error())
+	}
+	return nil
+}

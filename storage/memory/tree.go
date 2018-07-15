@@ -72,9 +72,9 @@ func (m *memoryTree) Insert(path string, ptr []byte) {
 	m.children = append(m.children, baby)
 }
 
-func (m *memoryTree) Retrieve(path string) []byte {
+func (m *memoryTree) Retrieve(path string) ([]byte, error) {
 	if len(path) == 0 {
-		return m.value
+		return m.value, nil
 	}
 
 	for _, child := range m.children {
@@ -86,7 +86,7 @@ func (m *memoryTree) Retrieve(path string) []byte {
 		return child.Retrieve(path[shared:])
 	}
 
-	return nil
+	return nil, nil
 }
 
 func newMemoryTree() *memoryTree {
