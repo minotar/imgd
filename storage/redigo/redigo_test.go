@@ -62,9 +62,14 @@ func BenchmarkInsert(b *testing.B) {
 func BenchmarkLookup(b *testing.B) {
 	initLargeBucket(b.N)
 
+	iter := 10
+	if b.N < 10 {
+		iter = b.N
+	}
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		for k := 0; k < 10; k++ {
+		for k := 0; k < iter; k++ {
 			largeBucket.cache.Retrieve(largeBucket.keys[k])
 		}
 	}

@@ -1,14 +1,19 @@
 package memory
 
+import "github.com/minotar/imgd/storage"
+
 // Simple memory cache store that uses a plain Go map.
 type memoryMap struct {
 	m    map[string][]byte
 	size int
 }
 
-func (m *memoryMap) Retrieve(path string) []byte {
-	e, _ := m.m[string(path)]
-	return e
+func (m *memoryMap) Retrieve(path string) ([]byte, error) {
+	e, hit := m.m[string(path)]
+	if !hit {
+		return nil, storage.ErrNotFound
+	}
+	return e, nil
 }
 
 // Todo: Fix this.

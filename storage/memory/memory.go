@@ -8,19 +8,19 @@ import (
 	"github.com/minotar/imgd/storage/util/expiry"
 )
 
-// ensure that the storage.Storage interface is implemented
-var _ storage.Storage = new(MemoryCache)
-
 // Duration between times when we clear out all old data from
 // the memory cache.
 const COMPACTION_INTERVAL = 5 * time.Second
 
 type memoryCacher interface {
 	Insert(path string, ptr []byte)
-	Retrieve(path string) []byte
+	Retrieve(path string) ([]byte, error)
 	Delete(path string)
 	Len() uint
 }
+
+// ensure that the storage.Storage interface is implemented
+var _ storage.Storage = new(MemoryCache)
 
 // This is a simple in-memory cache that uses prefix trees to insert
 // and retrieve cache items from memory.
@@ -30,18 +30,6 @@ type MemoryCache struct {
 	size   int
 	expiry *expiry.Expiry
 	closer chan bool
-}
-
-func New(maxEntries int) *MemoryCache {
-	mc := &MemoryCache{
-		cache:  newMemoryMap(maxEntries),
-		size:   maxEntries,
-		expiry: expiry.NewExpiry(),
-		closer: make(chan bool),
-	}
-	go mc.runCompactor()
-
-	return mc
 }
 
 func (m *MemoryCache) Insert(key string, value []byte, ttl time.Duration) error {
@@ -57,7 +45,7 @@ func (m *MemoryCache) Retrieve(key string) ([]byte, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	return m.cache.Retrieve(key), nil
+	return m.cache.Retrieve(key)
 }
 
 func (m *MemoryCache) Flush() error {
@@ -76,6 +64,18 @@ func (m *MemoryCache) Size() uint64 {
 
 func (m *MemoryCache) Close() {
 	m.closer <- true
+}
+
+func New(maxEntries int) (*MemoryCache, error) {
+	mc := &MemoryCache{
+		cache:  newMemoryMap(maxEntries),
+		size:   maxEntries,
+		expiry: expiry.NewExpiry(),
+		closer: make(chan bool),
+	}
+	go mc.runCompactor()
+
+	return mc, nil
 }
 
 func (m *MemoryCache) compact() {

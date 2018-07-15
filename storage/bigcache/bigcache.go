@@ -15,6 +15,14 @@ type BigcacheCache struct {
 // ensure that the storage.Storage interface is implemented
 var _ storage.Storage = new(BigcacheCache)
 
+// Creates a new Redis cache instance, connecting to the given server
+// and AUTHing with the provided password. If the password is an
+// empty string, the AUTH command will not be run.
+func New() (*BigcacheCache, error) {
+	cache, err := bigcache.NewBigCache(bigcache.DefaultConfig(10 * time.Minute))
+	return &BigcacheCache{cache}, err
+}
+
 // Insert will SET the key in Redis with an expiry TTL
 func (b *BigcacheCache) Insert(key string, value []byte, ttl time.Duration) error {
 	return b.cache.Set(key, value)
@@ -38,12 +46,4 @@ func (b *BigcacheCache) Size() uint64 {
 
 func (b *BigcacheCache) Close() {
 	b.cache = nil
-}
-
-// Creates a new Redis cache instance, connecting to the given server
-// and AUTHing with the provided password. If the password is an
-// empty string, the AUTH command will not be run.
-func New() (*BigcacheCache, error) {
-	cache, err := bigcache.NewBigCache(bigcache.DefaultConfig(10 * time.Minute))
-	return &BigcacheCache{cache}, err
 }

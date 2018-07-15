@@ -9,7 +9,7 @@ import (
 )
 
 func TestInsertAndFind(t *testing.T) {
-	cache := New(10)
+	cache, _ := New(10)
 	for i := 0; i < 10; i++ {
 		str := helper.RandString(32)
 		cache.Insert(str, []byte(strconv.Itoa(i)), time.Minute)
@@ -21,7 +21,7 @@ func TestInsertAndFind(t *testing.T) {
 }
 
 func TestSize(t *testing.T) {
-	cache := New(10)
+	cache, _ := New(10)
 	// Iterate 20 times with a cache size of just 10
 	for i := 0; i < 20; i++ {
 		str := helper.RandString(32)
@@ -45,7 +45,7 @@ func initLargeBucket(n int) {
 		return
 	}
 	keys := make([]string, n)
-	cache := New(n)
+	cache, _ := New(n)
 	for i := 0; i < n; i++ {
 		keys[i] = helper.RandString(32)
 		cache.Insert(keys[i], []byte(strconv.Itoa(i)), time.Minute)
@@ -56,7 +56,7 @@ func initLargeBucket(n int) {
 
 func BenchmarkInsert(b *testing.B) {
 	initLargeBucket(b.N)
-	cache := New(b.N)
+	cache, _ := New(b.N)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -67,9 +67,14 @@ func BenchmarkInsert(b *testing.B) {
 func BenchmarkLookup(b *testing.B) {
 	initLargeBucket(b.N)
 
+	iter := 10
+	if b.N < 10 {
+		iter = b.N
+	}
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		for k := 0; k < 10; k++ {
+		for k := 0; k < iter; k++ {
 			largeBucket.cache.Retrieve(largeBucket.keys[k])
 		}
 	}

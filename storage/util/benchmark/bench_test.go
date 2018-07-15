@@ -2,6 +2,7 @@ package bench
 
 import (
 	"github.com/minotar/imgd/storage"
+	"github.com/minotar/imgd/storage/bigcache"
 	"github.com/minotar/imgd/storage/lru"
 	"github.com/minotar/imgd/storage/memory"
 	"github.com/minotar/imgd/storage/radix"
@@ -52,11 +53,18 @@ func benchRetrieveBase(b *testing.B, c storage.Storage) {
 }
 
 func BenchmarkMemoryInsert(b *testing.B) {
-	benchInsBase(b, memory.New(b.N))
+	memory, _ := memory.New(b.N)
+	benchInsBase(b, memory)
 }
 
 func BenchmarkLruInsert(b *testing.B) {
-	benchInsBase(b, lru.New())
+	lru, _ := lru.New(b.N)
+	benchInsBase(b, lru)
+}
+
+func BenchmarkBigcacheInsert(b *testing.B) {
+	bigcache, _ := bigcache.New()
+	benchInsBase(b, bigcache)
 }
 
 func BenchmarkRedigoInsert(b *testing.B) {
@@ -64,20 +72,27 @@ func BenchmarkRedigoInsert(b *testing.B) {
 }
 
 func BenchmarkRadixInsert(b *testing.B) {
-	store, _ := radix.New(radix.RedisConfig{
+	radix, _ := radix.New(radix.RedisConfig{
 		Network: "tcp",
 		Address: "127.0.0.1:6379",
 		Size:    1,
 	})
-	benchInsBase(b, store)
+	benchInsBase(b, radix)
 }
 
 func BenchmarkMemoryRetrieve(b *testing.B) {
-	benchRetrieveBase(b, memory.New(b.N))
+	memory, _ := memory.New(b.N)
+	benchRetrieveBase(b, memory)
 }
 
 func BenchmarkLruRetrieve(b *testing.B) {
-	benchRetrieveBase(b, lru.New())
+	lru, _ := lru.New(b.N)
+	benchRetrieveBase(b, lru)
+}
+
+func BenchmarkBigcacheRetrieve(b *testing.B) {
+	bigcache, _ := bigcache.New()
+	benchRetrieveBase(b, bigcache)
 }
 
 func BenchmarkRedigoRetrieve(b *testing.B) {
@@ -85,10 +100,10 @@ func BenchmarkRedigoRetrieve(b *testing.B) {
 }
 
 func BenchmarkRadixRetrieve(b *testing.B) {
-	store, _ := radix.New(radix.RedisConfig{
+	radix, _ := radix.New(radix.RedisConfig{
 		Network: "tcp",
 		Address: "127.0.0.1:6379",
 		Size:    1,
 	})
-	benchRetrieveBase(b, store)
+	benchRetrieveBase(b, radix)
 }

@@ -30,7 +30,7 @@ func testSetupSignals() *StashingWriter {
 	setupLog(logBackend)
 	// Ensure we have debug log level
 	logging.SetLevel(5, "")
-	setupCache()
+	setupTestCache()
 	return sw
 }
 
