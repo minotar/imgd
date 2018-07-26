@@ -1,11 +1,16 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"runtime"
 
+	"github.com/minotar/imgd/storage"
+	"github.com/minotar/imgd/storage/lru"
+	"github.com/minotar/imgd/storage/memory"
+	"github.com/minotar/imgd/storage/radix"
 	"github.com/minotar/minecraft"
 
 	"github.com/gorilla/mux"
@@ -23,7 +28,7 @@ const (
 
 var (
 	config        = &Configuration{}
-	cache         Cache
+	cache         map[string]storage.Storage
 	mcClient      *minecraft.Minecraft
 	stats         *StatusCollector
 	signalHandler *SignalHandler
@@ -40,12 +45,35 @@ func setupConfig() {
 	}
 }
 
+// Todo: Do we want to rely on config for which caches to set?
 func setupCache() {
-	cache = MakeCache(config.Server.Cache)
-	err := cache.setup()
-	if err != nil {
-		log.Criticalf("Unable to setup Cache. (%v)", err)
-		os.Exit(1)
+
+	if cache == nil {
+		cache = make(map[string]storage.Storage)
+	}
+
+	for t, conf := range config.Cache {
+		var err error
+		switch conf.Storage {
+		case "memory":
+			cache[t], err = memory.New(conf.Size)
+		case "lru":
+			cache[t], err = lru.New(conf.Size)
+		case "redis":
+			cache[t], err = radix.New(radix.RedisConfig{
+				Network: "tcp",
+				Address: config.Redis[t].Address,
+				Auth:    config.Redis[t].Auth,
+				DB:      config.Redis[t].DB,
+				Size:    config.Redis[t].PoolSize,
+			})
+		default:
+			err = errors.New("No cache selected")
+		}
+		if err != nil {
+			log.Criticalf("Unable to setup Cache. (%v)", err)
+			os.Exit(1)
+		}
 	}
 }
 
