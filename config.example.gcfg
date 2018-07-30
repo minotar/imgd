@@ -1,6 +1,8 @@
 [server]
 # Address the server listens on
 address = 0.0.0.0:8000
+# Address the profiler listens on (leave blank to disable)
+profileraddress = 0.0.0.0:8001
 # Log level to use: DEBUG, INFO, NOTICE, WARNING, ERROR, CRITICAL
 logging = NOTICE
 # Address to redirect users to upon browsing /
@@ -25,26 +27,26 @@ size = 32768
 
 # 2nd Most important cache UUID->UserData
 [cache "cacheUserData"]
-# If using "redis", fill out a [redis "cacheUUID"] section
+# If using "redis", fill out a [redis "cacheUserData"] section
 storage = memory
 # Size is applicable for Imgd managed storage (eg. memory)
 size = 16384
 
 # SkinPath->Texture
 [cache "cacheSkin"]
-# If using "redis", fill out a [redis "cacheUUID"] section
+# If using "redis", fill out a [redis "cacheSkin"] section
 storage = memory
 # Size is applicable for Imgd managed storage (eg. memory)
 size = 4096
 
 # SkinPath->ErrorMsg
 [cache "cacheSkinTransient"]
-# If using "redis", fill out a [redis "cacheUUID"] section
+# If using "redis", fill out a [redis "cacheSkinTransient"] section
 storage = memory
 # Size is applicable for Imgd managed storage (eg. memory)
 size = 256
 
-[redis  "cacheUUID"]
+[redis "cacheUUID"]
 # If you're using Redis caching, you should fill this section out.
 # Otherwise, don't worry about it
 address = 127.0.0.1:6379

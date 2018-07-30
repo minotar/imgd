@@ -92,13 +92,11 @@ func (t DelayedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func TestUsernameLookup(t *testing.T) {
-
 	Convey("test getUUID returns expected data from Username", t, func() {
 		// reset Caches
 		setupTestCache()
 
 		Convey("Working Usernames should return positive results", func() {
-
 			// Loop though a selection of the Usernames from mockminecraft and compare against the correct UUID
 			for _, tUsername := range []string{"clone1018", "lukegb", "lukehandle", "citricsquid"} {
 				Convey("Test lookup for "+tUsername+" and caching", func() {
@@ -152,7 +150,6 @@ func TestUsernameLookup(t *testing.T) {
 		})
 
 		Convey("Broken Usernames should return negative results", func() {
-
 			brokenUsernameResp := map[string]string{
 				"ratelimitapi": metaRateLimitCode,
 				"204api":       metaUnknownCode,
@@ -207,7 +204,6 @@ func TestUsernameLookup(t *testing.T) {
 }
 
 func TestSessionProfileLookup(t *testing.T) {
-
 	Convey("test pullSessionProfile returns expected data from UUID", t, func() {
 		// reset Caches
 		setupTestCache()
@@ -240,7 +236,6 @@ func TestSessionProfileLookup(t *testing.T) {
 		})
 
 		Convey("Broken Usernames should return negative results", func() {
-
 			brokenUUIDError := map[string]string{
 				"00000000000000000000000000000001": "unable to GetSessionProfile: rate limited",
 				"00000000000000000000000000000003": "decoding GetSessionProfile failed: unexpected EOF",
@@ -278,13 +273,11 @@ func TestSessionProfileLookup(t *testing.T) {
 }
 
 func TestUUIDLookup(t *testing.T) {
-
 	Convey("test getUser returns expected data from UUID", t, func() {
 		// reset Caches
 		setupTestCache()
 
 		Convey("Working UUIDs should return positive results", func() {
-
 			// Loop though a selection of the Usernames from mockminecraft and compare against the correct UserData
 			for _, tUsername := range []string{"clone1018", "lukegb", "lukehandle", "citricsquid"} {
 				tUUID := mockminecraft.APIProfilesUUID[tUsername]
@@ -346,7 +339,6 @@ func TestUUIDLookup(t *testing.T) {
 		})
 
 		Convey("Broken UUIDs should return negative results", func() {
-
 			brokenUUIDResp := map[string]string{
 				"00000000000000000000000000000001": metaRateLimitCode,
 				"00000000000000000000000000000003": metaErrorCode,
@@ -427,13 +419,11 @@ func TestUUIDLookup(t *testing.T) {
 }
 
 func TestSkinLookup(t *testing.T) {
-
 	Convey("test getSkin returns expected data from SkinPath", t, func() {
 		// reset Caches
 		setupTestCache()
 
 		Convey("Working SkinPaths should return positive results", func() {
-
 			// Loop though the 2 Usernames with Skins in mockminecraft and compare against the correct Skin
 			for _, tUsername := range []string{"clone1018", "citricsquid"} {
 				tUUID := mockminecraft.APIProfilesUUID[tUsername]
@@ -478,7 +468,6 @@ func TestSkinLookup(t *testing.T) {
 		})
 
 		Convey("Broken SkinPaths should return negative results", func() {
-
 			brokenUUIDError := map[string]string{
 				"00000000000000000000000000000008": "unable to Decode Texture: unable to CastToNRGBA: png: invalid format: not enough pixel data",
 				"00000000000000000000000000000010": "unable to Fetch Texture: apiRequest HTTP 404 Not Found",
@@ -531,7 +520,6 @@ func TestSkinLookup(t *testing.T) {
 }
 
 func TestSingleFlight(t *testing.T) {
-
 	Convey("test singleflight blocks duplicate requests to the API", t, func() {
 		// reset Caches
 		setupTestCache()
@@ -605,13 +593,11 @@ func TestSingleFlight(t *testing.T) {
 }
 
 func TestWrapUsernameLookup(t *testing.T) {
-
 	Convey("test wrapUsernameLookup returns expected data from Username", t, func() {
 		// reset Caches
 		setupTestCache()
 
 		Convey("Working Usernames should return positive results", func() {
-
 			// Loop though a selection of the Usernames from mockminecraft and compare against the correct UUID
 			for _, tUsername := range []string{"clone1018", "lukegb", "lukehandle", "citricsquid"} {
 				tUUID := mockminecraft.APIProfilesUUID[tUsername]
@@ -674,7 +660,6 @@ func TestWrapUsernameLookup(t *testing.T) {
 		})
 
 		Convey("Broken Usernames should return negative results", func() {
-
 			brokenUsernameResp := map[string]string{
 				"ratelimitapi": metaRateLimitCode,
 				"204api":       metaUnknownCode,
@@ -747,7 +732,6 @@ func TestWrapUsernameLookup(t *testing.T) {
 		})
 
 		Convey("Broken UUIDs should return negative results", func() {
-
 			brokenUUIDResp := map[string]string{
 				"00000000000000000000000000000001": metaRateLimitCode,
 				"00000000000000000000000000000003": metaErrorCode,
@@ -875,13 +859,11 @@ func TestWrapUsernameLookup(t *testing.T) {
 }
 
 func TestFetchUsernameSkin(t *testing.T) {
-
 	Convey("test fetchUsernameSkin returns expected data from Username", t, func() {
 		// reset Caches
 		setupTestCache()
 
 		Convey("Working Usernames should return positive results", func() {
-
 			// Loop though a selection of the Usernames from mockminecraft and compare against the correct UUID
 			for _, tUsername := range []string{"clone1018", "citricsquid"} {
 				tUUID := mockminecraft.APIProfilesUUID[tUsername]
@@ -931,7 +913,6 @@ func TestFetchUsernameSkin(t *testing.T) {
 		})
 
 		Convey("Broken Usernames should return negative results", func() {
-
 			brokenUsernameProfileReq := map[string]uint{
 				"ratelimitapi":     0,
 				"204api":           0,
@@ -992,7 +973,6 @@ func TestFetchUsernameSkin(t *testing.T) {
 				})
 			}
 		})
-
 	})
 }
 

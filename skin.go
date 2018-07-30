@@ -461,5 +461,27 @@ func fetchUsernameSkin(username string) *mcSkin {
 	}
 
 	return &mcSkin{Processed: nil, Skin: skin.(minecraft.Skin)}
+}
 
+func fetchUUIDSkin(uuid string) *mcSkin {
+	// We wrap the cache and API lookups in Singleflight to reduce outbound
+	// requests, reduce rate-limit chance and maybe speed up some requests
+
+	user, err := wrapUUIDLookup(uuid)
+	if err != nil {
+		skin, _ := minecraft.FetchSkinForSteve()
+		return &mcSkin{Skin: skin}
+	}
+
+	skinPath := user.Textures.SkinPath
+
+	skin, err, _ := sfSkinPath.Do(skinPath, func() (interface{}, error) {
+		return getSkin(skinPath)
+	})
+	if err != nil {
+		skin, _ := minecraft.FetchSkinForSteve()
+		return &mcSkin{Skin: skin}
+	}
+
+	return &mcSkin{Processed: nil, Skin: skin.(minecraft.Skin)}
 }
