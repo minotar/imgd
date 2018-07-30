@@ -151,15 +151,19 @@ func TestRenders(t *testing.T) {
 	})
 }
 
-func BenchmarkSetup(b *testing.B) {
+func setupBench() func() {
 	logBackend := logging.NewLogBackend(SilentWriter{}, "", 0)
 	stats = MakeStatsCollector()
 	setupConfig()
 	setupLog(logBackend)
-	setupCache()
+	setupTestCache()
+	//setupMcClient()
+	shutdown := setupTestClient()
+	return shutdown
 }
 
 func BenchmarkGetHead(b *testing.B) {
+	defer setupBench()()
 	skin := fetchUsernameSkin(testUser)
 	b.ResetTimer()
 
@@ -169,6 +173,7 @@ func BenchmarkGetHead(b *testing.B) {
 }
 
 func BenchmarkGetHelm(b *testing.B) {
+	defer setupBench()()
 	skin := fetchUsernameSkin(testUser)
 	b.ResetTimer()
 
@@ -178,6 +183,7 @@ func BenchmarkGetHelm(b *testing.B) {
 }
 
 func BenchmarkGetCube(b *testing.B) {
+	defer setupBench()()
 	skin := fetchUsernameSkin(testUser)
 	b.ResetTimer()
 
@@ -187,6 +193,7 @@ func BenchmarkGetCube(b *testing.B) {
 }
 
 func BenchmarkGetBust(b *testing.B) {
+	defer setupBench()()
 	skin := fetchUsernameSkin(testUser)
 	b.ResetTimer()
 
@@ -196,6 +203,7 @@ func BenchmarkGetBust(b *testing.B) {
 }
 
 func BenchmarkGetBody(b *testing.B) {
+	defer setupBench()()
 	skin := fetchUsernameSkin(testUser)
 	b.ResetTimer()
 
@@ -205,6 +213,7 @@ func BenchmarkGetBody(b *testing.B) {
 }
 
 func BenchmarkGetArmorBust(b *testing.B) {
+	defer setupBench()()
 	skin := fetchUsernameSkin(testUser)
 	b.ResetTimer()
 
@@ -214,6 +223,7 @@ func BenchmarkGetArmorBust(b *testing.B) {
 }
 
 func BenchmarkGetArmorBody(b *testing.B) {
+	defer setupBench()()
 	skin := fetchUsernameSkin(testUser)
 	b.ResetTimer()
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"runtime"
 
@@ -101,6 +102,30 @@ func setupLog(logBackend *logging.LogBackend) {
 	log.Noticef("Log level set to %s", logging.GetLevel(""))
 }
 
+func startProfilingServer() {
+	if config.Server.ProfilerAddress != "" {
+		go func() {
+			profiler := mux.NewRouter()
+
+			profiler.HandleFunc("/debug/pprof/", pprof.Index)
+			profiler.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+			profiler.HandleFunc("/debug/pprof/profile", pprof.Profile)
+			profiler.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+			profiler.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
+			profiler.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+			profiler.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
+			profiler.Handle("/debug/pprof/block", pprof.Handler("block"))
+
+			log.Noticef("imgd Profliler starting on %s", config.Server.ProfilerAddress)
+			err := http.ListenAndServe(config.Server.ProfilerAddress, profiler)
+			if err != nil {
+				log.Criticalf("imgd Profiler ListenAndServe: \"%s\"", err.Error())
+				os.Exit(1)
+			}
+		}()
+	}
+}
+
 func startServer() {
 	r := Router{Mux: mux.NewRouter()}
 	r.Bind()
@@ -108,7 +133,7 @@ func startServer() {
 	log.Noticef("imgd %s starting on %s", ImgdVersion, config.Server.Address)
 	err := http.ListenAndServe(config.Server.Address, nil)
 	if err != nil {
-		log.Criticalf("ListenAndServe: \"%s\"", err.Error())
+		log.Criticalf("imgd ListenAndServe: \"%s\"", err.Error())
 		os.Exit(1)
 	}
 }
@@ -119,9 +144,11 @@ func main() {
 	logBackend := logging.NewLogBackend(os.Stdout, "", 0)
 
 	signalHandler = MakeSignalHandler()
+	setupCache()
 	stats = MakeStatsCollector()
 	setupConfig()
 	setupLog(logBackend)
+	startProfilingServer()
 	setupCache()
 	setupMcClient()
 	startServer()
