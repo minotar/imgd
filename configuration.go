@@ -17,10 +17,11 @@ const (
 
 type Configuration struct {
 	Server struct {
-		Address string
-		Logging string
-		URL     string
-		Ttl     int
+		Address         string
+		ProfilerAddress string
+		Logging         string
+		URL             string
+		Ttl             int
 	}
 
 	Minecraft struct {
