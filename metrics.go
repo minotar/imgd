@@ -37,6 +37,7 @@ var (
 		Buckets:   []float64{.00025, .0005, 0.001, 0.0025, .005},
 	}, []string{"resource"})
 
+	// Todo: Is label name okay?
 	getDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: namespace,
 		Subsystem: "status",
@@ -93,6 +94,16 @@ var (
 		[]string{"call"},
 	)
 
+	userCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: "status",
+			Name:      "userrequests",
+			Help:      "Type of user request received",
+		},
+		[]string{"type"},
+	)
+
 	// Latency on Get (source of skin) :tick:
 	// Total latency for HTTP request (response code) :tick:
 	// Latency on cache  (has, puul or add) :tick:
@@ -112,4 +123,5 @@ func init() {
 	prometheus.MustRegister(cacheCounter)
 	prometheus.MustRegister(requestCounter)
 	prometheus.MustRegister(apiCounter)
+	prometheus.MustRegister(userCounter)
 }

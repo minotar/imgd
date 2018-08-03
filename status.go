@@ -13,6 +13,7 @@ const (
 
 	StatusTypeRequested
 	StatusTypeAPIRequested
+	StatusTypeUserRequested
 
 	StatusTypeCacheUUID
 	StatusTypeCacheUserData
@@ -50,6 +51,8 @@ type StatusCollector struct {
 		Requested map[string]uint
 		// Number of times an API request type has been made.
 		APIRequested map[string]uint
+		// Numner of times UUID vs. Username was requested
+		UserRequested map[string]uint
 		// Cache stats for the Username->UUID cache
 		CacheUUID cacheStats
 		// Cache stats for the UUID->UserData cache
@@ -73,6 +76,7 @@ func MakeStatsCollector() *StatusCollector {
 	collector.info.Errored = map[string]uint{}
 	collector.info.Requested = map[string]uint{}
 	collector.info.APIRequested = map[string]uint{}
+	collector.info.UserRequested = map[string]uint{}
 	collector.inputData = make(chan statusCollectorMessage, 5)
 
 	// Run a function every five seconds to collect time-based info.
@@ -118,6 +122,14 @@ func (s *StatusCollector) handleMessage(msg statusCollectorMessage) {
 			s.info.APIRequested[req]++
 		} else {
 			s.info.APIRequested[req] = 1
+		}
+	case StatusTypeUserRequested:
+		req := msg.StatusType
+		userCounter.WithLabelValues(req).Inc()
+		if _, exists := s.info.UserRequested[req]; exists {
+			s.info.UserRequested[req]++
+		} else {
+			s.info.UserRequested[req] = 1
 		}
 	case StatusTypeCacheUUID:
 		req := msg.StatusType
@@ -225,6 +237,14 @@ func (s *StatusCollector) Requested(reqType string) {
 func (s *StatusCollector) APIRequested(reqType string) {
 	s.inputData <- statusCollectorMessage{
 		MessageType: StatusTypeAPIRequested,
+		StatusType:  reqType,
+	}
+}
+
+// Increments the request counter for the specific type.
+func (s *StatusCollector) UserRequested(reqType string) {
+	s.inputData <- statusCollectorMessage{
+		MessageType: StatusTypeUserRequested,
 		StatusType:  reqType,
 	}
 }

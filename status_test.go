@@ -77,6 +77,30 @@ func TestStatusHandleMessageRequested(t *testing.T) {
 	}
 }
 
+func TestStatusHandleMessageUserRequested(t *testing.T) {
+	stats = MakeStatsCollector()
+	stats.UserRequested("test")
+	time.Sleep(time.Duration(1) * time.Millisecond)
+	if stats.info.UserRequested["test"] != 1 {
+		t.Fatalf("UserRequested[\"test\"] not 1, was %d", stats.info.UserRequested["test"])
+	}
+
+	stats.UserRequested("test")
+	stats.UserRequested("test")
+	stats.UserRequested("bacon")
+	stats.UserRequested("fromage")
+	time.Sleep(time.Duration(1) * time.Millisecond)
+	if stats.info.UserRequested["test"] != 3 {
+		t.Fatalf("UserRequested[\"test\"] not 3, was %d", stats.info.UserRequested["test"])
+	}
+	if stats.info.UserRequested["bacon"] != 1 {
+		t.Fatalf("UserRequested[\"bacon\"] not 1, was %d", stats.info.UserRequested["bacon"])
+	}
+	if stats.info.UserRequested["fromage"] != 1 {
+		t.Fatalf("UserRequested[\"fromage\"] not 1, was %d", stats.info.UserRequested["fromage"])
+	}
+}
+
 func TestStatusHandleMessageErrored(t *testing.T) {
 	stats = MakeStatsCollector()
 	stats.Errored("test")
