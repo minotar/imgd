@@ -29,7 +29,7 @@ const (
 	uuidRateLimitTTL = 1 * time.Hour
 	uuidErrorTTL     = 30 * time.Minute
 
-	skinTTL      = 30 * day
+	skinTTL      = 1 * time.Hour
 	skinErrorTTL = 15 * time.Minute
 
 	metaUnknownCode   = "204"

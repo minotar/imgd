@@ -20,14 +20,16 @@ build:
     - script:
         name: go build
         code: |
-          GOOS=linux GOARCH=amd64 go build -o $WERCKER_OUTPUT_DIR/imgd_linux_amd64 ./...
-          GOOS=darwin GOARCH=amd64 go build -o $WERCKER_OUTPUT_DIR/imgd_darwin_amd64 ./...
+          GOOS=linux GOARCH=amd64 go build -o $WERCKER_OUTPUT_DIR/imgd_linux_amd64
+          GOOS=darwin GOARCH=amd64 go build -o $WERCKER_OUTPUT_DIR/imgd_darwin_amd64
 
     # Test the project
     - script:
         name: go test
         code: |
-          go test ./...
+          # If we don't pull in sub-packages imports, then this will fail
+          # go test ./...
+          go test
 
 release:
   steps:
@@ -40,8 +42,8 @@ release:
     # Should ideally use some intelligence to get version, eg $(./imgd -version) would be cool
     - github-create-release:
         token: $GITHUB_TOKEN
-        tag: 2.11.0
-        title: imgd 2.11.0
+        tag: 3.0.0
+        title: imgd 3.0.0
         draft: true
 
     - github-upload-asset:
