@@ -62,10 +62,11 @@ func (router *Router) GetWidth(inp string) uint {
 // SkinPageUsername shows only the user's skin.
 // Todo: This is awfully un-DRY
 func (router *Router) SkinPageUsername(w http.ResponseWriter, r *http.Request) {
-	stats.Requested("Skin")
 	vars := mux.Vars(r)
 	username := vars["username"]
 	skin := fetchUsernameSkin(username)
+	stats.Requested("Skin")
+	stats.UserRequested("Username")
 
 	if r.Header.Get("If-None-Match") == skin.Skin.Hash {
 		w.WriteHeader(http.StatusNotModified)
@@ -83,9 +84,10 @@ func (router *Router) SkinPageUsername(w http.ResponseWriter, r *http.Request) {
 // SkinPageUUID shows only the user's skin.
 // Todo: This is awfully un-DRY
 func (router *Router) SkinPageUUID(w http.ResponseWriter, r *http.Request) {
-	stats.Requested("Skin")
 	vars := mux.Vars(r)
 	skin := fetchUUIDSkin(vars["uuid"])
+	stats.Requested("Skin")
+	stats.UserRequested("UUID")
 
 	if r.Header.Get("If-None-Match") == skin.Skin.Hash {
 		w.WriteHeader(http.StatusNotModified)
@@ -166,6 +168,7 @@ func (router *Router) writeType(ext string, skin *mcSkin, w http.ResponseWriter)
 }
 
 func (router *Router) redirectUUID(w http.ResponseWriter, r *http.Request) {
+	stats.UserRequested("DashedUUID")
 	src := r.URL.Path
 	dst := strings.Replace(src, "-", "", 4)
 	log.Infof("%s %s %d", r.RemoteAddr, r.RequestURI, http.StatusMovedPermanently)
@@ -181,6 +184,7 @@ func (router *Router) Serve(resource string) {
 		skin := fetchUsernameSkin(vars["username"])
 		skin.Mode = router.getResizeMode(vars["extension"])
 		stats.Requested(resource)
+		stats.UserRequested("Username")
 
 		if r.Header.Get("If-None-Match") == skin.Skin.Hash {
 			w.WriteHeader(http.StatusNotModified)
@@ -209,6 +213,7 @@ func (router *Router) Serve(resource string) {
 		skin := fetchUUIDSkin(vars["uuid"])
 		skin.Mode = router.getResizeMode(vars["extension"])
 		stats.Requested(resource)
+		stats.UserRequested("UUID")
 
 		if r.Header.Get("If-None-Match") == skin.Skin.Hash {
 			w.WriteHeader(http.StatusNotModified)
