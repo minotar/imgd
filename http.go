@@ -126,6 +126,8 @@ func (router *Router) ResolveMethod(skin *mcSkin, resource string) func(int) err
 		return skin.GetHelm
 	case "Cube":
 		return skin.GetCube
+	case "Cubehelm":
+		return skin.GetCubeHelm
 	case "Bust":
 		return skin.GetBust
 	case "Body":
@@ -251,6 +253,7 @@ func (router *Router) Bind() {
 	router.Serve("Avatar")
 	router.Serve("Helm")
 	router.Serve("Cube")
+	router.Serve("Cubehelm")
 	router.Serve("Bust")
 	router.Serve("Body")
 	router.Serve("Armor/Bust")

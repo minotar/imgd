@@ -123,6 +123,67 @@ func (skin *mcSkin) GetCube(width int) error {
 	return nil
 }
 
+// Sets skin.Processed to an isometric render of the head from a top-left angle (showing 3 sides).
+func (skin *mcSkin) GetCubeHelm(width int) error {
+	// Crop out the top of the head
+	topFlat := imaging.Crop(skin.Image, image.Rect(8, 0, 16, 8))
+	// Resize appropriately, so that it fills the `width` when rotated 45 def.
+	topFlat = imaging.Resize(topFlat, int(float64(width)*math.Sqrt(2)/3+1), 0, imaging.NearestNeighbor)
+	// Create the Gift filter
+	filter := gift.New(
+		gift.Rotate(45, color.Transparent, gift.LinearInterpolation),
+	)
+
+	bounds := filter.Bounds(topFlat.Bounds())
+	top := image.NewNRGBA(bounds)
+	// Draw it on the filter, then smush it!
+	filter.Draw(top, topFlat)
+	top = imaging.Resize(top, width+2, width/3, imaging.NearestNeighbor)
+
+	// Crop out the top of the head
+	topFlatHelm := imaging.Crop(skin.Image, image.Rect(40, 0, 48, 8))
+	// Resize appropriately, so that it fills the `width` when rotated 45 def.
+	topFlatHelm = imaging.Resize(topFlatHelm, int(float64(width)*math.Sqrt(2)/3+1), 0, imaging.NearestNeighbor)
+
+	boundshelm := filter.Bounds(topFlatHelm.Bounds())
+	tophelm := image.NewNRGBA(boundshelm)
+	// Draw it on the filter, then smush it!
+	filter.Draw(tophelm, topFlatHelm)
+	tophelm = imaging.Resize(tophelm, width+2, width/3, imaging.NearestNeighbor)
+
+	// Skew the front and sides at 15 degree angles to match up with the
+	// head that has been smushed
+	side := imaging.Crop(skin.Image, image.Rect(0, 8, 8, 16))
+	side = imaging.Resize(side, width/2, int(float64(width)/1.75), imaging.NearestNeighbor)
+	side = skewVertical(imaging.FlipH(side), math.Pi/-12)
+
+	sidehelm := imaging.Crop(skin.Image, image.Rect(32, 8, 40, 16))
+	sidehelm = imaging.Resize(sidehelm, width/2, int(float64(width)/1.75), imaging.NearestNeighbor)
+	sidehelm = skewVertical(imaging.FlipH(sidehelm), math.Pi/-12)
+
+	front := skin.cropHead(skin.Image).(*image.NRGBA)
+	front = imaging.Resize(front, width/2, int(float64(width)/1.75), imaging.NearestNeighbor)
+	front = skewVertical(front, math.Pi/12)
+
+	fronthelm := skin.cropHelm(skin.Image).(*image.NRGBA)
+	fronthelm = imaging.Resize(fronthelm, width/2, int(float64(width)/1.75), imaging.NearestNeighbor)
+	fronthelm = skewVertical(fronthelm, math.Pi/12)
+
+	// Create a new image to assemble upon
+	skin.Processed = image.NewNRGBA(image.Rect(0, 0, width, width))
+	// Draw each side
+	draw.Draw(skin.Processed.(draw.Image), image.Rect(0, width/6, width/2, width), side, image.Pt(0, 0), draw.Src)
+	draw.Draw(skin.Processed.(draw.Image), image.Rect(0, width/6, width/2, width), sidehelm, image.Pt(0, 0), draw.Over)
+
+	draw.Draw(skin.Processed.(draw.Image), image.Rect(width/2, width/6, width, width), front, image.Pt(0, 0), draw.Src)
+	draw.Draw(skin.Processed.(draw.Image), image.Rect(width/2, width/6, width, width), fronthelm, image.Pt(0, 0), draw.Over)
+	// Draw the top we created
+	draw.Draw(skin.Processed.(draw.Image), image.Rect(-1, 0, width+1, width/3), top, image.Pt(0, 0), draw.Over)
+	draw.Draw(skin.Processed.(draw.Image), image.Rect(-1, 0, width+1, width/3), tophelm, image.Pt(0, 0), draw.Over)
+
+	return nil
+}
+
 // Sets skin.Processed to the upper portion of the body (slightly higher cutoff than waist).
 func (skin *mcSkin) GetBust(width int) error {
 	headImg := skin.cropHead(skin.Image).(*image.NRGBA)
