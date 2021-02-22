@@ -12,6 +12,7 @@ import (
 	"github.com/minotar/imgd/storage/lru"
 	"github.com/minotar/imgd/storage/memory"
 	"github.com/minotar/imgd/storage/radix"
+	rcluster "github.com/minotar/imgd/storage/radix/cluster"
 	"github.com/minotar/minecraft"
 
 	"github.com/gorilla/mux"
@@ -24,7 +25,7 @@ const (
 	MinWidth     = uint(8)
 	MaxWidth     = uint(300)
 
-	ImgdVersion = "3.0.0"
+	ImgdVersion = "3.0.1"
 )
 
 var (
@@ -63,6 +64,13 @@ func setupCache() {
 		case "redis":
 			cache[t], err = radix.New(radix.RedisConfig{
 				Network: "tcp",
+				Address: config.Redis[t].Address,
+				Auth:    config.Redis[t].Auth,
+				DB:      config.Redis[t].DB,
+				Size:    config.Redis[t].PoolSize,
+			})
+		case "redis-cluster":
+			cache[t], err = rcluster.New(radix.RedisConfig{
 				Address: config.Redis[t].Address,
 				Auth:    config.Redis[t].Auth,
 				DB:      config.Redis[t].DB,
