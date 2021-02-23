@@ -20,6 +20,7 @@ var (
 		Buckets:   []float64{.001, .005, 0.0075, .01, .025, .1, .5, 1, 5},
 	}, []string{"code"})
 
+	// Is this useful? Maybe if another datapoint of type of request??
 	responseSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: namespace,
 		Subsystem: "http",
@@ -36,12 +37,13 @@ var (
 		Buckets:   []float64{.00025, .0005, 0.001, 0.0025, .005},
 	}, []string{"resource"})
 
+	// Todo: Is label name okay?
 	getDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: namespace,
-		Subsystem: "texture",
+		Subsystem: "status",
 		Name:      "get_duration_seconds",
-		Help:      "Histogram of the time (in seconds) each texture GET took.",
-		Buckets:   []float64{.1, .25, .5, 1},
+		Help:      "Histogram of the time (in seconds) external API Requests took.",
+		Buckets:   []float64{.05, .1, .25, .5, 1},
 	}, []string{"source"})
 
 	cacheDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
@@ -50,7 +52,7 @@ var (
 		Name:      "operation_duration_seconds",
 		Help:      "Histogram of the time (in seconds) each cache operation took.",
 		Buckets:   []float64{.0005, .001, 0.0025, .005, 0.0075, 0.01, 0.1},
-	}, []string{"operation"})
+	}, []string{"cache", "operation"})
 
 	errorCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -69,7 +71,7 @@ var (
 			Name:      "cache",
 			Help:      "Cache status",
 		},
-		[]string{"status"},
+		[]string{"cache", "status"},
 	)
 
 	requestCounter = prometheus.NewCounterVec(
@@ -92,6 +94,16 @@ var (
 		[]string{"call"},
 	)
 
+	userCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: "status",
+			Name:      "userrequests",
+			Help:      "Type of user request received",
+		},
+		[]string{"type"},
+	)
+
 	// Latency on Get (source of skin) :tick:
 	// Total latency for HTTP request (response code) :tick:
 	// Latency on cache  (has, puul or add) :tick:
@@ -111,4 +123,5 @@ func init() {
 	prometheus.MustRegister(cacheCounter)
 	prometheus.MustRegister(requestCounter)
 	prometheus.MustRegister(apiCounter)
+	prometheus.MustRegister(userCounter)
 }

@@ -1,3 +1,4 @@
+// Todo: Could we instead use the prometheus.DefaultGatherer and Gather() to then use the Prometheus counters vs. duplicating it
 package main
 
 import (
@@ -8,12 +9,16 @@ import (
 
 // The different MessageTypes for statusCollectorMessage
 const (
-	StatusTypeCacheHit = iota
-	StatusTypeCacheMiss
+	StatusTypeErrored = iota
 
 	StatusTypeRequested
 	StatusTypeAPIRequested
-	StatusTypeErrored
+	StatusTypeUserRequested
+
+	StatusTypeCacheUUID
+	StatusTypeCacheUserData
+	StatusTypeCacheSkin
+	StatusTypeCacheSkinTransient
 )
 
 type statusCollectorMessage struct {
@@ -22,6 +27,16 @@ type statusCollectorMessage struct {
 
 	// If MessageType == StatusTypeRequested, StatusTypeAPIRequested or StatusTypeErrored then this is the state we are reporting.
 	StatusType string
+}
+
+type cacheStats struct {
+	Hits      uint
+	FreshHits uint
+	StaleHits uint
+	Misses    uint
+	Errors    uint
+	Length    uint
+	Size      uint64
 }
 
 type StatusCollector struct {
@@ -36,14 +51,16 @@ type StatusCollector struct {
 		Requested map[string]uint
 		// Number of times an API request type has been made.
 		APIRequested map[string]uint
-		// Number of times skins have been served from the cache.
-		CacheHits uint
-		// Number of times skins have failed to be served from the cache.
-		CacheMisses uint
-		// Number of skins in cache.
-		CacheSize uint
-		// Size of cache memory.
-		CacheMem uint64
+		// Numner of times UUID vs. Username was requested
+		UserRequested map[string]uint
+		// Cache stats for the Username->UUID cache
+		CacheUUID cacheStats
+		// Cache stats for the UUID->UserData cache
+		CacheUserData cacheStats
+		// Cache stats for the SkinPath->Skin cache
+		CacheSkin cacheStats
+		// Cache stats for the SkinPath->SkinError cache
+		CacheSkinTransient cacheStats
 	}
 
 	// Unix timestamp the process was booted at.
@@ -59,6 +76,7 @@ func MakeStatsCollector() *StatusCollector {
 	collector.info.Errored = map[string]uint{}
 	collector.info.Requested = map[string]uint{}
 	collector.info.APIRequested = map[string]uint{}
+	collector.info.UserRequested = map[string]uint{}
 	collector.inputData = make(chan statusCollectorMessage, 5)
 
 	// Run a function every five seconds to collect time-based info.
@@ -81,12 +99,6 @@ func MakeStatsCollector() *StatusCollector {
 // Message handler function, called inside goroutine.
 func (s *StatusCollector) handleMessage(msg statusCollectorMessage) {
 	switch msg.MessageType {
-	case StatusTypeCacheHit:
-		cacheCounter.WithLabelValues("hit").Inc()
-		s.info.CacheHits++
-	case StatusTypeCacheMiss:
-		cacheCounter.WithLabelValues("miss").Inc()
-		s.info.CacheMisses++
 	case StatusTypeErrored:
 		err := msg.StatusType
 		errorCounter.WithLabelValues(err).Inc()
@@ -111,6 +123,74 @@ func (s *StatusCollector) handleMessage(msg statusCollectorMessage) {
 		} else {
 			s.info.APIRequested[req] = 1
 		}
+	case StatusTypeUserRequested:
+		req := msg.StatusType
+		userCounter.WithLabelValues(req).Inc()
+		if _, exists := s.info.UserRequested[req]; exists {
+			s.info.UserRequested[req]++
+		} else {
+			s.info.UserRequested[req] = 1
+		}
+	case StatusTypeCacheUUID:
+		req := msg.StatusType
+		cacheCounter.WithLabelValues("cacheUUID", req).Inc()
+		switch req {
+		case "hit":
+			s.info.CacheUUID.Hits++
+		case "fresh":
+			s.info.CacheUUID.FreshHits++
+		case "stale":
+			s.info.CacheUUID.StaleHits++
+		case "miss":
+			s.info.CacheUUID.Misses++
+		case "error":
+			s.info.CacheUUID.Errors++
+		}
+	case StatusTypeCacheUserData:
+		req := msg.StatusType
+		cacheCounter.WithLabelValues("cacheUserData", req).Inc()
+		switch req {
+		case "hit":
+			s.info.CacheUserData.Hits++
+		case "fresh":
+			s.info.CacheUserData.FreshHits++
+		case "stale":
+			s.info.CacheUserData.StaleHits++
+		case "miss":
+			s.info.CacheUserData.Misses++
+		case "error":
+			s.info.CacheUserData.Errors++
+		}
+	case StatusTypeCacheSkin:
+		req := msg.StatusType
+		cacheCounter.WithLabelValues("cacheSkin", req).Inc()
+		switch req {
+		case "hit":
+			s.info.CacheSkin.Hits++
+		case "fresh":
+			s.info.CacheSkin.FreshHits++
+		case "stale":
+			s.info.CacheSkin.StaleHits++
+		case "miss":
+			s.info.CacheSkin.Misses++
+		case "error":
+			s.info.CacheSkin.Errors++
+		}
+	case StatusTypeCacheSkinTransient:
+		req := msg.StatusType
+		cacheCounter.WithLabelValues("cacheSkinTransient", req).Inc()
+		switch req {
+		case "hit":
+			s.info.CacheSkinTransient.Hits++
+		case "fresh":
+			s.info.CacheSkinTransient.FreshHits++
+		case "stale":
+			s.info.CacheSkinTransient.StaleHits++
+		case "miss":
+			s.info.CacheSkinTransient.Misses++
+		case "error":
+			s.info.CacheSkinTransient.Errors++
+		}
 	}
 }
 
@@ -127,8 +207,14 @@ func (s *StatusCollector) Collect() {
 
 	s.info.ImgdMem = memstats.Alloc
 	s.info.Uptime = time.Now().Unix() - s.StartedAt
-	s.info.CacheSize = cache.size()
-	s.info.CacheMem = cache.memory()
+	s.info.CacheUUID.Length = cache["cacheUUID"].Len()
+	s.info.CacheUUID.Size = cache["cacheUUID"].Size()
+	s.info.CacheUserData.Length = cache["cacheUserData"].Len()
+	s.info.CacheUserData.Size = cache["cacheUserData"].Size()
+	s.info.CacheSkin.Length = cache["cacheSkin"].Len()
+	s.info.CacheSkin.Size = cache["cacheSkin"].Size()
+	s.info.CacheSkinTransient.Length = cache["cacheSkinTransient"].Len()
+	s.info.CacheSkinTransient.Size = cache["cacheSkinTransient"].Size()
 }
 
 // Increments the error counter for the specific type.
@@ -155,16 +241,42 @@ func (s *StatusCollector) APIRequested(reqType string) {
 	}
 }
 
-// Should be called every time we serve a cached skin.
-func (s *StatusCollector) HitCache() {
+// Increments the request counter for the specific type.
+func (s *StatusCollector) UserRequested(reqType string) {
 	s.inputData <- statusCollectorMessage{
-		MessageType: StatusTypeCacheHit,
+		MessageType: StatusTypeUserRequested,
+		StatusType:  reqType,
 	}
 }
 
-// Should be called every time we try and fail to serve a cached skin.
-func (s *StatusCollector) MissCache() {
+// Increments the cache counter of the specifc type ("hit" or "miss").
+func (s *StatusCollector) CacheUUID(statType string) {
 	s.inputData <- statusCollectorMessage{
-		MessageType: StatusTypeCacheMiss,
+		MessageType: StatusTypeCacheUUID,
+		StatusType:  statType,
+	}
+}
+
+// Increments the cache counter of the specifc type ("hit" or "miss").
+func (s *StatusCollector) CacheUserData(statType string) {
+	s.inputData <- statusCollectorMessage{
+		MessageType: StatusTypeCacheUserData,
+		StatusType:  statType,
+	}
+}
+
+// Increments the cache counter of the specifc type ("hit" or "miss").
+func (s *StatusCollector) CacheSkin(statType string) {
+	s.inputData <- statusCollectorMessage{
+		MessageType: StatusTypeCacheSkin,
+		StatusType:  statType,
+	}
+}
+
+// Increments the cache counter of the specifc type ("hit" or "miss").
+func (s *StatusCollector) CacheSkinTransient(statType string) {
+	s.inputData <- statusCollectorMessage{
+		MessageType: StatusTypeCacheSkinTransient,
+		StatusType:  statType,
 	}
 }

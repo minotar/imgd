@@ -5,8 +5,14 @@ import (
 	"fmt"
 	"image"
 	_ "image/png"
+	"net/http"
+	"os"
 	"testing"
 
+	"github.com/minotar/imgd/storage"
+	"github.com/minotar/imgd/storage/memory"
+	"github.com/minotar/minecraft"
+	"github.com/minotar/minecraft/mockminecraft"
 	"github.com/op/go-logging"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -32,18 +38,43 @@ func hashRender(render image.Image) string {
 	return md5Hash
 }
 
-func TestSetup(t *testing.T) {
+func setupTestCache() {
+	if cache == nil {
+		cache = make(map[string]storage.Storage)
+	}
+	cache["cacheUUID"], _ = memory.New(10)
+	cache["cacheUserData"], _ = memory.New(10)
+	cache["cacheSkin"], _ = memory.New(10)
+	cache["cacheSkinTransient"], _ = memory.New(10)
+}
+
+func setupTestClient() func() {
+	mux := mockminecraft.ReturnMux()
+	rt, shutdown := mockminecraft.Setup(mux)
+
+	mcClient = minecraft.NewMinecraft()
+	mcClient.Client = &http.Client{Transport: rt}
+	mcClient.UsernameAPI.SkinURL = "http://skins.example.net/skins/"
+	mcClient.UsernameAPI.CapeURL = "http://skins.example.net/capes/"
+	return shutdown
+}
+
+func TestMain(m *testing.M) {
 	logBackend := logging.NewLogBackend(SilentWriter{}, "", 0)
 	stats = MakeStatsCollector()
 	setupConfig()
 	setupLog(logBackend)
-	setupCache()
-	setupMcClient()
+	setupTestCache()
+	//setupMcClient()
+	shutdown := setupTestClient()
+	code := m.Run()
+	shutdown()
+	os.Exit(code)
 }
 
 func TestRenders(t *testing.T) {
 	Convey("GetHead should return a valid image", t, func() {
-		skin := fetchSkin(testUser)
+		skin := fetchUsernameSkin(testUser)
 		err := skin.GetHead(20)
 
 		So(skin.Processed, ShouldNotBeNil)
@@ -54,7 +85,7 @@ func TestRenders(t *testing.T) {
 	})
 
 	Convey("GetHelm should return a valid image", t, func() {
-		skin := fetchSkin(testUser)
+		skin := fetchUsernameSkin(testUser)
 		err := skin.GetHelm(20)
 
 		So(skin.Processed, ShouldNotBeNil)
@@ -65,7 +96,7 @@ func TestRenders(t *testing.T) {
 	})
 
 	Convey("GetCube should return a valid image", t, func() {
-		skin := fetchSkin(testUser)
+		skin := fetchUsernameSkin(testUser)
 		err := skin.GetCube(20)
 
 		So(skin.Processed, ShouldNotBeNil)
@@ -76,7 +107,7 @@ func TestRenders(t *testing.T) {
 	})
 
 	Convey("GetBust should return a valid image", t, func() {
-		skin := fetchSkin(testUser)
+		skin := fetchUsernameSkin(testUser)
 		err := skin.GetBust(20)
 
 		So(skin.Processed, ShouldNotBeNil)
@@ -87,7 +118,7 @@ func TestRenders(t *testing.T) {
 	})
 
 	Convey("GetBody should return a valid image", t, func() {
-		skin := fetchSkin(testUser)
+		skin := fetchUsernameSkin(testUser)
 		err := skin.GetBody(20)
 
 		So(skin.Processed, ShouldNotBeNil)
@@ -98,7 +129,7 @@ func TestRenders(t *testing.T) {
 	})
 
 	Convey("GetArmorBust should return a valid image", t, func() {
-		skin := fetchSkin(testUser)
+		skin := fetchUsernameSkin(testUser)
 		err := skin.GetArmorBust(20)
 
 		So(skin.Processed, ShouldNotBeNil)
@@ -109,7 +140,7 @@ func TestRenders(t *testing.T) {
 	})
 
 	Convey("GetArmorBody should return a valid image", t, func() {
-		skin := fetchSkin(testUser)
+		skin := fetchUsernameSkin(testUser)
 		err := skin.GetArmorBody(20)
 
 		So(skin.Processed, ShouldNotBeNil)
@@ -120,16 +151,20 @@ func TestRenders(t *testing.T) {
 	})
 }
 
-func BenchmarkSetup(b *testing.B) {
+func setupBench() func() {
 	logBackend := logging.NewLogBackend(SilentWriter{}, "", 0)
 	stats = MakeStatsCollector()
 	setupConfig()
 	setupLog(logBackend)
-	setupCache()
+	setupTestCache()
+	//setupMcClient()
+	shutdown := setupTestClient()
+	return shutdown
 }
 
 func BenchmarkGetHead(b *testing.B) {
-	skin := fetchSkin(testUser)
+	defer setupBench()()
+	skin := fetchUsernameSkin(testUser)
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
@@ -138,7 +173,8 @@ func BenchmarkGetHead(b *testing.B) {
 }
 
 func BenchmarkGetHelm(b *testing.B) {
-	skin := fetchSkin(testUser)
+	defer setupBench()()
+	skin := fetchUsernameSkin(testUser)
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
@@ -147,7 +183,8 @@ func BenchmarkGetHelm(b *testing.B) {
 }
 
 func BenchmarkGetCube(b *testing.B) {
-	skin := fetchSkin(testUser)
+	defer setupBench()()
+	skin := fetchUsernameSkin(testUser)
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
@@ -156,7 +193,8 @@ func BenchmarkGetCube(b *testing.B) {
 }
 
 func BenchmarkGetBust(b *testing.B) {
-	skin := fetchSkin(testUser)
+	defer setupBench()()
+	skin := fetchUsernameSkin(testUser)
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
@@ -165,7 +203,8 @@ func BenchmarkGetBust(b *testing.B) {
 }
 
 func BenchmarkGetBody(b *testing.B) {
-	skin := fetchSkin(testUser)
+	defer setupBench()()
+	skin := fetchUsernameSkin(testUser)
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
@@ -174,7 +213,8 @@ func BenchmarkGetBody(b *testing.B) {
 }
 
 func BenchmarkGetArmorBust(b *testing.B) {
-	skin := fetchSkin(testUser)
+	defer setupBench()()
+	skin := fetchUsernameSkin(testUser)
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
@@ -183,7 +223,8 @@ func BenchmarkGetArmorBust(b *testing.B) {
 }
 
 func BenchmarkGetArmorBody(b *testing.B) {
-	skin := fetchSkin(testUser)
+	defer setupBench()()
+	skin := fetchUsernameSkin(testUser)
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {

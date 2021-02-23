@@ -41,7 +41,7 @@ type NotFoundHandler struct{}
 func (h NotFoundHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotFound)
 	fmt.Fprintf(w, "404 not found")
-	log.Infof("%s %s 404", r.RemoteAddr, r.RequestURI)
+	log.Infof("%s %s %d", r.RemoteAddr, r.RequestURI, http.StatusOK)
 }
 
 // GetWidth converts and sanitizes the string for the avatar width.
@@ -59,16 +59,18 @@ func (router *Router) GetWidth(inp string) uint {
 
 }
 
-// SkinPage shows only the user's skin.
-func (router *Router) SkinPage(w http.ResponseWriter, r *http.Request) {
-	stats.Requested("Skin")
+// SkinPageUsername shows only the user's skin.
+// Todo: This is awfully un-DRY
+func (router *Router) SkinPageUsername(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	username := vars["username"]
-	skin := fetchSkin(username)
+	skin := fetchUsernameSkin(username)
+	stats.Requested("Skin")
+	stats.UserRequested("Username")
 
 	if r.Header.Get("If-None-Match") == skin.Skin.Hash {
 		w.WriteHeader(http.StatusNotModified)
-		log.Infof("%s %s 304 %s", r.RemoteAddr, r.RequestURI, skin.Skin.Source)
+		log.Infof("%s %s %d %s", r.RemoteAddr, r.RequestURI, http.StatusNotModified, skin.Skin.Source)
 		return
 	}
 
@@ -76,13 +78,42 @@ func (router *Router) SkinPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("ETag", skin.Hash)
 	w.Header().Add("Content-Type", "image/png")
 	skin.WriteSkin(w)
-	log.Infof("%s %s 200 %s", r.RemoteAddr, r.RequestURI, skin.Skin.Source)
+	log.Infof("%s %s %d %s", r.RemoteAddr, r.RequestURI, http.StatusOK, skin.Skin.Source)
 }
 
-// DownloadPage shows the skin and tells the browser to attempt to download it.
-func (router *Router) DownloadPage(w http.ResponseWriter, r *http.Request) {
+// SkinPageUUID shows only the user's skin.
+// Todo: This is awfully un-DRY
+func (router *Router) SkinPageUUID(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	skin := fetchUUIDSkin(vars["uuid"])
+	stats.Requested("Skin")
+	stats.UserRequested("UUID")
+
+	if r.Header.Get("If-None-Match") == skin.Skin.Hash {
+		w.WriteHeader(http.StatusNotModified)
+		log.Infof("%s %s %d %s", r.RemoteAddr, r.RequestURI, http.StatusNotModified, skin.Skin.Source)
+		return
+	}
+
+	w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", config.Server.Ttl))
+	w.Header().Add("ETag", skin.Hash)
+	w.Header().Add("Content-Type", "image/png")
+	skin.WriteSkin(w)
+	log.Infof("%s %s %d %s", r.RemoteAddr, r.RequestURI, http.StatusOK, skin.Skin.Source)
+}
+
+// DownloadPageUsername shows the skin and tells the browser to attempt to download it.
+// Todo: This is awfully un-DRY
+func (router *Router) DownloadPageUsername(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Disposition", "attachment; filename=\"skin.png\"")
-	router.SkinPage(w, r)
+	router.SkinPageUsername(w, r)
+}
+
+// DownloadPageUUID shows the skin and tells the browser to attempt to download it.
+// Todo: This is awfully un-DRY
+func (router *Router) DownloadPageUUID(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Disposition", "attachment; filename=\"skin.png\"")
+	router.SkinPageUUID(w, r)
 }
 
 // ResolveMethod pulls the Get<resource> method from the skin. Originally this used
@@ -134,18 +165,28 @@ func (router *Router) writeType(ext string, skin *mcSkin, w http.ResponseWriter)
 	}
 }
 
+func (router *Router) redirectUUID(w http.ResponseWriter, r *http.Request) {
+	stats.UserRequested("DashedUUID")
+	src := r.URL.Path
+	dst := strings.Replace(src, "-", "", 4)
+	log.Infof("%s %s %d", r.RemoteAddr, r.RequestURI, http.StatusMovedPermanently)
+	http.Redirect(w, r, dst, http.StatusMovedPermanently)
+}
+
 // Serve binds the route and makes a handler function for the requested resource.
 func (router *Router) Serve(resource string) {
-	fn := func(w http.ResponseWriter, r *http.Request) {
+	// Todo: This is awfully un-DRY
+	fnUsername := func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		width := router.GetWidth(vars["width"])
-		skin := fetchSkin(vars["username"])
+		skin := fetchUsernameSkin(vars["username"])
 		skin.Mode = router.getResizeMode(vars["extension"])
 		stats.Requested(resource)
+		stats.UserRequested("Username")
 
 		if r.Header.Get("If-None-Match") == skin.Skin.Hash {
 			w.WriteHeader(http.StatusNotModified)
-			log.Infof("%s %s 304 %s", r.RemoteAddr, r.RequestURI, skin.Skin.Source)
+			log.Infof("%s %s %d %s", r.RemoteAddr, r.RequestURI, http.StatusNotModified, skin.Skin.Source)
 			return
 		}
 
@@ -155,16 +196,51 @@ func (router *Router) Serve(resource string) {
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "500 internal server error")
-			log.Infof("%s %s 500 %s", r.RemoteAddr, r.RequestURI, skin.Skin.Source)
+			log.Infof("%s %s %d %s", r.RemoteAddr, r.RequestURI, http.StatusInternalServerError, skin.Skin.Source)
 			stats.Errored("InternalServerError")
 			return
 		}
 		router.writeType(vars["extension"], skin, w)
-		log.Infof("%s %s 200 %s", r.RemoteAddr, r.RequestURI, skin.Skin.Source)
+		log.Infof("%s %s %d %s", r.RemoteAddr, r.RequestURI, http.StatusOK, skin.Skin.Source)
 	}
 
-	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}{extension:(?:\\..*)?}", fn)
-	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}/{width:[0-9]+}{extension:(?:\\..*)?}", fn)
+	// Todo: This is awfully un-DRY
+	fnUUID := func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		width := router.GetWidth(vars["width"])
+		skin := fetchUUIDSkin(vars["uuid"])
+		skin.Mode = router.getResizeMode(vars["extension"])
+		stats.Requested(resource)
+		stats.UserRequested("UUID")
+
+		if r.Header.Get("If-None-Match") == skin.Skin.Hash {
+			w.WriteHeader(http.StatusNotModified)
+			log.Infof("%s %s %d %s", r.RemoteAddr, r.RequestURI, http.StatusNotModified, skin.Skin.Source)
+			return
+		}
+
+		processingTimer := prometheus.NewTimer(processingDuration.WithLabelValues(resource))
+		err := router.ResolveMethod(skin, resource)(int(width))
+		processingTimer.ObserveDuration()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "500 internal server error")
+			log.Infof("%s %s %d %s", r.RemoteAddr, r.RequestURI, http.StatusInternalServerError, skin.Skin.Source)
+			stats.Errored("InternalServerError")
+			return
+		}
+		router.writeType(vars["extension"], skin, w)
+		log.Infof("%s %s %d %s", r.RemoteAddr, r.RequestURI, http.StatusOK, skin.Skin.Source)
+	}
+
+	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}{extension:(?:\\..*)?}", fnUsername)
+	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{username:"+minecraft.ValidUsernameRegex+"}/{width:[0-9]+}{extension:(?:\\..*)?}", fnUsername)
+
+	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{uuid:"+minecraft.ValidUUIDPlainRegex+"}{extension:(?:\\..*)?}", fnUUID)
+	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{uuid:"+minecraft.ValidUUIDPlainRegex+"}/{width:[0-9]+}{extension:(?:\\..*)?}", fnUUID)
+
+	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{uuid:"+minecraft.ValidUUIDDashRegex+"}{extension:(?:\\..*)?}", router.redirectUUID)
+	router.Mux.HandleFunc("/"+strings.ToLower(resource)+"/{uuid:"+minecraft.ValidUUIDDashRegex+"}/{width:[0-9]+}{extension:(?:\\..*)?}", router.redirectUUID)
 }
 
 // Bind routes to the ServerMux.
@@ -182,12 +258,18 @@ func (router *Router) Bind() {
 	router.Serve("Armor/Body")
 	router.Serve("Armour/Body")
 
-	router.Mux.HandleFunc("/download/{username:"+minecraft.ValidUsernameRegex+"}{extension:(?:.png)?}", router.DownloadPage)
-	router.Mux.HandleFunc("/skin/{username:"+minecraft.ValidUsernameRegex+"}{extension:(?:.png)?}", router.SkinPage)
+	router.Mux.HandleFunc("/download/{username:"+minecraft.ValidUsernameRegex+"}{extension:(?:.png)?}", router.DownloadPageUsername)
+	router.Mux.HandleFunc("/skin/{username:"+minecraft.ValidUsernameRegex+"}{extension:(?:.png)?}", router.SkinPageUsername)
+
+	router.Mux.HandleFunc("/download/{uuid:"+minecraft.ValidUUIDPlainRegex+"}{extension:(?:.png)?}", router.DownloadPageUUID)
+	router.Mux.HandleFunc("/skin/{uuid:"+minecraft.ValidUUIDPlainRegex+"}{extension:(?:.png)?}", router.SkinPageUUID)
+
+	router.Mux.HandleFunc("/download/{uuid:"+minecraft.ValidUUIDDashRegex+"}{extension:(?:.png)?}", router.redirectUUID)
+	router.Mux.HandleFunc("/skin/{uuid:"+minecraft.ValidUUIDDashRegex+"}{extension:(?:.png)?}", router.redirectUUID)
 
 	router.Mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s\n", ImgdVersion)
-		log.Infof("%s %s 200", r.RemoteAddr, r.RequestURI)
+		log.Infof("%s %s %d", r.RemoteAddr, r.RequestURI, http.StatusOK)
 	})
 
 	router.Mux.Handle("/metrics", promhttp.Handler())
@@ -195,69 +277,11 @@ func (router *Router) Bind() {
 	router.Mux.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(stats.ToJSON())
-		log.Infof("%s %s 200", r.RemoteAddr, r.RequestURI)
+		log.Infof("%s %s %d", r.RemoteAddr, r.RequestURI, http.StatusOK)
 	})
 
 	router.Mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, config.Server.URL, http.StatusFound)
-		log.Infof("%s %s 200", r.RemoteAddr, r.RequestURI)
+		log.Infof("%s %s %d", r.RemoteAddr, r.RequestURI, http.StatusFound)
 	})
-}
-
-func fetchSkin(username string) *mcSkin {
-	if username == "char" || username == "MHF_Steve" {
-		skin, _ := minecraft.FetchSkinForSteve()
-		return &mcSkin{Skin: skin}
-	}
-
-	hasTimer := prometheus.NewTimer(cacheDuration.WithLabelValues("has"))
-	if cache.has(strings.ToLower(username)) {
-		hasTimer.ObserveDuration()
-		pullTimer := prometheus.NewTimer(cacheDuration.WithLabelValues("pull"))
-		defer pullTimer.ObserveDuration()
-		stats.HitCache()
-		return &mcSkin{Processed: nil, Skin: cache.pull(strings.ToLower(username))}
-	}
-	hasTimer.ObserveDuration()
-	stats.MissCache()
-
-	var skin minecraft.Skin
-	stats.APIRequested("GetUUID")
-	uuid, err := mcClient.NormalizePlayerForUUID(username)
-	if err != nil {
-		switch errorMsg := err.Error(); errorMsg {
-
-		case "unable to GetAPIProfile: user not found":
-			log.Debugf("Failed UUID lookup: %s (%s)", username, errorMsg)
-			stats.Errored("UnknownUser")
-
-		case "unable to GetAPIProfile: rate limited":
-			log.Noticef("Failed UUID lookup: %s (%s)", username, errorMsg)
-			stats.Errored("LookupUUIDRateLimit")
-
-		default:
-			log.Infof("Failed UUID lookup: %s (%s)", username, errorMsg)
-			stats.Errored("LookupUUID")
-
-		}
-
-		skin, _ = minecraft.FetchSkinForSteve()
-		stats.Errored("FallbackSteve")
-	} else {
-		// We have a UUID, so let's get a skin!
-		sPTimer := prometheus.NewTimer(getDuration.WithLabelValues("SessionProfile"))
-		skin, err = mcClient.FetchSkinUUID(uuid)
-		sPTimer.ObserveDuration()
-		if err != nil {
-			log.Noticef("Failed Skin SessionProfile: %s (%s)", username, err.Error())
-			stats.Errored("SkinSessionProfile")
-			skin, _ = minecraft.FetchSkinForSteve()
-			stats.Errored("FallbackSteve")
-		}
-	}
-
-	addTimer := prometheus.NewTimer(cacheDuration.WithLabelValues("add"))
-	cache.add(strings.ToLower(username), skin)
-	addTimer.ObserveDuration()
-	return &mcSkin{Processed: nil, Skin: skin}
 }
