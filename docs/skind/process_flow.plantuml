@@ -1,0 +1,176 @@
+@startuml
+title skind Caching/Request Strategy
+
+|skind|
+start
+
+:Incoming /skin/<ID> request;
+
+while (Request ID Type) is (Username)
+
+' ## We have a Username ##
+
+  :GetUUID();
+  if (Username Matches Hardcoded) then (bypass UUID lookup\neg. for Notch/Steve/MHF_*)
+    -[#blue]-> UUID;
+  else (generic Username)
+|#Yellow|cacher|Cacher pkg
+
+    ' ## Cache Lookup ##
+
+    :Cacher.GetUUID();
+    note right: Available Caches are ordered and chosen
+    :HashUsername();
+    note right: Lowercase the Username and hash
+    :FastCache.Get();
+|#Cyan|storage|Storage pkg
+    :LFUStorage.Get();
+|cacher|
+    if (FastCache Hit?) then (yes)
+    else (no)
+      :SlowCache.Get();
+      floating note right: Is Groupcache or something\ndistributed suitable here?
+|storage|
+      if (DiskStorage.CheckWAL()) then (miss)
+        :DiskStorage.Get();
+      else (hit)
+      endif
+
+|cacher|
+      if (SlowCache Hit?) then (yes)
+        :Update FastCache;
+      else (no)
+      endif
+    endif
+|skind|
+
+    ' ## Process Cache Result
+
+    if (Cacher "Fresh" Hit?) then (yes)
+    -[#green]->
+    :If cached result was an error\nfallback to an error UUID;
+    note left: an invalid Username is okay\n- at least we know.
+    -[#green]->
+    else (no/stale)
+      :Are we ratelimiting?;
+      if (Request Username->UUID mapping from API) then (connection/ratelimit error)
+        -[#red]->
+        if (Do we have Grace?) then (yes)
+          :Use stale Grace data;
+        else (no)
+          -[#red]->
+          :Fallback to an error UUID;
+          -[#red]->
+        endif
+      else (success)
+        -[#green]->
+        :Flag whether Username is invalid\n(and should be cached as an error);
+        -[#green]->
+        fork
+        fork again
+          :goroutine;
+          -[#black,dotted]->
+|cacher|
+          :Cacher.Set();
+          floating note left: We should also be re-caching\non a SlowCache Hit
+          :FastCache.Set();
+|storage|
+          :LFUStorage.Set();
+|cacher|
+          :SlowCache.Set();
+|storage|
+          :DiskStorage.QueueSet();
+          kill
+|skind|
+        end fork
+        -[#green]->
+      endif
+    endif
+    -[#blue]-> UUID;
+  endif
+  -[#blue]-> UUID;
+endwhile (UUID)
+
+' ## We have a UUID ##
+
+:GetUserData();
+if (UUID Matches Hardcoded) then (bypass UserData lookup)
+  -[#blue]-> UserData;
+else (generic UUID)
+
+' ## Cache Lookup ##
+
+|cacher|
+:Cacher.GetUserData();
+:FastCache.Get();
+|#Cyan|storage|Storage pkg
+:LFUStorage.Get();
+|cacher|
+
+if (FastCache Hit?) then (yes)
+else (no)
+  :SlowCache.Get();
+|storage|
+  if (DiskStorage.CheckWAL()) then (miss)
+    :DiskStorage.Get();
+  else (hit)
+  endif
+
+|cacher|
+  if (SlowCache Hit?) then (yes)
+    :Update FastCache;
+  else (no)
+  endif
+endif
+|skind|
+
+' ## Process Cache Result
+
+if (Cacher "Fresh" Hit?) then (yes)
+  -[#green]->
+  :If cached result was an error\nfallback to error UserData;
+  note left: an invalid Username is okay\n- at least we know.
+  -[#green]->
+else (no/stale)
+  :Are we ratelimiting?;
+  if (Request UserData from API) then (connection/ratelimit error)
+    -[#red]->
+    if (Do we have Grace?) then (yes)
+      :Use stale Grace data;
+    else (no)
+      -[#red]->
+      :Fallback to error UserData;
+      -[#red]->
+    endif
+  else (success)
+    -[#green]->
+    :Flag whether UUID is invalid\n(and should be cached as an error);
+    -[#green]->
+      fork
+        fork again
+          :goroutine;
+          -[#black,dotted]->
+|cacher|
+          :Cacher.Set();
+          floating note left: We should also be re-caching\non a SlowCache Hit
+          :FastCache.Set();
+|storage|
+          :LFUStorage.Set();
+|cacher|
+          :SlowCache.Set();
+|storage|
+          :DiskStorage.QueueSet();
+          kill
+|skind|
+      end fork
+      -[#green]->
+    endif
+  endif
+  -[#blue]-> UserData;
+endif
+
+:Fetch Skin;
+
+stop
+@enduml
+
