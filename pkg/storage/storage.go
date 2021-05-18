@@ -12,6 +12,8 @@ type Storage interface {
 	// Retrieve will attempt to find the key in the store. Returns
 	// nil if it does not exist with an ErrNotFound
 	Retrieve(key string) ([]byte, error)
+	// Remove will silently attempt to delete the key from the store
+	Remove(key string) error
 	// Flush will empty the store
 	Flush() error
 	// Len returns the number of keys in the store (eg. Length of the cache/Count of items)
