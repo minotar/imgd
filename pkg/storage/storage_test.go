@@ -6,22 +6,35 @@ import (
 
 	"github.com/minotar/imgd/pkg/storage"
 	"github.com/minotar/imgd/pkg/storage/util/test_helpers"
-	"github.com/minotar/imgd/pkg/storage/util/test_storage"
+	"github.com/minotar/imgd/pkg/storage/util/test_store"
 )
 
 func TestInsertAndRetrieveKV(t *testing.T) {
-	cache := test_storage.NewTestStorage()
+	store := test_store.NewTestStorage()
 	for i := 0; i < 10; i++ {
 		key := test_helpers.RandString(32)
 		value := test_helpers.RandString(32)
-		storage.InsertKV(cache, key, value)
-		stringValue, _ := storage.RetrieveKV(cache, key)
+		storage.InsertKV(store, key, value)
+		stringValue, _ := storage.RetrieveKV(store, key)
 		if stringValue != value {
 			t.Fail()
 		}
-		byteValue, _ := cache.Retrieve(key)
+		byteValue, _ := store.Retrieve(key)
 		if string(byteValue) != value {
 			t.Fail()
+		}
+	}
+}
+
+func TestInsertAndDeleteKV(t *testing.T) {
+	store := test_store.NewTestStorage()
+	for i := 0; i < 10; i++ {
+		key := test_helpers.RandString(32)
+		storage.InsertKV(store, key, "foobar")
+		store.Remove(key)
+		_, err := store.Retrieve(key)
+		if err != storage.ErrNotFound {
+			t.Errorf("Key should have been removed: %s", key)
 		}
 	}
 }
@@ -33,7 +46,7 @@ type testStruct struct {
 }
 
 func TestInsertAndRetrieveGob(t *testing.T) {
-	cache := test_storage.NewTestStorage()
+	store := test_store.NewTestStorage()
 	for i := 0; i < 10; i++ {
 		key := test_helpers.RandString(32)
 		startStruct := &testStruct{
@@ -41,9 +54,9 @@ func TestInsertAndRetrieveGob(t *testing.T) {
 			ID:        i,
 			Timestamp: time.Now(),
 		}
-		storage.InsertGob(cache, key, startStruct)
+		storage.InsertGob(store, key, startStruct)
 		endStruct := &testStruct{}
-		storage.RetrieveGob(cache, key, endStruct)
+		storage.RetrieveGob(store, key, endStruct)
 		if startStruct.Name != endStruct.Name {
 			t.Fail()
 		}
@@ -57,13 +70,13 @@ func TestInsertAndRetrieveGob(t *testing.T) {
 }
 
 func TestRetrieveGobMiss(t *testing.T) {
-	cache := test_storage.NewTestStorage()
+	store := test_store.NewTestStorage()
 	key := test_helpers.RandString(32)
 	name := test_helpers.RandString(32)
 	startStruct := &testStruct{
 		Name: name,
 	}
-	storage.RetrieveGob(cache, key, startStruct)
+	storage.RetrieveGob(store, key, startStruct)
 	if startStruct.Name != name {
 		t.Fail()
 	}

@@ -1,4 +1,4 @@
-package bolt
+package bolt_store
 
 import (
 	"strconv"
@@ -6,11 +6,11 @@ import (
 
 	"github.com/minotar/imgd/pkg/storage"
 	"github.com/minotar/imgd/pkg/storage/util/test_helpers"
-	"github.com/minotar/imgd/pkg/storage/util/test_storage"
+	"github.com/minotar/imgd/pkg/storage/util/test_store"
 )
 
 const (
-	TestBoltPath       = "/tmp/bolt_test.db"
+	TestBoltPath       = "/tmp/bolt_store_test.db"
 	TestBoltBucketName = "bolt_test"
 )
 
@@ -67,6 +67,21 @@ func TestBatchInsertAndRetrieve(t *testing.T) {
 	}
 }
 
+func TestInsertAndDelete(t *testing.T) {
+	store := freshStore()
+	defer store.Close()
+
+	for i := 0; i < 10; i++ {
+		key := test_helpers.RandString(32)
+		store.Insert(key, []byte(strconv.Itoa(i)))
+		store.Remove(key)
+		_, err := store.Retrieve(key)
+		if err != storage.ErrNotFound {
+			t.Errorf("Key should have been removed: %s", key)
+		}
+	}
+}
+
 func TestHousekeeping(t *testing.T) {
 	store := freshStore()
 	defer store.Close()
@@ -91,7 +106,7 @@ func TestHousekeeping(t *testing.T) {
 	}
 }
 
-var largeBucket = test_storage.NewTestStoreBench()
+var largeBucket = test_store.NewTestStoreBench()
 
 func BenchmarkInsert(b *testing.B) {
 	store := freshStore()
@@ -100,7 +115,18 @@ func BenchmarkInsert(b *testing.B) {
 	largeBucket.MinSize(b.N)
 	b.ResetTimer()
 
-	largeBucket.FillStore(store, b.N)
+	largeBucket.FillStore(store.Insert, b.N)
+}
+
+func BenchmarkInsertNoSync(b *testing.B) {
+	store := freshStore()
+	defer store.Close()
+
+	largeBucket.MinSize(b.N)
+	store.DB.NoSync = true
+	b.ResetTimer()
+
+	largeBucket.FillStore(store.Insert, b.N)
 }
 
 func BenchmarkBatchInsertParallel(b *testing.B) {
@@ -118,7 +144,28 @@ func BenchmarkBatchInsertParallel(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			i := <-insertQueue
-			store.Insert(largeBucket.Keys[i], []byte(strconv.Itoa(i)))
+			store.InsertBatch(largeBucket.Keys[i], []byte(strconv.Itoa(i)))
+		}
+	})
+}
+
+func BenchmarkBatchInsertParallelNoSync(b *testing.B) {
+	store := freshStore()
+	defer store.Close()
+
+	largeBucket.MinSize(b.N)
+
+	store.DB.NoSync = true
+	insertQueue := make(chan int, b.N)
+	for count := 0; count < b.N; count++ {
+		insertQueue <- count
+	}
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			i := <-insertQueue
+			store.InsertBatch(largeBucket.Keys[i], []byte(strconv.Itoa(i)))
 		}
 	})
 }
@@ -129,7 +176,7 @@ func BenchmarkLookup(b *testing.B) {
 
 	// Set TestBucket and Store based on a static size (b.N should only affect loop)
 	largeBucket.MinSize(1000)
-	largeBucket.FillStore(store, 1000)
+	largeBucket.FillStore(store.Insert, 1000)
 
 	// Each operation we will read the same set of keys
 	iter := 10

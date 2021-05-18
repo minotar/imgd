@@ -1,4 +1,4 @@
-package test_storage
+package test_store
 
 import (
 	"strconv"
@@ -32,9 +32,9 @@ func (tsb *TestStoreBench) MinSize(n int) {
 }
 
 // FillStore requires at least n mininum keys already in the TestStore - call MinSize first
-func (tsb *TestStoreBench) FillStore(store storage.Storage, n int) {
+func (tsb *TestStoreBench) FillStore(insertFunc func(string, []byte) error, n int) {
 	for i := 0; i < n; i++ {
-		store.Insert(tsb.Keys[i], []byte(strconv.Itoa(i)))
+		insertFunc(tsb.Keys[i], []byte(strconv.Itoa(i)))
 	}
 
 }
@@ -62,6 +62,11 @@ func (m *TestStorage) Retrieve(key string) ([]byte, error) {
 		return nil, storage.ErrNotFound
 	}
 	return value, nil
+}
+
+func (m *TestStorage) Remove(key string) error {
+	delete(m.store, string(key))
+	return nil
 }
 
 func (m *TestStorage) Flush() error {
