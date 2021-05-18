@@ -1,4 +1,4 @@
-package bolt
+package bolt_store
 
 import (
 	"fmt"
@@ -9,9 +9,9 @@ import (
 )
 
 type BoltStore struct {
-	db   *bolt.DB
+	DB   *bolt.DB
 	path string
-	name string
+	Name string
 }
 
 // ensure that the storage.Storage interface is implemented
@@ -32,33 +32,33 @@ func NewBoltStore(path, name string) (*BoltStore, error) {
 	}
 
 	bs := &BoltStore{
-		db:   db,
+		DB:   db,
 		path: path,
-		name: name,
+		Name: name,
 	}
 
 	return bs, nil
 }
 
 func (bs *BoltStore) Insert(key string, value []byte) error {
-	err := bs.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(bs.name))
+	err := bs.DB.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(bs.Name))
 		return b.Put([]byte(key), value)
 	})
 	if err != nil {
-		return fmt.Errorf("Inserting \"%s\" into \"%s\": %s", key, bs.name, err)
+		return fmt.Errorf("Inserting \"%s\" into \"%s\": %s", key, bs.Name, err)
 	}
 	return nil
 }
 
 // InsertBatch seems like it's not worth it...
 func (bs *BoltStore) InsertBatch(key string, value []byte) error {
-	err := bs.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(bs.name))
+	err := bs.DB.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(bs.Name))
 		return b.Put([]byte(key), value)
 	})
 	if err != nil {
-		return fmt.Errorf("Inserting \"%s\" into \"%s\": %s", key, bs.name, err)
+		return fmt.Errorf("Inserting \"%s\" into \"%s\": %s", key, bs.Name, err)
 	}
 	return nil
 }
@@ -66,8 +66,8 @@ func (bs *BoltStore) InsertBatch(key string, value []byte) error {
 func (bs *BoltStore) Retrieve(key string) ([]byte, error) {
 	var data []byte
 
-	err := bs.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(bs.name))
+	err := bs.DB.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(bs.Name))
 		v := b.Get([]byte(key))
 		if v == nil {
 			return storage.ErrNotFound
@@ -80,22 +80,33 @@ func (bs *BoltStore) Retrieve(key string) ([]byte, error) {
 	if err == storage.ErrNotFound {
 		return nil, storage.ErrNotFound
 	} else if err != nil {
-		return nil, fmt.Errorf("Retrieving \"%s\" from \"%s\": %s", key, bs.name, err)
+		return nil, fmt.Errorf("Retrieving \"%s\" from \"%s\": %s", key, bs.Name, err)
 	}
 
 	return data, nil
 }
 
+func (bs *BoltStore) Remove(key string) error {
+	err := bs.DB.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(bs.Name))
+		return b.Delete([]byte(key))
+	})
+	if err != nil {
+		return fmt.Errorf("Removing \"%s\" from \"%s\": %s", key, bs.Name, err)
+	}
+	return nil
+}
+
 func (bs *BoltStore) Flush() error {
-	err := bs.db.Update(func(tx *bolt.Tx) error {
-		if err := tx.DeleteBucket([]byte(bs.name)); err != nil {
+	err := bs.DB.Update(func(tx *bolt.Tx) error {
+		if err := tx.DeleteBucket([]byte(bs.Name)); err != nil {
 			return err
 		}
-		_, err := tx.CreateBucketIfNotExists([]byte(bs.name))
+		_, err := tx.CreateBucketIfNotExists([]byte(bs.Name))
 		return err
 	})
 	if err != nil {
-		return fmt.Errorf("Flushing \"%s\": %s", bs.name, err)
+		return fmt.Errorf("Flushing \"%s\": %s", bs.Name, err)
 	}
 	return nil
 }
@@ -103,8 +114,8 @@ func (bs *BoltStore) Flush() error {
 func (bs *BoltStore) Len() uint {
 	var keyCount uint
 
-	bs.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(bs.name))
+	bs.DB.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(bs.Name))
 		stats := b.Stats()
 		keyCount = uint(stats.KeyN)
 		return nil
@@ -118,5 +129,5 @@ func (bs *BoltStore) Size() uint64 {
 }
 
 func (bs *BoltStore) Close() {
-	bs.db.Close()
+	bs.DB.Close()
 }
