@@ -147,6 +147,7 @@ func (e *Expiry) RemoveExpired() {
 
 // runCompactor is in its own goroutine and thus needs the closer to stop
 func (e *Expiry) runCompactor() {
+	// Todo: manually run first?
 	ticker := time.NewTicker(e.compaction_interval)
 
 COMPACT:
