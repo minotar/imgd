@@ -105,7 +105,7 @@ func TestExpiryExtended(t *testing.T) {
 		ex.AddExpiry(key, time.Second*time.Duration(offset))
 
 		expectedLen := i + 1
-		if expiryLen := ex.LenExpiry(); expiryLen != uint(expectedLen) {
+		if expiryLen := int(ex.LenExpiry()); expiryLen != expectedLen {
 			t.Errorf("Expiry Length %d should be %d", expiryLen, expectedLen)
 		}
 	}
@@ -124,6 +124,10 @@ func TestExpiryExtended(t *testing.T) {
 		}
 		// Re-slice ready for next loop
 		sorted = sorted[chunkSize:]
+
+		if expiryLen := int(ex.LenExpiry()); expiryLen != len(sorted) {
+			t.Errorf("Expiry Length %d should be %d", expiryLen, len(sorted))
+		}
 	}
 
 	if compacted := len(ex.Compact()); compacted != 0 {
