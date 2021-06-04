@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/boltdb/bolt"
 	"github.com/minotar/imgd/pkg/storage"
 	"github.com/minotar/imgd/pkg/storage/util/test_helpers"
 	"github.com/minotar/imgd/pkg/storage/util/test_store"
@@ -68,16 +69,7 @@ func TestInsertAndDelete(t *testing.T) {
 	}
 }
 
-func TestExpiryRemove(t *testing.T) {
-	cache := freshCache()
-	defer cache.Close()
-	clock := &mockClock{timeUTC()}
-	cache.clock = clock
-	// Normally set by Start() - but we want to control run
-	cache.running = true
-
-	// A iteration number larger than 10 and divisible by 10
-	iterationCount := 20
+func addSortedTestData(t *testing.T, cache *BoltCache, iterationCount int) []string {
 	sorted := make([]string, iterationCount)
 	for i, offset := range rand.Perm(iterationCount) {
 		key := test_helpers.RandString(32)
@@ -91,12 +83,106 @@ func TestExpiryRemove(t *testing.T) {
 			t.Errorf("DB Length %d should be %d", dbLength, expectedLen)
 		}
 	}
+	return sorted
+}
+
+func TestExpiryScanIteration(t *testing.T) {
+	cache := freshCache()
+	defer cache.Close()
+	clock := &mockClock{timeUTC()}
+	cache.clock = clock
+	// Normally set by Start() - but we want to control run
+	cache.running = true
+
+	// A iteration number larger than 10 and divisible by 10
+	iterationCount := 100
+	sorted := addSortedTestData(t, cache, iterationCount)
+
+	// DEBUG
+	cache.DB.View(func(tx *bolt.Tx) error {
+		// Assume bucket exists and has keys
+		b := tx.Bucket([]byte(cache.Name))
+
+		fmt.Printf("Keys:\n")
+		b.ForEach(func(k, v []byte) error {
+			fmt.Printf("key=%s ", k)
+			return nil
+		})
+		fmt.Printf("\n")
+		return nil
+	})
+
+	reviewTime := cache.clock.Now().Add(time.Duration(1) * time.Second)
+
+	for len(sorted) > 0 {
+		aheadSize := rand.Intn(iterationCount/10) + 1
+		reviewTime = reviewTime.Add(time.Duration(aheadSize) * time.Second)
+		// Debug
+		fmt.Printf("Mocked time is: %s\n", reviewTime)
+
+		// chunkSize can't be larger than the keys left in the sorted list
+		chunkSize := test_helpers.Min(len(sorted), aheadSize)
+
+		// Remove expired keys
+		cache.expiryScan(reviewTime, 3)
+
+		for _, k := range sorted[:chunkSize] {
+			_, err := cache.Retrieve(k)
+			if err != storage.ErrNotFound {
+				t.Fail()
+			}
+		}
+
+		sorted = sorted[chunkSize:]
+
+		if cacheLen := int(cache.Len()); cacheLen != len(sorted) {
+			t.Errorf("Cache Length %d should be %d", cacheLen, len(sorted))
+		}
+	}
+
+	if dbLength := cache.Len(); dbLength != 0 {
+		t.Errorf("DB length should have been 0, not %d", dbLength)
+	}
+
+	// Must be set to false otherwise the Close() will fail
+	cache.running = false
+}
+
+func TestExpiryScan(t *testing.T) {
+	cache := freshCache()
+	defer cache.Close()
+	clock := &mockClock{timeUTC()}
+	cache.clock = clock
+	// Normally set by Start() - but we want to control run
+	cache.running = true
+
+	// A iteration number larger than 10 and divisible by 10
+	iterationCount := 100
+	sorted := addSortedTestData(t, cache, iterationCount)
+
+	// DEBUG
+	cache.DB.View(func(tx *bolt.Tx) error {
+		// Assume bucket exists and has keys
+		b := tx.Bucket([]byte(cache.Name))
+
+		fmt.Printf("Keys:\n")
+		b.ForEach(func(k, v []byte) error {
+			fmt.Printf("key=%s ", k)
+			return nil
+		})
+		fmt.Printf("\n")
+		return nil
+	})
+
+	// addSortedTestData adds the keys with a TTL of expiry+1. We add that offset here.
+	clock.Add(time.Duration(1) * time.Second)
 
 	for len(sorted) > 0 {
 		aheadSize := rand.Intn(iterationCount/10) + 1
 		// Advance the clock by a set amount to then verify the expected keys expired
-		clock.Add(time.Duration(aheadSize+1) * time.Second)
+		clock.Add(time.Duration(aheadSize) * time.Second)
 
+		// Debug
 		currentTime := cache.clock.Now().String()
 		fmt.Printf("Mocked time is: %s\n", currentTime)
 
@@ -114,6 +200,10 @@ func TestExpiryRemove(t *testing.T) {
 		}
 
 		sorted = sorted[chunkSize:]
+
+		if cacheLen := int(cache.Len()); cacheLen != len(sorted) {
+			t.Errorf("Cache Length %d should be %d", cacheLen, len(sorted))
+		}
 	}
 
 	if dbLength := cache.Len(); dbLength != 0 {
@@ -202,10 +292,10 @@ func benchExpiryRemove(n float32, b *testing.B) {
 
 	var expiredCount int = int(float32(b.N) * n)
 	largeBucket.MinSize(b.N - expiredCount)
-	largeBucket.FillStore(insertTTL(cache, 0), b.N-expiredCount)
+	largeBucket.FillStore(insertTTL(cache, time.Hour), b.N-expiredCount)
 	largeBucket2.MinSize(expiredCount)
-	largeBucket2.FillStore(insertTTL(cache, time.Minute), expiredCount)
-	clock.Add(time.Hour)
+	largeBucket2.FillStore(insertTTL(cache, time.Second), expiredCount)
+	clock.Add(time.Minute)
 
 	fmt.Printf("Cache length: %d, total run: %d, expiring: %d\n\n", cache.Len(), b.N, expiredCount)
 
