@@ -15,7 +15,7 @@ const (
 	// Minimum Duration between full bucket scans looking for expired keys
 	COMPACTION_SCAN_INTERVAL = 5 * time.Second
 	// Max number of keys to scan in a single DB Transaction
-	COMPACTION_MAX_SCAN = 500000
+	COMPACTION_MAX_SCAN = 50000
 )
 
 var ErrCompactionInterupted = errors.New("Compaction was interupted")
@@ -126,73 +126,59 @@ func (bc *BoltCache) Remove(key string) error {
 	return nil
 }
 
-func expirySeek(c *bolt.Cursor, keyMarker string, i int) (k, v []byte) {
-	if i != 0 {
-		// Midway through a scan
-		k, v = c.Next()
-	} else if i == 0 {
-		// First run on an Update transaction
-		// Need to set Cursor - keyMarker may or may not be set
-		if keyMarker == "" {
-			// Very first iter / first run
-			k, v = c.First()
-		} else {
-			// X iter - use given keymarker
-			k, v = c.Seek([]byte(keyMarker))
-		}
+func firstOrSeek(c *bolt.Cursor, keyMarker string) (k, v []byte) {
+	if keyMarker == "" {
+		return c.First()
+	} else {
+		return c.Seek([]byte(keyMarker))
 	}
-	return k, v
 }
 
-func (bc *BoltCache) ExpiryScan() {
+func (bc *BoltCache) expiryScan(reviewTime time.Time, chunkSize int) {
 	var scannedCount, expiredCount int
-	var iterations int = 1
-	scanSize := COMPACTION_MAX_SCAN
-
-	// If the DB is larger than max scan, we'll chunk it into even sized
+	var keyMarker string
+	var scanErr error
 	dbLength := int(bc.Len())
-	if dbLength > scanSize {
-		iterations = (dbLength / scanSize) + 1
-		scanSize = (dbLength / iterations) + 1
-	}
 
-	for iter := 0; iter < iterations; iter++ {
-		var keyMarker string
-		var err error
-		now := bc.clock.Now()
+	// Keep scanning until it's interupted or finishes (via a return)
+	// Crucially, this loop ensures that we aren't holding a Write lock for an extended time
+	for {
+		if keyMarker != "" {
+			fmt.Printf("kM starts as %s\n", keyMarker)
+		}
 		// Start a transaction for processing a chunk of keys
 		// Technically, keys might be added/removed between transactions
 		_ = bc.DB.Update(func(tx *bolt.Tx) error {
 			c := tx.Bucket([]byte(bc.Name)).Cursor()
 
-			for i := 0; i < scanSize; i++ {
-				// If it's signalled to be stopping, stop an in-progress scan
+			var i int
+			var k, v []byte
+			// Loop through each key/value until we've reached the max chunk scan size
+			// Either start at beginning, or use the marker if it's set
+			for k, v = firstOrSeek(c, keyMarker); i < chunkSize; k, v = c.Next() {
+				// Check on every key that the cache is still running/not stopping
 				if !bc.running {
-					// Todo: logging
-					fmt.Printf("Caching is no longer running, exiting ExpiryScan")
-					err = ErrCompactionInterupted
+					// Todo: debug logging
+					fmt.Printf("Caching is no longer running, exiting ExpiryScan\n")
+					scanErr = ErrCompactionInterupted
 					return nil
 				}
 
-				k, v := expirySeek(c, keyMarker, i)
 				if k == nil {
-					fmt.Printf("Nil Key means that all keys have been scanned")
-					err = ErrCompactionFinished
+					// Todo: debug logging
+					fmt.Printf("Nil Key means that all keys have been scanned\n")
+					scanErr = ErrCompactionFinished
 					return nil
 				}
+				// Increment counters for stats and chunk max
 				scannedCount++
+				i++
+				fmt.Printf("Scanned %s\n", k)
 
-				// Todo: debug
-				//currentTimeStr := now.String()
-				//fmt.Printf("Current time is: %s\n", currentTimeStr)
-
-				// Todo: debug
-				//expiryTime := getExpiry(getExpirySeconds(v))
-				//expiryTimeStr := expiryTime.String()
-				//fmt.Printf("Expiry time is: %s\n", expiryTimeStr)
-
-				if HasExpired(v[:4], now) {
+				if HasExpired(v[:4], reviewTime) {
 					err := c.Delete()
+					// Todo: It seems this advances the cursor????
+					fmt.Printf("Deleted: %s\n", k)
 					if err != nil {
 						// Todo: logging
 						fmt.Printf("Error Removing Expired \"%s\" from \"%s\": %s\n", string(k), bc.Name, err)
@@ -201,38 +187,38 @@ func (bc *BoltCache) ExpiryScan() {
 				}
 			}
 
-			if iter == iterations {
-				// Last run, make sure all keys are done
-				for k, v := c.Next(); k != nil; k, v = c.Next() {
-					scannedCount++
-					if HasExpired(v[:4], now) {
-						err := c.Delete()
-						if err != nil {
-							// Todo: logging
-							fmt.Printf("Error Removing Expired \"%s\" from \"%s\": %s\n", string(k), bc.Name, err)
-						}
-						expiredCount++
-					}
-				}
-			} else {
-				// Set next key for next iteration
-				k, _ := c.Next()
-				keyMarker = string(k)
+			// More keys to be scanned
+			// The for loop above would have assigned k to the next key, but not scanned it
+			// We now use that assignment to set the Marker for the next iteration
+			keyMarker = string(k)
+			fmt.Printf("kM ends as %s\n", keyMarker)
+			if k == nil {
+				// Todo: debug logging
+				fmt.Printf("Nil Key means that all keys have been scanned\n")
+				scanErr = ErrCompactionFinished
+				return nil
 			}
-			// Todo: more logic here for errors?
 			return nil
+			// end of DB transaction
 		})
+		// We need to check scanErr for globally set errors/state
 
-		if err == ErrCompactionInterupted {
-			// Todo: logging
+		// Todo: Merge all this??
+		if scanErr == ErrCompactionInterupted {
+			// Todo: info logging
 			fmt.Printf("Caching is %+v, exiting ExpiryScan. Len: %d, Scanned: %d, Expired: %d\n", bc.running, dbLength, scannedCount, expiredCount)
 			return
-		} else if err == ErrCompactionFinished {
-			// Todo: logging
+		} else if scanErr == ErrCompactionFinished {
+			// Todo: info logging
 			fmt.Printf("All keys have been scanned. Len: %d, Scanned: %d, Expired: %d\n", dbLength, scannedCount, expiredCount)
 			return
 		}
 	}
+
+}
+
+func (bc *BoltCache) ExpiryScan() {
+	bc.expiryScan(bc.clock.Now(), COMPACTION_MAX_SCAN)
 }
 
 func (bc *BoltCache) Start() {
