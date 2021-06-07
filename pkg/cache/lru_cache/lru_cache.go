@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/minotar/imgd/pkg/cache"
+	expiry "github.com/minotar/imgd/pkg/cache/util/memory_expiry"
 	"github.com/minotar/imgd/pkg/storage/lru_store"
-	"github.com/minotar/imgd/pkg/storage/util/expiry"
 )
 
 type LruCache struct {
@@ -28,8 +28,6 @@ func NewLruCache(maxEntries int) (*LruCache, error) {
 	}
 
 	lc.LruStore = ls
-	// Start the Expiry monitor once everything is handled
-	lc.Expiry.Start()
 
 	return lc, nil
 }
@@ -39,11 +37,36 @@ func (lc *LruCache) InsertTTL(key string, value []byte, ttl time.Duration) error
 	if err != nil {
 		return err
 	}
-	lc.Expiry.AddExpiry(key, ttl)
+
+	// TTL of 0 has no expiry
+	if ttl > time.Duration(0) {
+		lc.Expiry.AddExpiry(key, ttl)
+	}
 	return nil
 }
 
-func (lc *LruCache) Close() {
+func (lc *LruCache) TTL(key string) (time.Duration, error) {
+	_, err := lc.LruStore.Retrieve(key)
+	if err != nil {
+		return 0, nil
+	}
+
+	return lc.Expiry.GetTTL(key), nil
+
+}
+
+func (lc *LruCache) Start() {
+	// Todo: Add running check?
+	// Start the Expiry monitor
+	lc.Expiry.Start()
+}
+
+func (lc *LruCache) Stop() {
+	// Todo: Add running check?
 	lc.Expiry.Stop()
+}
+
+func (lc *LruCache) Close() {
+	lc.Stop()
 	return
 }

@@ -90,7 +90,7 @@ func (bc *BoltCache) InsertBatch(key string, value []byte) error {
 	return fmt.Errorf("Not implemented")
 }
 
-func (bc *BoltCache) Retrieve(key string) ([]byte, error) {
+func (bc *BoltCache) retrieveBCE(key string) (*BoltCacheEntry, error) {
 	var bce *BoltCacheEntry
 	keyBytes := []byte(key)
 	err := bc.DB.View(func(tx *bolt.Tx) error {
@@ -103,7 +103,6 @@ func (bc *BoltCache) Retrieve(key string) ([]byte, error) {
 		data := make([]byte, len(v))
 		copy(data, v)
 		bce = DecodeBoltCacheEntry(keyBytes, data)
-		// We could at this stage Remove Expired entries - but returning expired is better
 		return nil
 	})
 	if err == storage.ErrNotFound {
@@ -112,7 +111,39 @@ func (bc *BoltCache) Retrieve(key string) ([]byte, error) {
 		return nil, fmt.Errorf("Retrieving \"%s\" from \"%s\": %s", key, bc.Name, err)
 	}
 
+	// We could at this stage Remove Expired entries - but returning expired is better
+	return bce, nil
+}
+
+func (bc *BoltCache) Retrieve(key string) ([]byte, error) {
+	bce, err := bc.retrieveBCE(key)
+	if err != nil {
+		return nil, err
+	}
+
+	// Optionally we could further check expiry here
+	// (though general preference for us is to return stale)
 	return bce.Value, nil
+}
+
+// Must check error return - 0 expiry is either "No Expiry" or error
+// Returned TTL can be used on Insert
+func (bc *BoltCache) TTL(key string) (time.Duration, error) {
+	bce, err := bc.retrieveBCE(key)
+	if err != nil {
+		return 0, err
+	}
+
+	if bce.HasExpiry() {
+		ttl := bce.Expiry().Sub(bc.clock.Now())
+		if ttl == time.Duration(0) {
+			// Technically, we could get back a 0 Duration - but that is ambiguous
+			ttl = time.Duration(1)
+		}
+		return ttl, nil
+	}
+	// No expiry is a 0 TTL
+	return 0, nil
 }
 
 func (bc *BoltCache) Remove(key string) error {
@@ -219,6 +250,39 @@ func (bc *BoltCache) expiryScan(reviewTime time.Time, chunkSize int) {
 
 func (bc *BoltCache) ExpiryScan() {
 	bc.expiryScan(bc.clock.Now(), COMPACTION_MAX_SCAN)
+}
+
+// Todo: Incomplete. Could be used when we want to maitain a DB length/size
+func (bc *BoltCache) randomEvict(evictScan int) error {
+	// The level of randomness isn't actually crucial - though getting a sample from a wide range is beneficial
+	// Randomly grabbing a value from the DB seems difficult as there is no context of index based on ID.
+	// A full scan would be hugely inefficient as well...
+	// At a byte level, we know the first key is the "lowest" and the last is highest
+	// We could try and `seek` to a random point between the lowest and highest.
+	// That would probably be straightforward were it not for the issue of uneven key lengths
+	// A way we can overcome that (while reducing the randomness...) is to perform a scan of some keys
+	// at each length of slice between the First/Last key. Then generate a random byte slice
+	// and try and seek to it and read the key.
+	// Our random byte slices can probably prefer ascii characters
+	// (Seeking an unknown key returns the next key after where it would be positioned)
+	// Based on the returned values/expiry from the Seek, chooses the oldest key to Delete
+
+	if dbLength := int(bc.Len()); dbLength < evictScan {
+		evictScan = dbLength
+	}
+
+	err := bc.DB.Update(func(tx *bolt.Tx) error {
+		c := tx.Bucket([]byte(bc.Name)).Cursor()
+		firstKey, _ := c.First()
+		lastKey, _ := c.Last()
+		fmt.Printf("First: %+v\nLast: %+v\n", firstKey, lastKey)
+		_ = evictScan
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("Evicting a random key", err)
+	}
+	return nil
 }
 
 func (bc *BoltCache) Start() {
