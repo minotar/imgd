@@ -1,5 +1,5 @@
 // A non-thread safe library for handling TTL of keys
-package expiry
+package memory_expiry
 
 import (
 	"fmt"
@@ -56,6 +56,7 @@ func (e *Expiry) Stop() {
 }
 
 // Adds a key and associated TTL to the expiry records.
+// A TTL here can be 0 and it is added to the expiry list as normal
 func (e *Expiry) AddExpiry(key string, ttl time.Duration) {
 	expires := e.clock.Now().Add(ttl)
 	tuple := expiryTuple{key, expires}
@@ -110,6 +111,32 @@ func (e *Expiry) RemoveExpiry(key interface{}, _ interface{}) {
 		}
 
 	}
+}
+
+func (e *Expiry) GetExpiry(key string) (time.Time, error) {
+	// We loop through every key
+	for _, val := range e.tuples {
+		if val.key == key {
+			return val.expires, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("No expiry value found for %s", key)
+}
+
+// Return the TTL of the key (always >0), or 0 if not present
+func (e *Expiry) GetTTL(key string) time.Duration {
+	expiry, err := e.GetExpiry(key)
+	if err != nil {
+		// An error means it was not in the Expiry list
+		return 0
+	}
+
+	ttl := expiry.Sub(e.clock.Now())
+	if ttl == time.Duration(0) {
+		// Technically, we could get back a 0 Duration - but that is ambiguous
+		ttl = time.Duration(1)
+	}
+	return ttl
 }
 
 func (e *Expiry) LenExpiry() uint {

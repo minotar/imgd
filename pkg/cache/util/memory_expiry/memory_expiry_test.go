@@ -1,4 +1,4 @@
-package expiry
+package memory_expiry
 
 import (
 	"fmt"

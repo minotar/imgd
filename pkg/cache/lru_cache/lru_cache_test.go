@@ -9,8 +9,14 @@ import (
 	"github.com/minotar/imgd/pkg/storage/util/test_store"
 )
 
+func freshCache(n int) *LruCache {
+	cache, _ := NewLruCache(n)
+	cache.Start()
+	return cache
+}
+
 func TestInsertAndRetrieve(t *testing.T) {
-	cache, _ := NewLruCache(10)
+	cache := freshCache(10)
 	defer cache.Close()
 
 	for i := 0; i < 10; i++ {
@@ -24,7 +30,7 @@ func TestInsertAndRetrieve(t *testing.T) {
 }
 
 func TestHousekeeping(t *testing.T) {
-	cache, _ := NewLruCache(5)
+	cache := freshCache(5)
 	defer cache.Close()
 
 	for i := 0; i < 10; i++ {
@@ -56,7 +62,7 @@ func insertTTL(cache *LruCache) func(string, []byte) error {
 }
 
 func BenchmarkInsert(b *testing.B) {
-	cache, _ := NewLruCache(b.N)
+	cache := freshCache(b.N)
 	defer cache.Close()
 
 	largeBucket.MinSize(b.N)
@@ -66,7 +72,7 @@ func BenchmarkInsert(b *testing.B) {
 }
 
 func BenchmarkRemove(b *testing.B) {
-	cache, _ := NewLruCache(b.N)
+	cache := freshCache(b.N)
 	defer cache.Close()
 
 	// Set TestBucket and Cache based on a static size (b.N should only affect loop)
