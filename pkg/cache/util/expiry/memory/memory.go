@@ -1,5 +1,5 @@
 // A non-thread safe library for handling TTL of keys
-package memory_expiry
+package memory
 
 import (
 	"fmt"
@@ -21,8 +21,8 @@ type realClock struct{}
 func (r realClock) Now() time.Time { return time.Now() }
 
 type expiryTuple struct {
-	key     string
 	expires time.Time
+	key     string
 }
 
 // Handles tracking of expiration times.
@@ -48,7 +48,6 @@ func NewExpiry(removeFunc func(key string) error) *Expiry {
 
 func (e *Expiry) Start() {
 	go e.runCompactor()
-	return
 }
 
 func (e *Expiry) Stop() {
@@ -59,7 +58,7 @@ func (e *Expiry) Stop() {
 // A TTL here can be 0 and it is added to the expiry list as normal
 func (e *Expiry) AddExpiry(key string, ttl time.Duration) {
 	expires := e.clock.Now().Add(ttl)
-	tuple := expiryTuple{key, expires}
+	tuple := expiryTuple{key: key, expires: expires}
 
 	e.mu.Lock()
 	defer e.mu.Unlock()
