@@ -1,4 +1,6 @@
-package bolt_cache
+// Implement expiry within the the actual value storage
+// The underlying store will need to use this when Inserting/Retrieving
+package store
 
 import (
 	"encoding/binary"
@@ -8,7 +10,7 @@ import (
 // Todo: if the Value will also have an expiry/freshness in it, we would do
 // better to have a single uint32 vs. 2 of them.
 
-type BoltCacheEntry struct {
+type CacheEntry struct {
 	Key   string
 	Value []byte
 	// An unsigned int32 is good until 2100...
@@ -77,6 +79,23 @@ func (e *BoltCacheEntry) Encode() (key, value []byte) {
 	return []byte(e.Key), buf
 }
 
+// Only safe when there is an Expiry
 func (e *BoltCacheEntry) Expiry() time.Time {
-	return time.Unix(int64(e.ExpirySeconds), 0).UTC()
+	return getExpiry(e.ExpirySeconds)
+}
+
+func (e *BoltCacheEntry) HasExpiry() bool {
+	// 0 seconds is "no expiry"
+	// if ExpirySeconds is not 0, then it has an Expiry (true)
+	// if ExpirySeconds is 0, then it has no Expiry (false)
+	return e.ExpirySeconds != 0
+}
+
+func (e *BoltCacheEntry) HasExpired(now time.Time) bool {
+	if e.HasExpiry() && e.Expiry().Before(now) {
+		// If Expiry is _before_ now, then it's expired
+		return true
+	}
+	// Either no Expiry, or it's not expired
+	return false
 }

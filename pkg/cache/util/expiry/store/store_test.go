@@ -1,4 +1,4 @@
-package bolt_cache
+package store
 
 import (
 	"bytes"
