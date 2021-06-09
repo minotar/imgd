@@ -5,59 +5,73 @@ package store
 import (
 	"encoding/binary"
 	"time"
+
+	"github.com/minotar/imgd/pkg/cache/util/expiry"
 )
 
 // Todo: if the Value will also have an expiry/freshness in it, we would do
 // better to have a single uint32 vs. 2 of them.
 
-type CacheEntry struct {
-	Key   string
-	Value []byte
-	// An unsigned int32 is good until 2100...
-	ExpirySeconds uint32
+type StoreExpiry struct {
+	*expiry.Expiry
 }
 
-func (bc *BoltCache) NewBoltCacheEntry(key string, value []byte, ttl time.Duration) *BoltCacheEntry {
-	var expiry uint32
-	if ttl == time.Duration(0) {
-		// We hardcode a 0 ttl to the int32 epoch - otherwise we get a int64 epoch...
-		expiry = 0
-	} else {
-		expiry = uint32(bc.clock.Now().Add(ttl).Unix())
+func NewStoreExpiry(compactorFunc func(), compactionInterval time.Duration) (*StoreExpiry, error) {
+	s := &StoreExpiry{}
+
+	expiryOptions := expiry.DefaultOptions
+	expiryOptions.CompactorFunc = compactorFunc
+	expiryOptions.CompactorInterval = compactionInterval
+	e, err := expiry.NewExpiry(expiryOptions)
+	if err != nil {
+		return nil, err
 	}
 
-	return &BoltCacheEntry{
-		Key:           string(key),
-		Value:         value,
-		ExpirySeconds: expiry,
-	}
+	s.Expiry = e
+
+	return s, nil
 }
 
-func DecodeBoltCacheEntry(key, value []byte) *BoltCacheEntry {
-	return &BoltCacheEntry{
-		Key:           string(key),
-		Value:         value[4:],
-		ExpirySeconds: getExpirySeconds(value[:4]),
-	}
+// Todo: Does this need to be a pointer??? Less GC if not....
+func (s *StoreExpiry) NewStoreEntry(key string, value []byte, ttl time.Duration) *StoreEntry {
+	e := &StoreEntry{Value: value}
+	// Need to add value data into the entry??
+	e.ExpiryRecord = s.NewExpiryRecordTTL(key, ttl)
+	return e
 }
 
-func getExpirySeconds(buf []byte) uint32 {
+func getBytesExpirySeconds(buf []byte) uint32 {
 	return binary.BigEndian.Uint32(buf[:4])
 }
 
-func getExpiry(expirySeconds uint32) (t time.Time) {
-	return time.Unix(int64(expirySeconds), 0).UTC()
-}
-
-func HasExpired(buf []byte, now time.Time) bool {
-	if expirySeconds := getExpirySeconds(buf[:4]); expirySeconds == 0 {
+func HasBytesExpired(buf []byte, now time.Time) bool {
+	if expirySeconds := getBytesExpirySeconds(buf[:4]); expirySeconds == 0 {
 		// 0 seconds is "no expiry"
 		return false
-	} else if expiry := getExpiry(expirySeconds); expiry.Before(now) {
+	} else if expiry := expiry.GetTimeFromEpoch32(expirySeconds); expiry.Before(now) {
 		// If Expiry is _before_ now, then it's expired
 		return true
 	}
 	return false
+}
+
+// Decode the raw bytes into the StoreEntry type
+// Todo: Does this need to be a pointer??? Less GC if not....
+func DecodeStoreEntry(key, value []byte) *StoreEntry {
+	return &StoreEntry{
+		ExpiryRecord: expiry.ExpiryRecord{
+			Key:           string(key),
+			ExpirySeconds: getBytesExpirySeconds(value[:4]),
+		},
+		Value: value[4:],
+	}
+}
+
+// StoreEntry retains the efficiency of ExpiryRecord
+// Further encodes the expiry in the the Value
+type StoreEntry struct {
+	Value []byte
+	expiry.ExpiryRecord
 }
 
 // Super simple format
@@ -67,9 +81,13 @@ func HasExpired(buf []byte, now time.Time) bool {
 //  | uint32    | []byte |
 //  |--------------------|
 
-func (e *BoltCacheEntry) Encode() (key, value []byte) {
+func (e *StoreEntry) Encode() (key, value []byte) {
 	// Uint32 takes up 4 bytes
 	buf := make([]byte, 4+len(e.Value))
+
+	// Todo: should we make this as an empty slice of length X
+	// buf := make([]byte, 0,  4+len(e.Value))
+	// buf = append(buf[4:], e.Value) ??
 
 	// boltdb uses BigEndian in places, set the first 4 bytes as expiry
 	binary.BigEndian.PutUint32(buf[:4], e.ExpirySeconds)
@@ -77,25 +95,4 @@ func (e *BoltCacheEntry) Encode() (key, value []byte) {
 	copy(buf[4:], e.Value)
 
 	return []byte(e.Key), buf
-}
-
-// Only safe when there is an Expiry
-func (e *BoltCacheEntry) Expiry() time.Time {
-	return getExpiry(e.ExpirySeconds)
-}
-
-func (e *BoltCacheEntry) HasExpiry() bool {
-	// 0 seconds is "no expiry"
-	// if ExpirySeconds is not 0, then it has an Expiry (true)
-	// if ExpirySeconds is 0, then it has no Expiry (false)
-	return e.ExpirySeconds != 0
-}
-
-func (e *BoltCacheEntry) HasExpired(now time.Time) bool {
-	if e.HasExpiry() && e.Expiry().Before(now) {
-		// If Expiry is _before_ now, then it's expired
-		return true
-	}
-	// Either no Expiry, or it's not expired
-	return false
 }
