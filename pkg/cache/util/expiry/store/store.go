@@ -32,9 +32,8 @@ func NewStoreExpiry(compactorFunc func(), compactionInterval time.Duration) (*St
 	return s, nil
 }
 
-// Todo: Does this need to be a pointer??? Less GC if not....
-func (s *StoreExpiry) NewStoreEntry(key string, value []byte, ttl time.Duration) *StoreEntry {
-	e := &StoreEntry{Value: value}
+func (s *StoreExpiry) NewStoreEntry(key string, value []byte, ttl time.Duration) StoreEntry {
+	e := StoreEntry{Value: value}
 	// Need to add value data into the entry??
 	e.ExpiryRecord = s.NewExpiryRecordTTL(key, ttl)
 	return e
@@ -56,9 +55,8 @@ func HasBytesExpired(buf []byte, now time.Time) bool {
 }
 
 // Decode the raw bytes into the StoreEntry type
-// Todo: Does this need to be a pointer??? Less GC if not....
-func DecodeStoreEntry(key, value []byte) *StoreEntry {
-	return &StoreEntry{
+func DecodeStoreEntry(key, value []byte) StoreEntry {
+	return StoreEntry{
 		ExpiryRecord: expiry.ExpiryRecord{
 			Key:           string(key),
 			ExpirySeconds: getBytesExpirySeconds(value[:4]),
@@ -84,6 +82,7 @@ type StoreEntry struct {
 func (e *StoreEntry) Encode() (key, value []byte) {
 	// Uint32 takes up 4 bytes
 	buf := make([]byte, 4+len(e.Value))
+	//buf := make([]byte, 0, 4+len(e.Value))
 
 	// Todo: should we make this as an empty slice of length X
 	// buf := make([]byte, 0,  4+len(e.Value))
@@ -93,6 +92,7 @@ func (e *StoreEntry) Encode() (key, value []byte) {
 	binary.BigEndian.PutUint32(buf[:4], e.ExpirySeconds)
 	// Fill remaining slice with the Value
 	copy(buf[4:], e.Value)
+	//buf = append(buf, e.Value...)
 
 	return []byte(e.Key), buf
 }

@@ -2,6 +2,7 @@ package store
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 	"time"
 
@@ -29,104 +30,152 @@ func unixUTC(n int) time.Time {
 	return time.Unix(int64(n), 0).UTC()
 }
 
-func TestNewBoltCacheEntry(t *testing.T) {
-	clock := &mockClock{timeUTC()}
-	bc := &BoltCache{
-		clock: clock,
+func freshStoreExpiry() (*StoreExpiry, *mockClock) {
+	se, _ := NewStoreExpiry(func() {}, time.Minute)
+	clock := &mockClock{unixUTC(0)}
+	se.Clock = clock
+	return se, clock
+}
+
+func TestNewStoreNoCompactor(t *testing.T) {
+	_, err := NewStoreExpiry(nil, 0)
+	if err == nil || !strings.Contains(err.Error(), "Compactor function") {
+		t.Errorf("Lack of specified Compactor function should have raised an error")
 	}
+}
+
+func TestNewStoreExpiry(t *testing.T) {
+	calledCount := 0
+	compactorFunc := func() { calledCount++ }
+	se, err := NewStoreExpiry(compactorFunc, 5*time.Millisecond)
+	if err != nil {
+		t.Error("NewStoreExpiry should not throw an error")
+	}
+
+	if calledCount != 0 {
+		t.Errorf("compactorFunc shouldn't be called before Start()")
+	}
+	se.Start()
+	time.Sleep(time.Duration(2) * time.Millisecond)
+	if calledCount != 1 {
+		t.Errorf("compactorFunc should be called once immediately after Start()")
+	}
+	time.Sleep(time.Duration(10) * time.Millisecond)
+	se.Stop()
+
+	if calledCount == 1 {
+		t.Errorf("compactorFunc should be called after ticking")
+	}
+
+}
+
+func TestNewStoreEntry(t *testing.T) {
+	se, clock := freshStoreExpiry()
 
 	iterationCount := 500
 	for i := 0; i < iterationCount; i++ {
-		keyStr := "key_%s" + test_helpers.RandString(32)
+
+		keyName := test_helpers.RandString(32)
 		valueStr := test_helpers.RandString(256)
+		e := se.NewStoreEntry(keyName, []byte(valueStr), time.Duration(i)*time.Minute)
 
-		bce := bc.NewBoltCacheEntry(keyStr, []byte(valueStr), time.Duration(i)*time.Minute)
-
-		if keyStr != bce.Key {
-			t.Errorf("Expected key \"%s\" did not match BCE key \"%s\"", keyStr, bce.Key)
+		if keyName != e.Key {
+			t.Errorf("Expected key \"%s\" did not match StoreEntry key \"%s\"", keyName, e.Key)
 		}
-		if bytes.Compare([]byte(valueStr), bce.Value) == 1 {
+		if bytes.Compare([]byte(valueStr), e.Value) == 1 {
 			t.Error("Binary values did not match expected")
 		}
 		if i == 0 {
-			if unixUTC(0) != bce.Expiry() {
-				t.Errorf("TTL Value of 0 should be Epoch 1970, not %s", bce.Expiry())
+			if unixUTC(0) != e.Expiry() {
+				t.Errorf("TTL Value of 0 should be Epoch 1970, not %s", e.Expiry())
 			}
-		} else if expectedTime := clock.Now().Add(time.Duration(i) * time.Minute); !expectedTime.Equal(bce.Expiry()) {
-			t.Errorf("Expected Time %s did not match BCE Time %s", expectedTime, bce.Expiry())
+		} else if expectedTime := clock.Now().Add(time.Duration(i) * time.Minute); !expectedTime.Equal(e.Expiry()) {
+			t.Errorf("Expected Time %s did not match StoreEntry Time %s", expectedTime, e.Expiry())
 		}
 	}
 
 }
 
-func TestBoltCacheEntryGetExpiry(t *testing.T) {
+func TestStoreEntryExpiry(t *testing.T) {
+	clock := &mockClock{unixUTC(1)}
 	for i := 0; i < 256; i++ {
-		buf := make([]byte, i+4)
+		buf := make([]byte, 4+i)
 
 		// Incrementing by 1 second each time
 		timeBytes := []byte{0, 0, 0, byte(i)}
 		copy(buf, timeBytes)
-		copy(buf[4:], []byte(test_helpers.RandString(0)))
+		copy(buf[4:], []byte(test_helpers.RandString(i)))
 
 		if len(buf) != 4+i {
-			t.Errorf("Length of bytes should have been %d, not %d", i+4, len(buf))
+			t.Errorf("Length of bytes should have been %d, not %d", 4+i, len(buf))
 		}
-		expiryTime := getExpiry(getExpirySeconds(timeBytes))
-		if expectedTime := time.Unix(int64(i), 0); !expectedTime.Equal(expiryTime) {
-			t.Errorf("Expected Time %+v did not Expiry Time %+v", expectedTime, expiryTime)
+		expirySeconds := getBytesExpirySeconds(timeBytes)
+		if expirySeconds != uint32(i) {
+			t.Errorf("Expected Expiry %d seconds, not %d", i, expirySeconds)
+		}
+
+		if i == 0 {
+			if HasBytesExpired(timeBytes, clock.Now()) {
+				t.Error("TTL Value of 0 should not be expiring")
+			}
+		} else {
+			if HasBytesExpired(timeBytes, clock.Now()) {
+				t.Errorf("Expiry %d *should not* be expired at %s", expirySeconds, clock.Now())
+			}
+			clock.Add(time.Duration(1) * time.Second)
+			if !HasBytesExpired(timeBytes, clock.Now()) {
+				t.Errorf("Expiry %d *should* be expired at %s", expirySeconds, clock.Now())
+			}
 		}
 	}
 }
 
-func TestBoltCacheEntryEncodeDecode(t *testing.T) {
-	clock := &mockClock{timeUTC()}
-	bc := &BoltCache{
-		clock: clock,
-	}
+func TestStoreEntryEncodeDecode(t *testing.T) {
+	se, clock := freshStoreExpiry()
 
 	iterationCount := 500
 	for i := 0; i < iterationCount; i++ {
-		keyStr := "key_%s" + test_helpers.RandString(32)
+
+		keyName := test_helpers.RandString(32)
 		valueStr := test_helpers.RandString(256)
-		bce := bc.NewBoltCacheEntry(keyStr, []byte(valueStr), time.Duration(i)*time.Minute)
+		e := se.NewStoreEntry(keyName, []byte(valueStr), time.Duration(i)*time.Minute)
 
-		keyBytes, valueBytes := bce.Encode()
+		keyBytes, valueBytes := e.Encode()
 
-		bce2 := DecodeBoltCacheEntry(keyBytes, valueBytes)
+		e2 := DecodeStoreEntry(keyBytes, valueBytes)
 
-		if keyStr != bce2.Key {
-			t.Errorf("Expected key \"%s\" did not match BCE key \"%s\"", keyStr, bce.Key)
+		if keyName != e2.Key {
+			t.Errorf("Expected key \"%s\" did not match BCE key \"%s\"", keyName, e.Key)
 		}
-		if bytes.Compare([]byte(valueStr), bce2.Value) == 1 {
+		if bytes.Compare([]byte(valueStr), e2.Value) == 1 {
 			t.Error("Binary values did not match expected")
 		}
 		if i == 0 {
-			if unixUTC(0) != bce2.Expiry() {
-				t.Errorf("TTL Value of 0 should be Epoch 1970, not %s", bce.Expiry())
+			if unixUTC(0) != e2.Expiry() {
+				t.Errorf("TTL Value of 0 should be Epoch 1970, not %s", e.Expiry())
 			}
-		} else if expectedTime := clock.Now().Add(time.Duration(i) * time.Minute); !expectedTime.Equal(bce.Expiry()) {
-			t.Errorf("Expected Time %s did not match BCE Time %s", expectedTime, bce.Expiry())
+		} else if expectedTime := clock.Now().Add(time.Duration(i) * time.Minute); !expectedTime.Equal(e.Expiry()) {
+			t.Errorf("Expected Time %s did not match BCE Time %s", expectedTime, e.Expiry())
 		}
-		//fmt.Printf("Expected Time %s did not match BCE Time %s\n", expectedTime, bce.Expiry())
 	}
 }
 
 func benchEncode(size int, b *testing.B) {
-	bc := &BoltCache{
-		clock: &mockClock{unixUTC(0)},
-	}
+	se, _ := freshStoreExpiry()
+
 	keyStr := test_helpers.RandString(32)
-	valueStr := test_helpers.RandString(size)
+	valueBytes := []byte(test_helpers.RandString(size))
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		bce := bc.NewBoltCacheEntry(keyStr, []byte(valueStr), time.Duration(b.N)*time.Microsecond)
-		_, _ = bce.Encode()
+		e := se.NewStoreEntry(keyStr, valueBytes, time.Duration(b.N)*time.Microsecond)
+		r1, r2 := e.Encode()
+		_, _ = r1, r2
 	}
 }
 
 func benchDecode(size int, b *testing.B) {
-	key := []byte(test_helpers.RandString(32))
+	keyBytes := []byte(test_helpers.RandString(32))
 	valueStr := test_helpers.RandString(size)
 
 	buf := make([]byte, 4+size)
@@ -135,22 +184,23 @@ func benchDecode(size int, b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = DecodeBoltCacheEntry(key, buf)
+		r1 := DecodeStoreEntry(keyBytes, buf)
+		_ = r1
 	}
 }
 
 func benchEncodeDecode(size int, b *testing.B) {
-	bc := &BoltCache{
-		clock: &mockClock{unixUTC(0)},
-	}
+	se, _ := freshStoreExpiry()
+
 	keyStr := test_helpers.RandString(32)
-	valueStr := test_helpers.RandString(size)
+	valueBytes := []byte(test_helpers.RandString(size))
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		bce := bc.NewBoltCacheEntry(keyStr, []byte(valueStr), time.Duration(b.N)*time.Microsecond)
-		key, value := bce.Encode()
-		_ = DecodeBoltCacheEntry(key, value)
+		bce := se.NewStoreEntry(keyStr, valueBytes, time.Duration(b.N)*time.Microsecond)
+		keyBytes, valueBytes := bce.Encode()
+		r1 := DecodeStoreEntry(keyBytes, valueBytes)
+		_ = r1
 	}
 }
 
