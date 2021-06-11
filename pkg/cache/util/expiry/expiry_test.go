@@ -29,10 +29,10 @@ func TestCompactor(t *testing.T) {
 	if calledCount != 1 {
 		t.Errorf("compactorFunc should be called once immediately after Start()")
 	}
-	time.Sleep(time.Duration(4) * time.Millisecond)
+	time.Sleep(time.Duration(10) * time.Millisecond)
 	expiry.Stop()
 
-	if calledCount != 2 {
+	if calledCount == 1 {
 		t.Errorf("compactorFunc should be called after ticking")
 	}
 
