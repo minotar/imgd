@@ -13,6 +13,18 @@ func TestExpiryNoCompactor(t *testing.T) {
 	}
 }
 
+func TestExpiryRealClock(t *testing.T) {
+	expiryOptions := DefaultOptions
+	expiryOptions.CompactorFunc = func() {}
+	expiry, _ := NewExpiry(DefaultOptions)
+
+	r := expiry.NewExpiryRecordTTL("foo", time.Minute)
+
+	if r.HasExpired(time.Now()) {
+		t.Error("Created record should not have expired")
+	}
+}
+
 func TestCompactor(t *testing.T) {
 	calledCount := 0
 
@@ -26,13 +38,17 @@ func TestCompactor(t *testing.T) {
 	}
 	expiry.Start()
 	time.Sleep(time.Duration(2) * time.Millisecond)
+
+	// It should be exactly 1
 	if calledCount != 1 {
 		t.Errorf("compactorFunc should be called once immediately after Start()")
 	}
 	time.Sleep(time.Duration(10) * time.Millisecond)
 	expiry.Stop()
+	time.Sleep(time.Duration(2) * time.Millisecond)
 
-	if calledCount == 1 {
+	// It should not be less than 2
+	if calledCount < 2 {
 		t.Errorf("compactorFunc should be called after ticking")
 	}
 
