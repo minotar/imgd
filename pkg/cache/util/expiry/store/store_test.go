@@ -62,8 +62,10 @@ func TestNewStoreExpiry(t *testing.T) {
 	}
 	time.Sleep(time.Duration(10) * time.Millisecond)
 	se.Stop()
+	time.Sleep(time.Duration(2) * time.Millisecond)
 
-	if calledCount == 1 {
+	// It should not be less than 2
+	if calledCount < 2 {
 		t.Errorf("compactorFunc should be called after ticking")
 	}
 
@@ -165,11 +167,11 @@ func benchEncode(size int, b *testing.B) {
 
 	keyStr := test_helpers.RandString(32)
 	valueBytes := []byte(test_helpers.RandString(size))
+	entry := se.NewStoreEntry(keyStr, valueBytes, time.Duration(b.N)*time.Microsecond)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		e := se.NewStoreEntry(keyStr, valueBytes, time.Duration(b.N)*time.Microsecond)
-		r1, r2 := e.Encode()
+		r1, r2 := entry.Encode()
 		_, _ = r1, r2
 	}
 }
@@ -194,11 +196,11 @@ func benchEncodeDecode(size int, b *testing.B) {
 
 	keyStr := test_helpers.RandString(32)
 	valueBytes := []byte(test_helpers.RandString(size))
+	entry := se.NewStoreEntry(keyStr, valueBytes, time.Duration(b.N)*time.Microsecond)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		bce := se.NewStoreEntry(keyStr, valueBytes, time.Duration(b.N)*time.Microsecond)
-		keyBytes, valueBytes := bce.Encode()
+		keyBytes, valueBytes := entry.Encode()
 		r1 := DecodeStoreEntry(keyBytes, valueBytes)
 		_ = r1
 	}

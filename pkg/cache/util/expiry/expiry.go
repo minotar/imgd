@@ -44,7 +44,7 @@ func NewExpiry(options *Options) (*Expiry, error) {
 	e.compactorInterval = options.CompactorInterval
 
 	if e.compactorFunc == nil {
-		// If either function is missing, then throw an error
+		// If function is missing, then throw an error
 		return nil, fmt.Errorf("missing Expiry Compactor function")
 	}
 	return e, nil
