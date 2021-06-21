@@ -16,21 +16,30 @@ const COMPACTOR_INTERVAL = 5 * time.Second
 
 // Handles tracking of expiration times.
 type MemoryExpiry struct {
-	mu         sync.Mutex
-	tuples     []expiry.ExpiryRecord
-	removeFunc func(key string) error
-
 	*expiry.Expiry
+	removeFunc func(key string) error
+	records    []expiry.ExpiryRecord
+	mu         sync.Mutex
+}
+
+func expiryOptions(compactorFunc func()) *expiry.Options {
+	expiryOptions := expiry.DefaultOptions
+	expiryOptions.CompactorFunc = compactorFunc
+	expiryOptions.CompactorInterval = COMPACTOR_INTERVAL
+	return expiryOptions
 }
 
 func NewMemoryExpiry(removeFunc func(key string) error) (*MemoryExpiry, error) {
+	if removeFunc == nil {
+		// If function is missing, then throw an error
+		return nil, fmt.Errorf("missing Memory Expiry Remove function")
+	}
+
 	m := &MemoryExpiry{removeFunc: removeFunc}
 
-	expiryOptions := expiry.DefaultOptions
-	expiryOptions.CompactorFunc = m.RemoveExpired
-	expiryOptions.CompactorInterval = COMPACTOR_INTERVAL
-	e, err := expiry.NewExpiry(expiryOptions)
+	e, err := expiry.NewExpiry(expiryOptions(m.RemoveExpired))
 	if err != nil {
+		// The only error here would be the m.RemoveExpired function no longer being valid
 		return nil, err
 	}
 
@@ -40,21 +49,27 @@ func NewMemoryExpiry(removeFunc func(key string) error) (*MemoryExpiry, error) {
 }
 
 // Adds a key and associated TTL to the expiry records.
-// A TTL here can be 0 and it is added to the expiry list as normal
+// A TTL here can be 0 (no expiry) - though it will _not_ be added to the Expiry records
 func (m *MemoryExpiry) AddExpiry(key string, ttl time.Duration) {
-	tuple := expiry.NewExpiryRecordTTL(key, m.Clock, ttl)
-	expires := tuple.Expiry()
+
+	if ttl == time.Duration(0) {
+		// Todo: log that no expiry was set for key?
+		return
+	}
+
+	record := expiry.NewExpiryRecordTTL(key, m.Clock, ttl)
+	expires := record.Expiry()
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	list := m.tuples
+	list := m.records
 
 	l := len(list)
 	if l == 0 || list[l-1].Expiry().Before(expires) {
 		// Special case: if the ttl is later than every other element,
 		// just append it to the end.
-		list = append(list, tuple)
+		list = append(list, record)
 	} else {
 		// Otherwise, just do a binary search and insert it.
 		idx := sort.Search(l, func(i int) bool {
@@ -63,13 +78,14 @@ func (m *MemoryExpiry) AddExpiry(key string, ttl time.Duration) {
 
 		list = append(list, expiry.ExpiryRecord{})
 		copy(list[idx+1:], list[idx:])
-		list[idx] = tuple
+		list[idx] = record
 	}
 
-	m.tuples = list
+	m.records = list
 }
 
 // RemoveExpiry allows the storage backend to tell us it removed a key and we can stop tracking it
+// This is crucial if the store has performed an eviction to avoid the expiry records needlessly growing/leaking memory
 func (m *MemoryExpiry) RemoveExpiry(key interface{}, _ interface{}) {
 	var keyStr string
 
@@ -80,51 +96,60 @@ func (m *MemoryExpiry) RemoveExpiry(key interface{}, _ interface{}) {
 		keyStr = string(key.([]byte))
 	default:
 		// Todo: Log an error!
-		fmt.Printf("I don't know about type %T!\n", detectedType)
+		fmt.Printf("RemoveExpiry can't deal with type %T\n", detectedType)
+		return
 	}
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	list := m.records
+
 	// We loop through from oldest/soonest to expire as this is most likely where eviction was
-	for i, val := range m.tuples {
+	for i, val := range list {
 		if val.Key == keyStr {
-			// take the first i tuples and combine with the ones _after_ i
-			m.tuples = append(m.tuples[:i], m.tuples[i+1:]...)
+			// take the first i records and combine with the ones _after_ i
+			m.records = append(list[:i], list[i+1:]...)
 			return
 		}
-
 	}
 }
 
-func (m *MemoryExpiry) GetExpiry(key string) (time.Time, error) {
+// GetExpiry grabs the Expiry value for a given key
+// A "Zero" time is returned if the key is not in the Expiry records
+func (m *MemoryExpiry) GetExpiry(key string) time.Time {
+	// Todo: I think this should be locking? What if range changes beneath us?
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	// We loop through every key
-	for _, val := range m.tuples {
+	for _, val := range m.records {
 		if val.Key == key {
-			return val.Expiry(), nil
+			return val.Expiry()
 		}
 	}
-	return time.Time{}, fmt.Errorf("No expiry value found for %s", key)
+	return time.Time{}
 }
 
-// Return the TTL of the key (always >0), or 0 if not present/no expiry
-func (m *MemoryExpiry) GetTTL(key string) time.Duration {
-	expiry, err := m.GetExpiry(key)
-	if err != nil {
-		// An error means it was not in the Expiry list
-		return 0
+// GetTTL grabs the TTL of the key (always >=1s), or 0 if no expiry/not found
+// An error is returned if the key does not exist in the expiry records (no expiry/not found)
+func (m *MemoryExpiry) GetTTL(key string) (time.Duration, error) {
+	expiry := m.GetExpiry(key)
+	if expiry.IsZero() {
+		// Record does not have an expiry
+		return 0, fmt.Errorf("No TTL value found for %s", key)
 	}
 
 	ttl := expiry.Sub(m.Clock.Now())
-	if ttl < time.Duration(1) {
+	if ttl < time.Duration(time.Second) {
 		// Technically, we could get back a 0 or less Duration - but 0 is "no expiry"
-		ttl = time.Duration(1)
+		ttl = time.Duration(time.Second)
 	}
-	return ttl
+	return ttl, nil
 }
 
 func (m *MemoryExpiry) Len() uint {
-	return uint(len(m.tuples))
+	return uint(len(m.records))
 }
 
 // Returns all keys that have expired, removing them from the
@@ -136,12 +161,12 @@ func (m *MemoryExpiry) Compact() []string {
 	now := m.Clock.Now()
 	idx := 0
 	removed := []string{}
-	for idx < len(m.tuples) && m.tuples[idx].Expiry().Before(now) {
-		removed = append(removed, m.tuples[idx].Key)
+	for idx < len(m.records) && m.records[idx].HasExpired(now) {
+		removed = append(removed, m.records[idx].Key)
 		idx++
 	}
 
-	m.tuples = m.tuples[idx:]
+	m.records = m.records[idx:]
 	return removed
 }
 
