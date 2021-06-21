@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/minotar/imgd/pkg/storage/util/test_helpers"
+	"github.com/minotar/imgd/pkg/cache/util/test_helpers"
 )
 
 type mockClock struct {
