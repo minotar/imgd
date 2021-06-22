@@ -1,4 +1,5 @@
-// A thread safe library for handling TTL of keys
+// memory is a thread safe library for handling TTL of keys
+// as an expiry solution, `memory` is only suitable of in-memory store as the exoiry records do not persist
 package memory
 
 import (
@@ -29,6 +30,7 @@ func expiryOptions(compactorFunc func()) *expiry.Options {
 	return expiryOptions
 }
 
+// NewMemoryExoury takes a `removeFunc` which is the function that will be called when an expiry takes place
 func NewMemoryExpiry(removeFunc func(key string) error) (*MemoryExpiry, error) {
 	if removeFunc == nil {
 		// If function is missing, then throw an error

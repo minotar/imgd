@@ -9,23 +9,6 @@ import (
 	"github.com/minotar/imgd/pkg/cache/util/test_helpers"
 )
 
-type mockClock struct {
-	time time.Time
-}
-
-func (m *mockClock) Now() time.Time {
-	return m.time
-}
-
-func (m *mockClock) Add(t time.Duration) {
-	m.time = m.time.Add(t)
-}
-
-func timeUTC() time.Time {
-	mockedTime, _ := time.Parse(time.RFC3339, "2021-05-19T00:00:00Z")
-	return mockedTime.UTC()
-}
-
 func unixUTC(n int) time.Time {
 	return time.Unix(int64(n), 0).UTC()
 }
@@ -51,7 +34,7 @@ func TestNewExpiryRecord(t *testing.T) {
 }
 
 func TestNewNoExpiryRecord(t *testing.T) {
-	r := NewExpiryRecordTTL("foo", &mockClock{}, 0)
+	r := NewExpiryRecordTTL("foo", test_helpers.MockedUTC(), 0)
 	if r.ExpirySeconds != 0 {
 		t.Errorf("An Expiry Record with TTL 0 should have ExpirySeconds 0: %d", r.ExpirySeconds)
 	}
@@ -61,7 +44,7 @@ func TestNewNoExpiryRecord(t *testing.T) {
 }
 
 func TestExpiryRecordHasExpired(t *testing.T) {
-	clock := &mockClock{unixUTC(0)}
+	clock := test_helpers.MockedUTC()
 
 	expiryOptions := DefaultOptions
 	expiryOptions.CompactorFunc = func() { return }
