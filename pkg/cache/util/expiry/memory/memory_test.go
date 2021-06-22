@@ -12,31 +12,13 @@ import (
 	"github.com/minotar/imgd/pkg/cache/util/test_helpers"
 )
 
-type mockClock struct {
-	time time.Time
-}
-
-func (m *mockClock) Now() time.Time {
-	return m.time
-}
-
-func (m *mockClock) Add(t time.Duration) {
-	m.time = m.time.Add(t)
-}
-
-// Mocked time which isn't epoch (a special time for our logic)
-func timeUTC() time.Time {
-	mockedTime, _ := time.Parse(time.RFC3339, "2021-05-19T00:00:00Z")
-	return mockedTime.UTC()
-}
-
 func unixUTC(n int) time.Time {
 	return time.Unix(int64(n), 0).UTC()
 }
 
-func freshMemoryExpiry() (*MemoryExpiry, *mockClock) {
+func freshMemoryExpiry() (*MemoryExpiry, *test_helpers.MockClock) {
 	me, _ := NewMemoryExpiry(func(string) error { return nil })
-	clock := &mockClock{timeUTC()}
+	clock := test_helpers.MockedUTC()
 	me.Clock = clock
 	return me, clock
 }
