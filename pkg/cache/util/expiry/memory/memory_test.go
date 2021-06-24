@@ -243,10 +243,11 @@ func TestExpiryTTL(t *testing.T) {
 			}
 
 			// Key 0 (which has technically just expired) should return to 1 Second TTL
-			if i == 0 {
-				i = 1
+			expectedTTL := i
+			if expectedTTL == 0 {
+				expectedTTL = 1
 			}
-			if ttl != time.Duration(i)*time.Second {
+			if ttl != time.Duration(expectedTTL)*time.Second {
 				t.Errorf("Key %s (%d) TTL was %v", key, i, ttl)
 			}
 		}
