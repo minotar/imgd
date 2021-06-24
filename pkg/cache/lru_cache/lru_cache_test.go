@@ -1,20 +1,57 @@
 package lru_cache
 
 import (
-	"strconv"
 	"testing"
-	"time"
 
-	"github.com/minotar/imgd/pkg/storage/util/test_helpers"
-	"github.com/minotar/imgd/pkg/storage/util/test_store"
+	"github.com/minotar/imgd/pkg/cache/util/test_helpers"
 )
 
-func freshCache(n int) *LruCache {
-	cache, _ := NewLruCache(n)
+func newCacheTester(t *testing.T, size int) test_helpers.CacheTester {
+	cache, err := NewLruCache(size)
+	if err != nil {
+		t.Fatalf("Error creating LruCache: %s", err)
+	}
+	clock := test_helpers.MockedUTC()
+	cache.MemoryExpiry.Clock = clock
 	cache.Start()
-	return cache
+	return test_helpers.CacheTester{
+		Tester:        t,
+		Cache:         cache,
+		RemoveExpired: cache.RemoveExpired,
+		Clock:         clock,
+	}
 }
 
+func TestInsertTTLAndRetrieve(t *testing.T) {
+	cacheTester := newCacheTester(t, 500)
+	defer cacheTester.Cache.Close()
+
+	// Needs a cache at least 500 big
+	test_helpers.InsertTTLAndRetrieve(cacheTester)
+
+}
+
+func TestInsertTTLAndExpiry(t *testing.T) {
+	cacheTester := newCacheTester(t, 500)
+	defer cacheTester.Cache.Close()
+
+	// Needs a cache at least 500 big
+	test_helpers.InsertTTLAndExpiry(cacheTester)
+
+}
+
+func TestInsertTTLAndTTLCheck(t *testing.T) {
+	cacheTester := newCacheTester(t, 500)
+	defer cacheTester.Cache.Close()
+
+	// Needs a cache at least 500 big
+	test_helpers.InsertTTLAndTTLCheck(cacheTester)
+
+}
+
+// Todo: test filled cached
+
+/*
 func TestInsertAndRetrieve(t *testing.T) {
 	cache := freshCache(10)
 	defer cache.Close()
@@ -39,7 +76,7 @@ func TestHousekeeping(t *testing.T) {
 	}
 
 	cacheLen := cache.Len()
-	expiryLen := cache.LenExpiry()
+	expiryLen := cache.MemoryExpiry.Len()
 
 	if cacheLen != expiryLen || cacheLen != 5 {
 		t.Errorf("Cache Length %d and Expiry Length %d should be 5", cacheLen, expiryLen)
@@ -47,7 +84,7 @@ func TestHousekeeping(t *testing.T) {
 
 	cache.Flush()
 	cacheLen = cache.Len()
-	expiryLen = cache.LenExpiry()
+	expiryLen = cache.MemoryExpiry.Len()
 	if cacheLen != expiryLen || cacheLen != 0 {
 		t.Errorf("Cache Length %d and Expiry Length %d should be 0", cacheLen, expiryLen)
 	}
@@ -85,3 +122,6 @@ func BenchmarkRemove(b *testing.B) {
 		cache.Remove(largeBucket.Keys[i])
 	}
 }
+
+
+*/
