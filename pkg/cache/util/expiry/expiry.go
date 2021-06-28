@@ -50,15 +50,20 @@ func NewExpiry(options *Options) (*Expiry, error) {
 	return e, nil
 }
 
+// IsRunning can access the running state readonly
+func (e *Expiry) IsRunning() bool {
+	return e.running
+}
+
 func (e *Expiry) Start() {
-	if !e.running {
+	if !e.IsRunning() {
 		go e.runCompactor()
 		e.running = true
 	}
 }
 
 func (e *Expiry) Stop() {
-	if e.running {
+	if e.IsRunning() {
 		// Signal to the runCompactor it should stop ticking
 		e.closer <- true
 		// Setting to false so an in-progress compaction can stop

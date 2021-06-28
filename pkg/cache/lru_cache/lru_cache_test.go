@@ -11,14 +11,17 @@ func newCacheTester(t *testing.T, size int) test_helpers.CacheTester {
 	if err != nil {
 		t.Fatalf("Error creating LruCache: %s", err)
 	}
+
 	clock := test_helpers.MockedUTC()
 	cache.MemoryExpiry.Clock = clock
 	cache.Start()
+
 	return test_helpers.CacheTester{
 		Tester:        t,
 		Cache:         cache,
 		RemoveExpired: cache.RemoveExpired,
 		Clock:         clock,
+		Iterations:    size,
 	}
 }
 
@@ -28,7 +31,21 @@ func TestInsertTTLAndRetrieve(t *testing.T) {
 
 	// Needs a cache at least 500 big
 	test_helpers.InsertTTLAndRetrieve(cacheTester)
+}
 
+func TestInsertAndRetrieve(t *testing.T) {
+	cacheTester := newCacheTester(t, 500)
+	defer cacheTester.Cache.Close()
+
+	// Needs a cache at least 500 big
+	test_helpers.InsertAndRetrieve(cacheTester)
+}
+
+func TestInsertTTLAndRemove(t *testing.T) {
+	cacheTester := newCacheTester(t, 500)
+	defer cacheTester.Cache.Close()
+
+	test_helpers.InsertTTLAndRemove(cacheTester)
 }
 
 func TestInsertTTLAndExpiry(t *testing.T) {
@@ -37,7 +54,6 @@ func TestInsertTTLAndExpiry(t *testing.T) {
 
 	// Needs a cache at least 500 big
 	test_helpers.InsertTTLAndExpiry(cacheTester)
-
 }
 
 func TestInsertTTLAndTTLCheck(t *testing.T) {
@@ -46,7 +62,14 @@ func TestInsertTTLAndTTLCheck(t *testing.T) {
 
 	// Needs a cache at least 500 big
 	test_helpers.InsertTTLAndTTLCheck(cacheTester)
+}
 
+func TestInsertTTLAndFlush(t *testing.T) {
+	cacheTester := newCacheTester(t, 500)
+	defer cacheTester.Cache.Close()
+
+	// Needs a cache at least 500 big
+	test_helpers.InsertTTLAndFlush(cacheTester)
 }
 
 // Todo: test filled cached
