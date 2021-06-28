@@ -1,16 +1,9 @@
 package bolt_cache
 
 import (
-	"fmt"
-	"math/rand"
-	"strconv"
 	"testing"
-	"time"
 
-	"github.com/boltdb/bolt"
-	"github.com/minotar/imgd/pkg/storage"
-	"github.com/minotar/imgd/pkg/storage/util/test_helpers"
-	"github.com/minotar/imgd/pkg/storage/util/test_store"
+	"github.com/minotar/imgd/pkg/cache/util/test_helpers"
 )
 
 const (
@@ -18,56 +11,69 @@ const (
 	TestBoltBucketName = "bolt_test"
 )
 
-func freshCache() *BoltCache {
-	cache, _ := NewBoltCache(TestBoltPath, TestBoltBucketName)
-	cache.Flush()
-	return cache
-}
-
-func TestRetrieveMiss(t *testing.T) {
-	cache := freshCache()
-	defer cache.Close()
-
-	v, err := cache.Retrieve(test_helpers.RandString(32))
-	if v != nil {
-		t.Errorf("Retrieve Miss should return a nil value, not: %+v", v)
+func newCacheTester(t *testing.T) test_helpers.CacheTester {
+	cache, err := NewBoltCache(TestBoltPath, TestBoltBucketName)
+	if err != nil {
+		t.Fatalf("Error creating BoltCache: %s", err)
 	}
-	if err != storage.ErrNotFound {
-		t.Errorf("Retrieve Miss should return a storage.ErrNotFound, not: %s", err)
+
+	clock := test_helpers.MockedUTC()
+	cache.StoreExpiry.Clock = clock
+	cache.Flush()
+	cache.Start()
+
+	return test_helpers.CacheTester{
+		Tester:        t,
+		Cache:         cache,
+		RemoveExpired: cache.ExpiryScan,
+		Clock:         clock,
+		Iterations:    100,
 	}
 }
 
 func TestInsertAndRetrieve(t *testing.T) {
-	cache := freshCache()
-	defer cache.Close()
+	cacheTester := newCacheTester(t)
+	defer cacheTester.Cache.Close()
 
-	for i := 0; i < 10; i++ {
-		str := test_helpers.RandString(32)
-		cache.Insert(str, []byte(strconv.Itoa(i)))
-		item, err := cache.Retrieve(str)
-		if err != nil {
-			t.Errorf("Retrieve should not be an error: %s", err)
-		}
-		if string(item) != strconv.Itoa(i) {
-			t.Errorf("%+v did not match %d", item, i)
-		}
-	}
+	test_helpers.InsertAndRetrieve(cacheTester)
 }
 
-func TestInsertAndDelete(t *testing.T) {
-	cache := freshCache()
-	defer cache.Close()
+func TestInsertTTLAndRetrieve(t *testing.T) {
+	cacheTester := newCacheTester(t)
+	defer cacheTester.Cache.Close()
 
-	for i := 0; i < 10; i++ {
-		key := test_helpers.RandString(32)
-		cache.Insert(key, []byte(strconv.Itoa(i)))
-		cache.Remove(key)
-		_, err := cache.Retrieve(key)
-		if err != storage.ErrNotFound {
-			t.Errorf("Key should have been removed: %s", key)
-		}
-	}
+	test_helpers.InsertTTLAndRetrieve(cacheTester)
 }
+
+func TestInsertTTLAndRemove(t *testing.T) {
+	cacheTester := newCacheTester(t)
+	defer cacheTester.Cache.Close()
+
+	test_helpers.InsertTTLAndRemove(cacheTester)
+}
+
+func TestInsertTTLAndExpiry(t *testing.T) {
+	cacheTester := newCacheTester(t)
+	defer cacheTester.Cache.Close()
+
+	test_helpers.InsertTTLAndExpiry(cacheTester)
+}
+
+func TestInsertTTLAndTTLCheck(t *testing.T) {
+	cacheTester := newCacheTester(t)
+	defer cacheTester.Cache.Close()
+
+	test_helpers.InsertTTLAndTTLCheck(cacheTester)
+}
+
+func TestInsertTTLAndFlush(t *testing.T) {
+	cacheTester := newCacheTester(t)
+	defer cacheTester.Cache.Close()
+
+	test_helpers.InsertTTLAndFlush(cacheTester)
+}
+
+/*
 
 func addSortedTestData(t *testing.T, cache *BoltCache, iterationCount int) []string {
 	sorted := make([]string, iterationCount)
@@ -214,29 +220,6 @@ func TestExpiryScan(t *testing.T) {
 	cache.running = false
 }
 
-func TestHousekeeping(t *testing.T) {
-	cache := freshCache()
-	defer cache.Close()
-
-	if len := cache.Len(); len != 0 {
-		t.Errorf("Initialized cache should be length 0, not %d", len)
-	}
-
-	for i := 0; i < 10; i++ {
-		str := test_helpers.RandString(32)
-		cache.Insert(str, []byte("var"))
-	}
-
-	if len := cache.Len(); len != 10 {
-		t.Errorf("Part filled cache should be length 10, not %d", len)
-	}
-
-	cache.Flush()
-
-	if len := cache.Len(); len != 0 {
-		t.Errorf("Flushed cache should be length 0, not %d", len)
-	}
-}
 
 var largeBucket = test_store.NewTestStoreBench()
 var largeBucket2 = test_store.NewTestStoreBench()
@@ -321,3 +304,5 @@ func BenchmarkExpiryRemove25(b *testing.B) {
 func BenchmarkExpiryRemove10(b *testing.B) {
 	benchExpiryRemove(0.1, b)
 }
+
+*/
