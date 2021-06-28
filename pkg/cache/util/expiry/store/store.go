@@ -81,7 +81,7 @@ type StoreEntry struct {
 
 func (e *StoreEntry) Encode() (key, value []byte) {
 	// Uint32 takes up 4 bytes
-	buf := make([]byte, 0, 4+len(e.Value))
+	buf := make([]byte, 4, 4+len(e.Value))
 
 	// boltdb uses BigEndian in places, set the first 4 bytes as expiry
 	binary.BigEndian.PutUint32(buf[:4], e.ExpirySeconds)

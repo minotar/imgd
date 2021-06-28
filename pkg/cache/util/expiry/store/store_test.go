@@ -149,7 +149,7 @@ func TestStoreEntryEncodeDecode(t *testing.T) {
 		if keyName != e2.Key {
 			t.Errorf("Expected key \"%s\" did not match BCE key \"%s\"", keyName, e.Key)
 		}
-		if bytes.Compare([]byte(valueStr), e2.Value) == 1 {
+		if !bytes.Equal([]byte(valueStr), e2.Value) {
 			t.Error("Binary values did not match expected")
 		}
 		if i == 0 {
