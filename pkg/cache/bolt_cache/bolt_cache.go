@@ -7,6 +7,7 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/minotar/imgd/pkg/cache"
+	store_expiry "github.com/minotar/imgd/pkg/cache/util/expiry/store"
 	"github.com/minotar/imgd/pkg/storage"
 	"github.com/minotar/imgd/pkg/storage/bolt_store"
 )
@@ -21,49 +22,27 @@ const (
 var ErrCompactionInterupted = errors.New("Compaction was interupted")
 var ErrCompactionFinished = errors.New("Compaction has finished")
 
-type clock interface {
-	Now() time.Time
-}
-
-type realClock struct{}
-
-func (r realClock) Now() time.Time { return time.Now() }
-
 type BoltCache struct {
 	*bolt_store.BoltStore
-	nameExpiry               string
-	clock                    clock
-	closer                   chan bool
-	running                  bool
-	compaction_scan_interval time.Duration
+	*store_expiry.StoreExpiry
 }
 
 // ensure that the storage.Storage interface is implemented
 var _ cache.Cache = new(BoltCache)
 
 func NewBoltCache(path, name string) (*BoltCache, error) {
-	nameExpiry := fmt.Sprintf("%s_expiry", name)
-
 	bs, err := bolt_store.NewBoltStore(path, name)
 	if err != nil {
 		return nil, err
 	}
+	bc := &BoltCache{BoltStore: bs}
 
-	err = bs.DB.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte(nameExpiry))
-		return err
-	})
+	// Create a StoreExpiry using the BoltCache method
+	se, err := store_expiry.NewStoreExpiry(bc.ExpiryScan, COMPACTION_SCAN_INTERVAL)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to create bucket \"%s\": %s", nameExpiry, err)
+		return nil, err
 	}
-
-	bc := &BoltCache{
-		BoltStore:                bs,
-		nameExpiry:               nameExpiry,
-		clock:                    realClock{},
-		closer:                   make(chan bool),
-		compaction_scan_interval: COMPACTION_SCAN_INTERVAL,
-	}
+	bc.StoreExpiry = se
 
 	return bc, nil
 }
@@ -73,8 +52,8 @@ func (bc *BoltCache) Insert(key string, value []byte) error {
 }
 
 func (bc *BoltCache) InsertTTL(key string, value []byte, ttl time.Duration) error {
-	bce := bc.NewBoltCacheEntry(key, value, ttl)
-	keyBytes, valueBytes := bce.Encode()
+	bse := bc.NewStoreEntry(key, value, ttl)
+	keyBytes, valueBytes := bse.Encode()
 	err := bc.DB.Update(func(tx *bolt.Tx) error {
 		//e := tx.Bucket([]byte(bc.nameExpiry))
 		b := tx.Bucket([]byte(bc.Name))
@@ -90,8 +69,8 @@ func (bc *BoltCache) InsertBatch(key string, value []byte) error {
 	return fmt.Errorf("Not implemented")
 }
 
-func (bc *BoltCache) retrieveBCE(key string) (*BoltCacheEntry, error) {
-	var bce *BoltCacheEntry
+func (bc *BoltCache) retrieveBSE(key string) (store_expiry.StoreEntry, error) {
+	var bse store_expiry.StoreEntry
 	keyBytes := []byte(key)
 	err := bc.DB.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bc.Name))
@@ -102,48 +81,39 @@ func (bc *BoltCache) retrieveBCE(key string) (*BoltCacheEntry, error) {
 		// Set byte slice length for copy
 		data := make([]byte, len(v))
 		copy(data, v)
-		bce = DecodeBoltCacheEntry(keyBytes, data)
+		bse = store_expiry.DecodeStoreEntry(keyBytes, data)
 		return nil
 	})
 	if err == storage.ErrNotFound {
-		return nil, storage.ErrNotFound
+		return bse, storage.ErrNotFound
 	} else if err != nil {
-		return nil, fmt.Errorf("Retrieving \"%s\" from \"%s\": %s", key, bc.Name, err)
+		return bse, fmt.Errorf("Retrieving \"%s\" from \"%s\": %s", key, bc.Name, err)
 	}
 
 	// We could at this stage Remove Expired entries - but returning expired is better
-	return bce, nil
+	return bse, nil
 }
 
 func (bc *BoltCache) Retrieve(key string) ([]byte, error) {
-	bce, err := bc.retrieveBCE(key)
+	bse, err := bc.retrieveBSE(key)
 	if err != nil {
 		return nil, err
 	}
 
 	// Optionally we could further check expiry here
 	// (though general preference for us is to return stale)
-	return bce.Value, nil
+	return bse.Value, nil
 }
 
-// Must check error return - 0 expiry is either "No Expiry" or error
-// Returned TTL can be used on Insert
+// TTL returns an error if the key does not exist, or it has no expiry
+// Otherwise return a TTL (always at least 1 Second per `StoreExpiry`)
 func (bc *BoltCache) TTL(key string) (time.Duration, error) {
-	bce, err := bc.retrieveBCE(key)
+	bse, err := bc.retrieveBSE(key)
 	if err != nil {
 		return 0, err
 	}
 
-	if bce.HasExpiry() {
-		ttl := bce.Expiry().Sub(bc.clock.Now())
-		if ttl == time.Duration(0) {
-			// Technically, we could get back a 0 Duration - but that is ambiguous
-			ttl = time.Duration(1)
-		}
-		return ttl, nil
-	}
-	// No expiry is a 0 TTL
-	return 0, nil
+	return bse.TTL(bc.StoreExpiry.Clock.Now())
 }
 
 func (bc *BoltCache) Remove(key string) error {
@@ -188,7 +158,7 @@ func (bc *BoltCache) expiryScan(reviewTime time.Time, chunkSize int) {
 			// Either start at beginning, or use the marker if it's set
 			for k, v = firstOrSeek(c, keyMarker); i < chunkSize; k, v = c.Next() {
 				// Check on every key that the cache is still running/not stopping
-				if !bc.running {
+				if !bc.IsRunning() {
 					// Todo: debug logging
 					fmt.Printf("Caching is no longer running, exiting ExpiryScan\n")
 					scanErr = ErrCompactionInterupted
@@ -206,7 +176,7 @@ func (bc *BoltCache) expiryScan(reviewTime time.Time, chunkSize int) {
 				i++
 				fmt.Printf("Scanned %s\n", k)
 
-				if HasExpired(v[:4], reviewTime) {
+				if store_expiry.HasBytesExpired(v[:4], reviewTime) {
 					err := c.Delete()
 					// Todo: It seems this advances the cursor????
 					fmt.Printf("Deleted: %s\n", k)
@@ -237,7 +207,7 @@ func (bc *BoltCache) expiryScan(reviewTime time.Time, chunkSize int) {
 		// Todo: Merge all this??
 		if scanErr == ErrCompactionInterupted {
 			// Todo: info logging
-			fmt.Printf("Caching is %+v, exiting ExpiryScan. Len: %d, Scanned: %d, Expired: %d\n", bc.running, dbLength, scannedCount, expiredCount)
+			fmt.Printf("Caching is %+v, exiting ExpiryScan. Len: %d, Scanned: %d, Expired: %d\n", bc.IsRunning(), dbLength, scannedCount, expiredCount)
 			return
 		} else if scanErr == ErrCompactionFinished {
 			// Todo: info logging
@@ -248,9 +218,12 @@ func (bc *BoltCache) expiryScan(reviewTime time.Time, chunkSize int) {
 
 }
 
+// Ran on interval by the StoreExpiry
 func (bc *BoltCache) ExpiryScan() {
-	bc.expiryScan(bc.clock.Now(), COMPACTION_MAX_SCAN)
+	bc.expiryScan(bc.StoreExpiry.Clock.Now(), COMPACTION_MAX_SCAN)
 }
+
+/*
 
 // Todo: Incomplete. Could be used when we want to maitain a DB length/size
 func (bc *BoltCache) randomEvict(evictScan int) error {
@@ -280,47 +253,24 @@ func (bc *BoltCache) randomEvict(evictScan int) error {
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("Evicting a random key", err)
+		return fmt.Errorf("Evicting a random key: %s", err)
 	}
 	return nil
 }
 
+*/
+
 func (bc *BoltCache) Start() {
-	if !bc.running {
-		bc.running = true
-		go bc.runCompactor()
-	}
+	// Start the Expiry monitor/compactor
+	bc.StoreExpiry.Start()
 }
 
 func (bc *BoltCache) Stop() {
-	if bc.running {
-		// Close() waits on a sync.Mutex for all transactions to finish
-		bc.closer <- true
-		// Setting to false so an in-progress compaction can stop
-		bc.running = false
-	}
+	// Start the Expiry monitor/compactor
+	bc.StoreExpiry.Stop()
 }
 
 func (bc *BoltCache) Close() {
 	bc.Stop()
 	bc.BoltStore.Close()
-}
-
-// runCompactor is in its own goroutine and thus needs the closer to stop
-func (bc *BoltCache) runCompactor() {
-	// Run immediately
-	bc.ExpiryScan()
-	ticker := time.NewTicker(bc.compaction_scan_interval)
-
-COMPACT:
-	for {
-		select {
-		case <-bc.closer:
-			break COMPACT
-		case <-ticker.C:
-			bc.ExpiryScan()
-		}
-	}
-
-	ticker.Stop()
 }

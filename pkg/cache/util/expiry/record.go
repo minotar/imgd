@@ -2,6 +2,7 @@
 package expiry
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -56,4 +57,19 @@ func (r *ExpiryRecord) HasExpired(now time.Time) bool {
 	}
 	// Either no Expiry, or it's not expired
 	return false
+}
+
+// TTL uses a specific time.Time ("now") and works out the TTL of the key (always >=1s), or 0 if no expiry
+// An error is returned if the key does not exist in the expiry records (no expiry)
+func (r *ExpiryRecord) TTL(now time.Time) (time.Duration, error) {
+	if r.HasExpiry() {
+		ttl := r.Expiry().Sub(now)
+		if ttl < time.Duration(time.Second) {
+			// Technically, we could get back a 0 or less Duration - but 0 is "no expiry"
+			ttl = time.Duration(time.Second)
+		}
+		return ttl, nil
+	}
+	// No expiry is a 0 TTL
+	return 0, fmt.Errorf("No expiry set for key \"%s\"", r.Key)
 }

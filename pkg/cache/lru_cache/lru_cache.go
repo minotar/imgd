@@ -19,13 +19,13 @@ var _ cache.Cache = new(LruCache)
 func NewLruCache(maxEntries int) (*LruCache, error) {
 	// Start with empty struct we can pass around
 	lc := &LruCache{}
+
 	// Pass in the lruRemove function which it will call whenever an item expires
 	// This cannot be the lru_store Remove func directly as that is currently nil (🐣)
 	me, err := memory_expiry.NewMemoryExpiry(lc.lruRemove)
 	if err != nil {
 		return nil, err
 	}
-
 	lc.MemoryExpiry = me
 
 	// Pass the Expiry special Function to the LRU initilization
@@ -33,7 +33,6 @@ func NewLruCache(maxEntries int) (*LruCache, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	lc.LruStore = ls
 
 	return lc, nil
