@@ -48,6 +48,26 @@ type CacheTester struct {
 	Iterations    int
 }
 
+func (ct *CacheTester) RetrieveKey(i int, key string) {
+	value, err := ct.Cache.Retrieve(key)
+	if err != nil {
+		ct.Tester.Errorf("Key %s (%d) had an error: %s", key, i, err)
+	}
+	if string(value) != fmt.Sprint("value_", key) {
+		ct.Tester.Errorf("Key %s (%d) was not the expected value: %s", key, i, value)
+	}
+}
+
+func (ct *CacheTester) RetrieveDeletedKey(i int, key string) {
+	value, err := ct.Cache.Retrieve(key)
+	if value != nil {
+		ct.Tester.Errorf("Key %s (%d) after expiry/removal should have a nil value: %s", key, i, value)
+	}
+	if err != storage.ErrNotFound {
+		ct.Tester.Errorf("Key %s (%d) after expiry/removal should have been a storage.ErrNotFound. Error was: %s", key, i, err)
+	}
+}
+
 func AddSortedString(insertFunc func(string, time.Duration), iterationCount int) []string {
 	sorted := make([]string, iterationCount)
 	for _, offset := range rand.Perm(iterationCount) {
@@ -61,7 +81,7 @@ func AddSortedString(insertFunc func(string, time.Duration), iterationCount int)
 }
 
 // Using the cache.Cache InsertTTL function, create a dynamic []byte value for the AddSortedString
-func insertTTL(cache cache.Cache) func(string, time.Duration) {
+func DebugInsertTTL(cache cache.Cache) func(string, time.Duration) {
 	return func(key string, ttl time.Duration) {
 		value := []byte(fmt.Sprint("value_", key))
 		cache.InsertTTL(key, value, ttl)
@@ -69,7 +89,7 @@ func insertTTL(cache cache.Cache) func(string, time.Duration) {
 }
 
 // Using the cache.Cache Insert function, create a dynamic []byte value for the AddSortedString
-func insert(cache cache.Cache) func(string, time.Duration) {
+func DebugInsert(cache cache.Cache) func(string, time.Duration) {
 	return func(key string, _ time.Duration) {
 		value := []byte(fmt.Sprint("value_", key))
 		cache.Insert(key, value)
@@ -77,16 +97,10 @@ func insert(cache cache.Cache) func(string, time.Duration) {
 }
 
 func InsertAndRetrieve(cacheTester CacheTester) {
-	sorted := AddSortedString(insert(cacheTester.Cache), cacheTester.Iterations)
+	sorted := AddSortedString(DebugInsert(cacheTester.Cache), cacheTester.Iterations)
 
 	for i, key := range sorted {
-		value, err := cacheTester.Cache.Retrieve(key)
-		if err != nil {
-			cacheTester.Tester.Errorf("Key %s (%d) had an error: %s", key, i, err)
-		}
-		if string(value) != fmt.Sprint("value_", key) {
-			cacheTester.Tester.Errorf("Key %s (%d) was not the expected value: %s", key, i, value)
-		}
+		cacheTester.RetrieveKey(i, key)
 	}
 
 	if cacheLen := int(cacheTester.Cache.Len()); cacheLen != cacheTester.Iterations {
@@ -95,16 +109,10 @@ func InsertAndRetrieve(cacheTester CacheTester) {
 }
 
 func InsertTTLAndRetrieve(cacheTester CacheTester) {
-	sorted := AddSortedString(insertTTL(cacheTester.Cache), cacheTester.Iterations)
+	sorted := AddSortedString(DebugInsertTTL(cacheTester.Cache), cacheTester.Iterations)
 
 	for i, key := range sorted {
-		value, err := cacheTester.Cache.Retrieve(key)
-		if err != nil {
-			cacheTester.Tester.Errorf("Key %s (%d) had an error: %s", key, i, err)
-		}
-		if string(value) != fmt.Sprint("value_", key) {
-			cacheTester.Tester.Errorf("Key %s (%d) was not the expected value: %s", key, i, value)
-		}
+		cacheTester.RetrieveKey(i, key)
 	}
 
 	if cacheLen := int(cacheTester.Cache.Len()); cacheLen != cacheTester.Iterations {
@@ -113,20 +121,15 @@ func InsertTTLAndRetrieve(cacheTester CacheTester) {
 }
 
 func InsertTTLAndRemove(cacheTester CacheTester) {
-	sorted := AddSortedString(insertTTL(cacheTester.Cache), cacheTester.Iterations)
+	sorted := AddSortedString(DebugInsertTTL(cacheTester.Cache), cacheTester.Iterations)
 
 	for i, key := range sorted {
 		err := cacheTester.Cache.Remove(key)
 		if err != nil {
 			cacheTester.Tester.Errorf("Key %s (%d) should have removed without an error. Error was: %s", key, i, err)
 		}
-		value, err := cacheTester.Cache.Retrieve(key)
-		if value != nil {
-			cacheTester.Tester.Errorf("Key %s (%d) after removal should have a nil value: %s", key, i, value)
-		}
-		if err != storage.ErrNotFound {
-			cacheTester.Tester.Errorf("Key %s (%d) after removal should have been a storage.ErrNotFound. Error was: %s", key, i, err)
-		}
+
+		cacheTester.RetrieveDeletedKey(i, key)
 	}
 
 	if cacheLen := int(cacheTester.Cache.Len()); cacheLen != 0 {
@@ -135,7 +138,7 @@ func InsertTTLAndRemove(cacheTester CacheTester) {
 }
 
 func InsertTTLAndExpiry(cacheTester CacheTester) {
-	sorted := AddSortedString(insertTTL(cacheTester.Cache), cacheTester.Iterations)
+	sorted := AddSortedString(DebugInsertTTL(cacheTester.Cache), cacheTester.Iterations)
 
 	// Skip the first item (0 duration) and advance the clock by 1 second so the offset is corrected
 	sorted = sorted[1:]
@@ -150,13 +153,7 @@ func InsertTTLAndExpiry(cacheTester CacheTester) {
 		cacheTester.RemoveExpired()
 
 		for i, key := range sorted[:chunkSize] {
-			value, err := cacheTester.Cache.Retrieve(key)
-			if value != nil {
-				cacheTester.Tester.Errorf("Key %s (%d) after expiry should have a nil value: %s", key, i, value)
-			}
-			if err != storage.ErrNotFound {
-				cacheTester.Tester.Errorf("Key %s (%d) after expiry should have been a storage.ErrNotFound. Error was: %s", key, i, err)
-			}
+			cacheTester.RetrieveDeletedKey(i, key)
 		}
 
 		// Re-slice ready for next loop
@@ -169,7 +166,7 @@ func InsertTTLAndExpiry(cacheTester CacheTester) {
 }
 
 func InsertTTLAndTTLCheck(cacheTester CacheTester) {
-	sorted := AddSortedString(insertTTL(cacheTester.Cache), cacheTester.Iterations)
+	sorted := AddSortedString(DebugInsertTTL(cacheTester.Cache), cacheTester.Iterations)
 
 	// Test No Expiration beahviour
 	noExpiry := sorted[0]
@@ -229,7 +226,7 @@ func InsertTTLAndTTLCheck(cacheTester CacheTester) {
 }
 
 func InsertTTLAndFlush(cacheTester CacheTester) {
-	AddSortedString(insertTTL(cacheTester.Cache), cacheTester.Iterations)
+	AddSortedString(DebugInsertTTL(cacheTester.Cache), cacheTester.Iterations)
 
 	err := cacheTester.Cache.Flush()
 	if err != nil {
