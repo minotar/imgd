@@ -1,8 +1,13 @@
 package bolt_cache
 
 import (
+	"fmt"
+	"math/rand"
 	"testing"
+	"time"
 
+	"github.com/boltdb/bolt"
+	store_expiry "github.com/minotar/imgd/pkg/cache/util/expiry/store"
 	"github.com/minotar/imgd/pkg/cache/util/test_helpers"
 )
 
@@ -11,23 +16,41 @@ const (
 	TestBoltBucketName = "bolt_test"
 )
 
-func newCacheTester(t *testing.T) test_helpers.CacheTester {
+func newCache(t *testing.T) *BoltCache {
 	cache, err := NewBoltCache(TestBoltPath, TestBoltBucketName)
 	if err != nil {
 		t.Fatalf("Error creating BoltCache: %s", err)
 	}
+	return cache
+}
+
+func newCacheTester(t *testing.T) test_helpers.CacheTester {
+	cache := newCache(t)
+	return newCacheTesterWithBoltCache(t, cache)
+}
+
+func newCacheTesterWithBoltCache(t *testing.T, bc *BoltCache) test_helpers.CacheTester {
+	// Create a dummy StoreExpiry to override the builtin scanner / schedule
+	// This means we control when the ExpiryScan runs (we aren't trying to test the scheduller)
+	se, err := store_expiry.NewStoreExpiry(func() {}, time.Minute)
+	if err != nil {
+		t.Fatalf("Error creating StoreExpiry: %s", err)
+	}
+	bc.StoreExpiry = se
 
 	clock := test_helpers.MockedUTC()
-	cache.StoreExpiry.Clock = clock
-	cache.Flush()
-	cache.Start()
+	bc.StoreExpiry.Clock = clock
+	bc.Flush()
+	bc.Start()
 
 	return test_helpers.CacheTester{
 		Tester:        t,
-		Cache:         cache,
-		RemoveExpired: cache.ExpiryScan,
+		Cache:         bc,
+		RemoveExpired: bc.ExpiryScan,
 		Clock:         clock,
-		Iterations:    100,
+		// Used for later Iterations tests, so larger than 10 and divisible by 10
+		// Controls test speed
+		Iterations: 100,
 	}
 }
 
@@ -73,98 +96,18 @@ func TestInsertTTLAndFlush(t *testing.T) {
 	test_helpers.InsertTTLAndFlush(cacheTester)
 }
 
-/*
-
-func addSortedTestData(t *testing.T, cache *BoltCache, iterationCount int) []string {
-	sorted := make([]string, iterationCount)
-	for i, offset := range rand.Perm(iterationCount) {
-		key := test_helpers.RandString(32)
-		// Insert key into our slice at offset position (making it sorted)
-		sorted[offset] = key
-		// Add Expiry values unordered into the expiry listing
-		cache.InsertTTL(key, []byte("foobar"), time.Second*time.Duration(offset+1))
-
-		expectedLen := i + 1
-		if dbLength := cache.Len(); dbLength != uint(expectedLen) {
-			t.Errorf("DB Length %d should be %d", dbLength, expectedLen)
-		}
-	}
-	return sorted
-}
-
+// Tests the ExpiryScan with a smaller chunk size / max scan size
+// This is because the COMPACTION_MAX_SCAN is much larger than the iteration count
 func TestExpiryScanIteration(t *testing.T) {
-	cache := freshCache()
-	defer cache.Close()
-	clock := &mockClock{timeUTC()}
-	cache.clock = clock
-	// Normally set by Start() - but we want to control run
-	cache.running = true
+	cache := newCache(t)
+	cacheTester := newCacheTesterWithBoltCache(t, cache)
+	defer cacheTester.Cache.Close()
 
-	// A iteration number larger than 10 and divisible by 10
-	iterationCount := 100
-	sorted := addSortedTestData(t, cache, iterationCount)
+	sorted := test_helpers.AddSortedString(test_helpers.DebugInsertTTL(cacheTester.Cache), cacheTester.Iterations)
 
-	// DEBUG
-	cache.DB.View(func(tx *bolt.Tx) error {
-		// Assume bucket exists and has keys
-		b := tx.Bucket([]byte(cache.Name))
-
-		fmt.Printf("Keys:\n")
-		b.ForEach(func(k, v []byte) error {
-			fmt.Printf("key=%s ", k)
-			return nil
-		})
-		fmt.Printf("\n")
-		return nil
-	})
-
-	reviewTime := cache.clock.Now().Add(time.Duration(1) * time.Second)
-
-	for len(sorted) > 0 {
-		aheadSize := rand.Intn(iterationCount/10) + 1
-		reviewTime = reviewTime.Add(time.Duration(aheadSize) * time.Second)
-		// Debug
-		fmt.Printf("Mocked time is: %s\n", reviewTime)
-
-		// chunkSize can't be larger than the keys left in the sorted list
-		chunkSize := test_helpers.Min(len(sorted), aheadSize)
-
-		// Remove expired keys
-		cache.expiryScan(reviewTime, 3)
-
-		for _, k := range sorted[:chunkSize] {
-			_, err := cache.Retrieve(k)
-			if err != storage.ErrNotFound {
-				t.Fail()
-			}
-		}
-
-		sorted = sorted[chunkSize:]
-
-		if cacheLen := int(cache.Len()); cacheLen != len(sorted) {
-			t.Errorf("Cache Length %d should be %d", cacheLen, len(sorted))
-		}
-	}
-
-	if dbLength := cache.Len(); dbLength != 0 {
-		t.Errorf("DB length should have been 0, not %d", dbLength)
-	}
-
-	// Must be set to false otherwise the Close() will fail
-	cache.running = false
-}
-
-func TestExpiryScan(t *testing.T) {
-	cache := freshCache()
-	defer cache.Close()
-	clock := &mockClock{timeUTC()}
-	cache.clock = clock
-	// Normally set by Start() - but we want to control run
-	cache.running = true
-
-	// A iteration number larger than 10 and divisible by 10
-	iterationCount := 100
-	sorted := addSortedTestData(t, cache, iterationCount)
+	// Skip the first item (0 duration) and advance the clock by 1 second so the offset is corrected
+	sorted = sorted[1:]
+	cacheTester.Clock.Add(time.Duration(1) * time.Second)
 
 	// DEBUG
 	cache.DB.View(func(tx *bolt.Tx) error {
@@ -180,47 +123,53 @@ func TestExpiryScan(t *testing.T) {
 		return nil
 	})
 
-	// addSortedTestData adds the keys with a TTL of expiry+1. We add that offset here.
-	clock.Add(time.Duration(1) * time.Second)
-
 	for len(sorted) > 0 {
-		aheadSize := rand.Intn(iterationCount/10) + 1
-		// Advance the clock by a set amount to then verify the expected keys expired
-		clock.Add(time.Duration(aheadSize) * time.Second)
-
-		// Debug
-		currentTime := cache.clock.Now().String()
-		fmt.Printf("Mocked time is: %s\n", currentTime)
-
+		aheadSize := rand.Intn(cacheTester.Iterations/10) + 1
 		// chunkSize can't be larger than the keys left in the sorted list
 		chunkSize := test_helpers.Min(len(sorted), aheadSize)
 
-		// Remove expired keys
-		cache.ExpiryScan()
+		cacheTester.Clock.Add(time.Duration(aheadSize) * time.Second)
+		// Debug
+		fmt.Printf("Mocked time is: %s\n", cacheTester.Clock.Now())
+		// Remove expired keys, using a smaller scan size to test logic
+		cache.expiryScan(cacheTester.Clock.Now(), 3)
 
-		for _, k := range sorted[:chunkSize] {
-			_, err := cache.Retrieve(k)
-			if err != storage.ErrNotFound {
-				t.Fail()
-			}
+		for i, key := range sorted[:chunkSize] {
+			cacheTester.RetrieveDeletedKey(i, key)
 		}
 
+		// Re-slice ready for next loop
 		sorted = sorted[chunkSize:]
-
-		if cacheLen := int(cache.Len()); cacheLen != len(sorted) {
-			t.Errorf("Cache Length %d should be %d", cacheLen, len(sorted))
-		}
 	}
 
-	if dbLength := cache.Len(); dbLength != 0 {
-		t.Errorf("DB length should have been 0, not %d", dbLength)
+	if cacheLen := int(cacheTester.Cache.Len()); cacheLen != 1 {
+		cacheTester.Tester.Errorf("Cache length should have been 1, not: %d", cacheLen)
 	}
-
-	// Must be set to false otherwise the Close() will fail
-	cache.running = false
 }
 
+func TestExpiryScanInteruption(t *testing.T) {
+	cache := newCache(t)
+	cacheTester := newCacheTesterWithBoltCache(t, cache)
+	defer cacheTester.Cache.Close()
 
+	// Add a record
+	cacheTester.Cache.InsertTTL("key1", []byte{}, 1)
+
+	// Stop the cache so IsRunning will be False
+	cacheTester.Cache.Stop()
+	cacheTester.Clock.Add(3)
+
+	// Remove expired keys, using a smaller scan size to test logic
+	cache.expiryScan(cacheTester.Clock.Now(), 10)
+
+	// Todo: check logged messages?
+
+	if cacheLen := int(cacheTester.Cache.Len()); cacheLen != 1 {
+		cacheTester.Tester.Errorf("Cache length should have been 1, not: %d", cacheLen)
+	}
+}
+
+/*
 var largeBucket = test_store.NewTestStoreBench()
 var largeBucket2 = test_store.NewTestStoreBench()
 
