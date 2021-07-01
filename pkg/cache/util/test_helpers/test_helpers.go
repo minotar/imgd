@@ -3,7 +3,6 @@ package test_helpers
 import (
 	"fmt"
 	"math/rand"
-	"strings"
 	"testing"
 	"time"
 
@@ -202,8 +201,8 @@ func InsertTTLAndTTLCheck(cacheTester CacheTester) {
 	// Test No Expiration beahviour
 	noExpiry := sorted[0]
 	ttl, err := cacheTester.Cache.TTL(noExpiry)
-	if !strings.Contains(err.Error(), "No expiry set for key") {
-		cacheTester.Tester.Errorf("Non expiring key should return a TTL error: %s", err)
+	if err != cache.ErrNoExpiry {
+		cacheTester.Tester.Errorf("Non expiring key shoulduld have been a cache.ErrNoExpiry. Error was: %s", err)
 	}
 	if ttl != time.Duration(0) {
 		cacheTester.Tester.Errorf("Non expiring key should return a TTL of 0: %s", ttl)
