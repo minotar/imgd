@@ -1,7 +1,6 @@
 package lru_cache
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/minotar/imgd/pkg/cache"
@@ -68,8 +67,7 @@ func (lc *LruCache) TTL(key string) (time.Duration, error) {
 
 	ttl, err := lc.MemoryExpiry.GetTTL(key)
 	if err != nil {
-		// Todo: use global Error in cache package? Instead log something with key name?
-		return 0, fmt.Errorf("No expiry set for key \"%s\"", key)
+		return 0, cache.ErrNoExpiry
 	}
 	return ttl, nil
 }
