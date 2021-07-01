@@ -2,8 +2,9 @@
 package expiry
 
 import (
-	"fmt"
 	"time"
+
+	"github.com/minotar/imgd/pkg/cache"
 )
 
 // ExpiryRecord is an efficient way to encode the Expiry time in a uint32
@@ -71,5 +72,5 @@ func (r *ExpiryRecord) TTL(now time.Time) (time.Duration, error) {
 		return ttl, nil
 	}
 	// No expiry is a 0 TTL
-	return 0, fmt.Errorf("No expiry set for key \"%s\"", r.Key)
+	return 0, cache.ErrNoExpiry
 }

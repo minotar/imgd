@@ -25,20 +25,25 @@ func newCacheTester(t *testing.T, size int) test_helpers.CacheTester {
 	}
 }
 
-func TestInsertTTLAndRetrieve(t *testing.T) {
-	cacheTester := newCacheTester(t, 500)
-	defer cacheTester.Cache.Close()
-
-	// Needs a cache at least 500 big
-	test_helpers.InsertTTLAndRetrieve(cacheTester)
-}
-
 func TestInsertAndRetrieve(t *testing.T) {
 	cacheTester := newCacheTester(t, 500)
 	defer cacheTester.Cache.Close()
 
-	// Needs a cache at least 500 big
 	test_helpers.InsertAndRetrieve(cacheTester)
+}
+
+func TestInsertTTLAndRetrieve(t *testing.T) {
+	cacheTester := newCacheTester(t, 500)
+	defer cacheTester.Cache.Close()
+
+	test_helpers.InsertTTLAndRetrieve(cacheTester)
+}
+
+func TestLRUInsertTTLAndRetrieve(t *testing.T) {
+	cacheTester := newCacheTester(t, 500)
+	defer cacheTester.Cache.Close()
+
+	test_helpers.LRUInsertTTLAndRetrieve(cacheTester)
 }
 
 func TestInsertTTLAndRemove(t *testing.T) {
@@ -52,7 +57,6 @@ func TestInsertTTLAndExpiry(t *testing.T) {
 	cacheTester := newCacheTester(t, 500)
 	defer cacheTester.Cache.Close()
 
-	// Needs a cache at least 500 big
 	test_helpers.InsertTTLAndExpiry(cacheTester)
 }
 
@@ -60,7 +64,6 @@ func TestInsertTTLAndTTLCheck(t *testing.T) {
 	cacheTester := newCacheTester(t, 500)
 	defer cacheTester.Cache.Close()
 
-	// Needs a cache at least 500 big
 	test_helpers.InsertTTLAndTTLCheck(cacheTester)
 }
 
@@ -68,7 +71,6 @@ func TestInsertTTLAndFlush(t *testing.T) {
 	cacheTester := newCacheTester(t, 500)
 	defer cacheTester.Cache.Close()
 
-	// Needs a cache at least 500 big
 	test_helpers.InsertTTLAndFlush(cacheTester)
 }
 
