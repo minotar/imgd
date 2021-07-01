@@ -26,7 +26,7 @@ type Storage interface {
 
 // Errors
 var (
-	ErrNotFound = errors.New("Key does not exist")
+	ErrNotFound = errors.New("key does not exist")
 )
 
 func InsertKV(store Storage, key, value string) error {

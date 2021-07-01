@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/minotar/imgd/pkg/cache"
-	"github.com/minotar/imgd/pkg/storage"
 	"github.com/minotar/imgd/pkg/storage/util/test_helpers"
 	store_test_helpers "github.com/minotar/imgd/pkg/storage/util/test_helpers"
 )
@@ -63,8 +62,8 @@ func (ct *CacheTester) RetrieveDeletedKey(i int, key string) {
 	if value != nil {
 		ct.Tester.Errorf("Key %s (%d) after expiry/removal should have a nil value: %s", key, i, value)
 	}
-	if err != storage.ErrNotFound {
-		ct.Tester.Errorf("Key %s (%d) after expiry/removal should have been a storage.ErrNotFound. Error was: %s", key, i, err)
+	if err != cache.ErrNotFound {
+		ct.Tester.Errorf("Key %s (%d) after expiry/removal should have been a cache.ErrNotFound. Error was: %s", key, i, err)
 	}
 }
 
@@ -118,6 +117,38 @@ func InsertTTLAndRetrieve(cacheTester CacheTester) {
 	if cacheLen := int(cacheTester.Cache.Len()); cacheLen != cacheTester.Iterations {
 		cacheTester.Tester.Errorf("Cache length should have been %d, not: %d", cacheTester.Iterations, cacheLen)
 	}
+}
+
+// LRU size should be same as Iterations
+func LRUInsertTTLAndRetrieve(cacheTester CacheTester) []string {
+	sorted := AddSortedString(DebugInsertTTL(cacheTester.Cache), cacheTester.Iterations)
+
+	// Use a subset of the keys which we'll keep requesting
+	hotKeyCount := cacheTester.Iterations / 10
+
+	for i := 0; i < 3; i++ {
+		// Request the keys to keep them "recently used"
+		for i, key := range sorted[:hotKeyCount] {
+			cacheTester.RetrieveKey(i, key)
+		}
+		// Add new keys that will evict the cold keys
+		AddSortedString(DebugInsertTTL(cacheTester.Cache), cacheTester.Iterations-hotKeyCount)
+	}
+
+	// Hot keys should be present
+	for i, key := range sorted[:hotKeyCount] {
+		cacheTester.RetrieveKey(i, key)
+	}
+	// Original keys should have been evicted
+	for i, key := range sorted[hotKeyCount:] {
+		cacheTester.RetrieveDeletedKey(i, key)
+	}
+
+	if cacheLen := int(cacheTester.Cache.Len()); cacheLen != cacheTester.Iterations {
+		cacheTester.Tester.Errorf("Cache length should have been %d, not: %d", cacheTester.Iterations, cacheLen)
+	}
+
+	return sorted[:hotKeyCount]
 }
 
 func InsertTTLAndRemove(cacheTester CacheTester) {
@@ -208,8 +239,8 @@ func InsertTTLAndTTLCheck(cacheTester CacheTester) {
 
 		for i, key := range sorted[:chunkSize] {
 			ttl, err := cacheTester.Cache.TTL(key)
-			if err != storage.ErrNotFound {
-				cacheTester.Tester.Errorf("Key %s (%d) TTL after expiry should have been a storage.ErrNotFound. Error was: %s", key, i, err)
+			if err != cache.ErrNotFound {
+				cacheTester.Tester.Errorf("Key %s (%d) TTL after expiry should have been a cache.ErrNotFound. Error was: %s", key, i, err)
 			}
 			if ttl != time.Duration(0) {
 				cacheTester.Tester.Errorf("Key %s (%d) TTL was %v", key, i, ttl)

@@ -8,13 +8,12 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/minotar/imgd/pkg/cache"
 	store_expiry "github.com/minotar/imgd/pkg/cache/util/expiry/store"
-	"github.com/minotar/imgd/pkg/storage"
 	"github.com/minotar/imgd/pkg/storage/bolt_store"
 )
 
 const (
 	// Minimum Duration between full bucket scans looking for expired keys
-	COMPACTION_SCAN_INTERVAL = 5 * time.Second
+	COMPACTION_SCAN_INTERVAL = 5 * time.Minute
 	// Max number of keys to scan in a single DB Transaction
 	COMPACTION_MAX_SCAN = 50000
 )
@@ -27,7 +26,7 @@ type BoltCache struct {
 	*store_expiry.StoreExpiry
 }
 
-// ensure that the storage.Storage interface is implemented
+// ensure that the cache.Cache interface is implemented
 var _ cache.Cache = new(BoltCache)
 
 func NewBoltCache(path, name string) (*BoltCache, error) {
@@ -76,7 +75,7 @@ func (bc *BoltCache) retrieveBSE(key string) (store_expiry.StoreEntry, error) {
 		b := tx.Bucket([]byte(bc.Name))
 		v := b.Get(keyBytes)
 		if v == nil {
-			return storage.ErrNotFound
+			return cache.ErrNotFound
 		}
 		// Set byte slice length for copy
 		data := make([]byte, len(v))
@@ -84,8 +83,8 @@ func (bc *BoltCache) retrieveBSE(key string) (store_expiry.StoreEntry, error) {
 		bse = store_expiry.DecodeStoreEntry(keyBytes, data)
 		return nil
 	})
-	if err == storage.ErrNotFound {
-		return bse, storage.ErrNotFound
+	if err == cache.ErrNotFound {
+		return bse, err
 	} else if err != nil {
 		return bse, fmt.Errorf("Retrieving \"%s\" from \"%s\": %s", key, bc.Name, err)
 	}

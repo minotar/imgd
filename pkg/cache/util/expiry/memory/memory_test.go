@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/minotar/imgd/pkg/cache"
 	"github.com/minotar/imgd/pkg/cache/util/expiry"
 	"github.com/minotar/imgd/pkg/cache/util/test_helpers"
 )
@@ -200,7 +201,7 @@ func TestNoExpiryTTL(t *testing.T) {
 		}
 
 		ttl, err := me.GetTTL("invalid key")
-		if err == nil || !strings.Contains(err.Error(), "No TTL value found") {
+		if err != cache.ErrNoExpiry {
 			t.Errorf("GetTTL should return a specific error, not: %s", err)
 		}
 		if ttl != time.Duration(0) {
