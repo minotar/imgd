@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/minotar/imgd/pkg/cache"
 	"github.com/minotar/imgd/pkg/cache/util/expiry"
 )
 
@@ -117,6 +118,15 @@ func (m *MemoryExpiry) RemoveExpiry(key interface{}, _ interface{}) {
 	}
 }
 
+func (m *MemoryExpiry) getRecord(key string) (expiry.ExpiryRecord, error) {
+	for _, rec := range m.records {
+		if rec.Key == key {
+			return rec, nil
+		}
+	}
+	return expiry.ExpiryRecord{}, cache.ErrNoExpiry
+}
+
 // GetExpiry grabs the Expiry value for a given key
 // A "Zero" time is returned if the key is not in the Expiry records
 func (m *MemoryExpiry) GetExpiry(key string) time.Time {
@@ -124,30 +134,23 @@ func (m *MemoryExpiry) GetExpiry(key string) time.Time {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// We loop through every key
-	for _, val := range m.records {
-		if val.Key == key {
-			return val.Expiry()
-		}
+	rec, err := m.getRecord(key)
+	if err != nil {
+		return time.Time{}
 	}
-	return time.Time{}
+
+	return rec.Expiry()
 }
 
 // GetTTL grabs the TTL of the key (always >=1s), or 0 if no expiry/not found
 // An error is returned if the key does not exist in the expiry records (no expiry/not found)
 func (m *MemoryExpiry) GetTTL(key string) (time.Duration, error) {
-	expiry := m.GetExpiry(key)
-	if expiry.IsZero() {
-		// Record does not have an expiry
-		return 0, fmt.Errorf("No TTL value found for %s", key)
-	}
 
-	ttl := expiry.Sub(m.Clock.Now())
-	if ttl < time.Duration(time.Second) {
-		// Technically, we could get back a 0 or less Duration - but 0 is "no expiry"
-		ttl = time.Duration(time.Second)
+	rec, err := m.getRecord(key)
+	if err != nil {
+		return 0, err
 	}
-	return ttl, nil
+	return rec.TTL(m.Clock.Now())
 }
 
 func (m *MemoryExpiry) Len() uint {
