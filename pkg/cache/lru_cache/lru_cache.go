@@ -11,13 +11,20 @@ import (
 type LruCache struct {
 	*lru_store.LruStore
 	*memory_expiry.MemoryExpiry
+	*LruCacheConfig
+}
+
+type LruCacheConfig struct {
+	size int
+	cache.CacheConfig
 }
 
 var _ cache.Cache = new(LruCache)
 
-func NewLruCache(maxEntries int) (*LruCache, error) {
+func NewLruCache(cfg *LruCacheConfig) (*LruCache, error) {
+	cfg.Logger.Infof("initializing LruCache \"%s\" of size %d", cfg.Name, cfg.size)
 	// Start with empty struct we can pass around
-	lc := &LruCache{}
+	lc := &LruCache{LruCacheConfig: cfg}
 
 	// Pass in the lruRemove function which it will call whenever an item expires
 	// This cannot be the lru_store Remove func directly as that is currently nil (🐣)
@@ -28,7 +35,7 @@ func NewLruCache(maxEntries int) (*LruCache, error) {
 	lc.MemoryExpiry = me
 
 	// Pass the Expiry special Function to the LRU initilization
-	ls, err := lru_store.NewLruStoreWithEvict(maxEntries, lc.MemoryExpiry.RemoveExpiry)
+	ls, err := lru_store.NewLruStoreWithEvict(lc.LruCacheConfig.size, lc.MemoryExpiry.RemoveExpiry)
 	if err != nil {
 		return nil, err
 	}
@@ -37,8 +44,13 @@ func NewLruCache(maxEntries int) (*LruCache, error) {
 	return lc, nil
 }
 
+func (lc *LruCache) Name() string {
+	return lc.CacheConfig.Name
+}
+
 // lruRemove allows us to pass a reference to the LruStore Remove function before we instatiate it
 func (lc *LruCache) lruRemove(key string) error {
+	lc.Logger.Debug("LruStore is evicting ", key)
 	return lc.LruStore.Remove(key)
 }
 
@@ -78,15 +90,18 @@ func (lc *LruCache) Len() uint {
 }
 
 func (lc *LruCache) Start() {
+	lc.Logger.Info("starting ", lc.Name())
 	// Start the Expiry monitor/compactor
 	lc.MemoryExpiry.Start()
 }
 
 func (lc *LruCache) Stop() {
+	lc.Logger.Info("stopping ", lc.Name())
 	// Stop the Expiry monitor/compactor
 	lc.MemoryExpiry.Stop()
 }
 
 func (lc *LruCache) Close() {
+	lc.Logger.Debug("closing ", lc.Name())
 	lc.Stop()
 }

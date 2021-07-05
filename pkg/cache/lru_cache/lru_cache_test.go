@@ -3,11 +3,21 @@ package lru_cache
 import (
 	"testing"
 
+	"github.com/minotar/imgd/pkg/cache"
 	"github.com/minotar/imgd/pkg/cache/util/test_helpers"
+	"github.com/minotar/imgd/pkg/util/log"
 )
 
 func newCacheTester(t *testing.T, size int) test_helpers.CacheTester {
-	cache, err := NewLruCache(size)
+	logger := &log.DummyLogger{}
+	logger.Named("LruTest")
+	cache, err := NewLruCache(&LruCacheConfig{
+		size: size,
+		CacheConfig: cache.CacheConfig{
+			Name:   "LruTest",
+			Logger: logger,
+		},
+	})
 	if err != nil {
 		t.Fatalf("Error creating LruCache: %s", err)
 	}
