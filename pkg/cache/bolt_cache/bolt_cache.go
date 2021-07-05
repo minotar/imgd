@@ -24,17 +24,25 @@ var ErrCompactionFinished = errors.New("Compaction has finished")
 type BoltCache struct {
 	*bolt_store.BoltStore
 	*store_expiry.StoreExpiry
+	*BoltCacheConfig
+}
+
+type BoltCacheConfig struct {
+	path       string
+	bucketname string
+	cache.CacheConfig
 }
 
 // ensure that the cache.Cache interface is implemented
 var _ cache.Cache = new(BoltCache)
 
-func NewBoltCache(path, name string) (*BoltCache, error) {
-	bs, err := bolt_store.NewBoltStore(path, name)
+func NewBoltCache(cfg *BoltCacheConfig) (*BoltCache, error) {
+	cfg.Logger.Infof("initializing BoltCache \"%s\" at \"%s\" with bucket %s", cfg.Name, cfg.path, cfg.bucketname)
+	bs, err := bolt_store.NewBoltStore(cfg.path, cfg.bucketname)
 	if err != nil {
 		return nil, err
 	}
-	bc := &BoltCache{BoltStore: bs}
+	bc := &BoltCache{BoltStore: bs, BoltCacheConfig: cfg}
 
 	// Create a StoreExpiry using the BoltCache method
 	se, err := store_expiry.NewStoreExpiry(bc.ExpiryScan, COMPACTION_SCAN_INTERVAL)
@@ -46,6 +54,10 @@ func NewBoltCache(path, name string) (*BoltCache, error) {
 	return bc, nil
 }
 
+func (bc *BoltCache) Name() string {
+	return bc.CacheConfig.Name
+}
+
 func (bc *BoltCache) Insert(key string, value []byte) error {
 	return bc.InsertTTL(key, value, 0)
 }
@@ -54,25 +66,24 @@ func (bc *BoltCache) InsertTTL(key string, value []byte, ttl time.Duration) erro
 	bse := bc.NewStoreEntry(key, value, ttl)
 	keyBytes, valueBytes := bse.Encode()
 	err := bc.DB.Update(func(tx *bolt.Tx) error {
-		//e := tx.Bucket([]byte(bc.nameExpiry))
-		b := tx.Bucket([]byte(bc.Name))
+		b := tx.Bucket([]byte(bc.Bucket))
 		return b.Put(keyBytes, valueBytes)
 	})
 	if err != nil {
-		return fmt.Errorf("Inserting \"%s\" into \"%s\": %s", key, bc.Name, err)
+		return fmt.Errorf("Inserting \"%s\" into \"%s\": %s", key, bc.Bucket, err)
 	}
 	return nil
 }
 
 func (bc *BoltCache) InsertBatch(key string, value []byte) error {
-	return fmt.Errorf("Not implemented")
+	return fmt.Errorf("not implemented")
 }
 
 func (bc *BoltCache) retrieveBSE(key string) (store_expiry.StoreEntry, error) {
 	var bse store_expiry.StoreEntry
 	keyBytes := []byte(key)
 	err := bc.DB.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(bc.Name))
+		b := tx.Bucket([]byte(bc.Bucket))
 		v := b.Get(keyBytes)
 		if v == nil {
 			return cache.ErrNotFound
@@ -86,7 +97,7 @@ func (bc *BoltCache) retrieveBSE(key string) (store_expiry.StoreEntry, error) {
 	if err == cache.ErrNotFound {
 		return bse, err
 	} else if err != nil {
-		return bse, fmt.Errorf("Retrieving \"%s\" from \"%s\": %s", key, bc.Name, err)
+		return bse, fmt.Errorf("Retrieving \"%s\" from \"%s\": %s", key, bc.Bucket, err)
 	}
 
 	// We could at this stage Remove Expired entries - but returning expired is better
@@ -117,11 +128,11 @@ func (bc *BoltCache) TTL(key string) (time.Duration, error) {
 
 func (bc *BoltCache) Remove(key string) error {
 	err := bc.DB.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(bc.Name))
+		b := tx.Bucket([]byte(bc.Bucket))
 		return b.Delete([]byte(key))
 	})
 	if err != nil {
-		return fmt.Errorf("Removing \"%s\" from \"%s\": %s", key, bc.Name, err)
+		return fmt.Errorf("Removing \"%s\" from \"%s\": %s", key, bc.Bucket, err)
 	}
 	return nil
 }
@@ -144,12 +155,12 @@ func (bc *BoltCache) expiryScan(reviewTime time.Time, chunkSize int) {
 	// Crucially, this loop ensures that we aren't holding a Write lock for an extended time
 	for {
 		if keyMarker != "" {
-			fmt.Printf("kM starts as %s\n", keyMarker)
+			bc.Logger.Debugf("keyMarker starts as %s", keyMarker)
 		}
 		// Start a transaction for processing a chunk of keys
 		// Technically, keys might be added/removed between transactions
 		_ = bc.DB.Update(func(tx *bolt.Tx) error {
-			c := tx.Bucket([]byte(bc.Name)).Cursor()
+			c := tx.Bucket([]byte(bc.Bucket)).Cursor()
 
 			var i int
 			var k, v []byte
@@ -158,30 +169,26 @@ func (bc *BoltCache) expiryScan(reviewTime time.Time, chunkSize int) {
 			for k, v = firstOrSeek(c, keyMarker); i < chunkSize; k, v = c.Next() {
 				// Check on every key that the cache is still running/not stopping
 				if !bc.IsRunning() {
-					// Todo: debug logging
-					fmt.Printf("Caching is no longer running, exiting ExpiryScan\n")
+					bc.Logger.Info("expiryScan is exiting as BoltCache is no longer running")
 					scanErr = ErrCompactionInterupted
 					return nil
 				}
 
 				if k == nil {
-					// Todo: debug logging
-					fmt.Printf("Nil Key means that all keys have been scanned\n")
+					bc.Logger.Debug("expiryScan compaction loop has finished")
 					scanErr = ErrCompactionFinished
 					return nil
 				}
 				// Increment counters for stats and chunk max
 				scannedCount++
 				i++
-				fmt.Printf("Scanned %s\n", k)
+				//bc.Logger.Debugf("Scanned %s", k)
 
 				if store_expiry.HasBytesExpired(v[:4], reviewTime) {
+					bc.Logger.Debugf("expiryScan is deleting: %s", k)
 					err := c.Delete()
-					// Todo: It seems this advances the cursor????
-					fmt.Printf("Deleted: %s\n", k)
 					if err != nil {
-						// Todo: logging
-						fmt.Printf("Error Removing Expired \"%s\" from \"%s\": %s\n", string(k), bc.Name, err)
+						bc.Logger.Warnf("expiryScan was unable to delete \"%s\" from %s: %s", k, bc.Bucket, err)
 					}
 					expiredCount++
 				}
@@ -191,10 +198,9 @@ func (bc *BoltCache) expiryScan(reviewTime time.Time, chunkSize int) {
 			// The for loop above would have assigned k to the next key, but not scanned it
 			// We now use that assignment to set the Marker for the next iteration
 			keyMarker = string(k)
-			fmt.Printf("kM ends as %s\n", keyMarker)
+			bc.Logger.Debugf("keyMarker starts as %s", keyMarker)
 			if k == nil {
-				// Todo: debug logging
-				fmt.Printf("Nil Key means that all keys have been scanned\n")
+				bc.Logger.Debug("expiryScan compaction loop has finished")
 				scanErr = ErrCompactionFinished
 				return nil
 			}
@@ -205,12 +211,10 @@ func (bc *BoltCache) expiryScan(reviewTime time.Time, chunkSize int) {
 
 		// Todo: Merge all this??
 		if scanErr == ErrCompactionInterupted {
-			// Todo: info logging
-			fmt.Printf("Caching is %+v, exiting ExpiryScan. Len: %d, Scanned: %d, Expired: %d\n", bc.IsRunning(), dbLength, scannedCount, expiredCount)
+			bc.Logger.Infof("Caching is %+v, exiting ExpiryScan. Len: %d, Scanned: %d, Expired: %d", bc.IsRunning(), dbLength, scannedCount, expiredCount)
 			return
 		} else if scanErr == ErrCompactionFinished {
-			// Todo: info logging
-			fmt.Printf("All keys have been scanned. Len: %d, Scanned: %d, Expired: %d\n", dbLength, scannedCount, expiredCount)
+			bc.Logger.Infof("All keys have been scanned. Len: %d, Scanned: %d, Expired: %d", dbLength, scannedCount, expiredCount)
 			return
 		}
 	}
@@ -244,7 +248,7 @@ func (bc *BoltCache) randomEvict(evictScan int) error {
 	}
 
 	err := bc.DB.Update(func(tx *bolt.Tx) error {
-		c := tx.Bucket([]byte(bc.Name)).Cursor()
+		c := tx.Bucket([]byte(bc.Bucket)).Cursor()
 		firstKey, _ := c.First()
 		lastKey, _ := c.Last()
 		fmt.Printf("First: %+v\nLast: %+v\n", firstKey, lastKey)
@@ -260,16 +264,19 @@ func (bc *BoltCache) randomEvict(evictScan int) error {
 */
 
 func (bc *BoltCache) Start() {
+	bc.Logger.Info("starting ", bc.Name())
 	// Start the Expiry monitor/compactor
 	bc.StoreExpiry.Start()
 }
 
 func (bc *BoltCache) Stop() {
+	bc.Logger.Info("stopping ", bc.Name())
 	// Start the Expiry monitor/compactor
 	bc.StoreExpiry.Stop()
 }
 
 func (bc *BoltCache) Close() {
+	bc.Logger.Debug("closing ", bc.Name())
 	bc.Stop()
 	bc.BoltStore.Close()
 }

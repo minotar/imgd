@@ -7,8 +7,10 @@ import (
 	"time"
 
 	"github.com/boltdb/bolt"
+	"github.com/minotar/imgd/pkg/cache"
 	store_expiry "github.com/minotar/imgd/pkg/cache/util/expiry/store"
 	"github.com/minotar/imgd/pkg/cache/util/test_helpers"
+	"github.com/minotar/imgd/pkg/util/log"
 )
 
 const (
@@ -17,7 +19,16 @@ const (
 )
 
 func newCache(t *testing.T) *BoltCache {
-	cache, err := NewBoltCache(TestBoltPath, TestBoltBucketName)
+	logger := &log.DummyLogger{}
+	logger.Named("BoltTest")
+	cache, err := NewBoltCache(&BoltCacheConfig{
+		path:       TestBoltPath,
+		bucketname: TestBoltBucketName,
+		CacheConfig: cache.CacheConfig{
+			Name:   "BoltTest",
+			Logger: logger,
+		},
+	})
 	if err != nil {
 		t.Fatalf("Error creating BoltCache: %s", err)
 	}
@@ -112,7 +123,7 @@ func TestExpiryScanIteration(t *testing.T) {
 	// DEBUG
 	cache.DB.View(func(tx *bolt.Tx) error {
 		// Assume bucket exists and has keys
-		b := tx.Bucket([]byte(cache.Name))
+		b := tx.Bucket([]byte(cache.Bucket))
 
 		fmt.Printf("Keys:\n")
 		b.ForEach(func(k, v []byte) error {
