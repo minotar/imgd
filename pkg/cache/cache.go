@@ -6,9 +6,12 @@ import (
 	"time"
 
 	"github.com/minotar/imgd/pkg/storage"
+	util_log "github.com/minotar/imgd/pkg/util/log"
 )
 
 type Cache interface {
+	// Name returns the CacheConfig Name
+	Name() string
 	// Implements storage.Storage interface
 	storage.Storage
 	// InsertTTL inserts a new value into the store with the given expiry
@@ -20,6 +23,11 @@ type Cache interface {
 	Start()
 	// Stop the cache / expiry tracker
 	Stop()
+}
+
+type CacheConfig struct {
+	Name   string
+	Logger util_log.Logger
 }
 
 // Errors
