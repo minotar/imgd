@@ -11,13 +11,13 @@ import (
 func newCacheTester(t *testing.T, size int) test_helpers.CacheTester {
 	logger := &log.DummyLogger{}
 	logger.Named("LruTest")
-	cache, err := NewLruCache(&LruCacheConfig{
-		size: size,
-		CacheConfig: cache.CacheConfig{
+	cache, err := NewLruCache(NewLruCacheConfig(size,
+		cache.CacheConfig{
 			Name:   "LruTest",
 			Logger: logger,
 		},
-	})
+	))
+
 	if err != nil {
 		t.Fatalf("Error creating LruCache: %s", err)
 	}

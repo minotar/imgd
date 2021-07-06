@@ -19,10 +19,17 @@ type LruCacheConfig struct {
 	cache.CacheConfig
 }
 
+func NewLruCacheConfig(size int, cacheCfg cache.CacheConfig) *LruCacheConfig {
+	return &LruCacheConfig{
+		size:        size,
+		CacheConfig: cacheCfg,
+	}
+}
+
 var _ cache.Cache = new(LruCache)
 
 func NewLruCache(cfg *LruCacheConfig) (*LruCache, error) {
-	cfg.Logger.Infof("initializing LruCache \"%s\" of size %d", cfg.Name, cfg.size)
+	cfg.Logger.Infof("initializing LruCache with size %d", cfg.size)
 	// Start with empty struct we can pass around
 	lc := &LruCache{LruCacheConfig: cfg}
 
@@ -41,6 +48,7 @@ func NewLruCache(cfg *LruCacheConfig) (*LruCache, error) {
 	}
 	lc.LruStore = ls
 
+	cfg.Logger.Infof("initialized LruCache \"%s\"", lc.Name())
 	return lc, nil
 }
 
@@ -90,18 +98,18 @@ func (lc *LruCache) Len() uint {
 }
 
 func (lc *LruCache) Start() {
-	lc.Logger.Info("starting ", lc.Name())
+	lc.Logger.Info("starting LruCache")
 	// Start the Expiry monitor/compactor
 	lc.MemoryExpiry.Start()
 }
 
 func (lc *LruCache) Stop() {
-	lc.Logger.Info("stopping ", lc.Name())
+	lc.Logger.Info("stopping LruCache")
 	// Stop the Expiry monitor/compactor
 	lc.MemoryExpiry.Stop()
 }
 
 func (lc *LruCache) Close() {
-	lc.Logger.Debug("closing ", lc.Name())
+	lc.Logger.Debug("closing LruCache")
 	lc.Stop()
 }

@@ -6,10 +6,19 @@ import (
 	"github.com/minotar/imgd/pkg/cache"
 	"github.com/minotar/imgd/pkg/cache/lru_cache"
 	"github.com/minotar/imgd/pkg/cache/util/test_helpers"
+	"github.com/minotar/imgd/pkg/util/log"
 )
 
-func newBackendCache(t *testing.T, clock *test_helpers.MockClock, size int) *lru_cache.LruCache {
-	cache, err := lru_cache.NewLruCache(size)
+func newBackendCache(t *testing.T, clock *test_helpers.MockClock, name string, size int) *lru_cache.LruCache {
+	logger := &log.DummyLogger{}
+	logger.Named(name)
+	cache, err := lru_cache.NewLruCache(lru_cache.NewLruCacheConfig(size,
+		cache.CacheConfig{
+			Name:   name,
+			Logger: logger,
+		},
+	))
+
 	if err != nil {
 		t.Fatalf("Error creating LruCache: %s", err)
 	}
@@ -21,10 +30,19 @@ func newBackendCache(t *testing.T, clock *test_helpers.MockClock, size int) *lru
 func newCacheTester(t *testing.T, size int) test_helpers.CacheTester {
 	clock := test_helpers.MockedUTC()
 
-	c1 := newBackendCache(t, clock, size/2)
-	c2 := newBackendCache(t, clock, size)
+	c1 := newBackendCache(t, clock, "cache1", size/2)
+	c2 := newBackendCache(t, clock, "cache2", size)
 
-	cache, err := NewTieredCache([]cache.Cache{c1, c2})
+	logger := &log.DummyLogger{}
+	logger.Named("TieredCacheTest")
+
+	cache, err := NewTieredCache(&TieredCacheConfig{
+		Caches: []cache.Cache{c1, c2},
+		CacheConfig: cache.CacheConfig{
+			Name:   "TieredCacheTest",
+			Logger: logger,
+		},
+	})
 	if err != nil {
 		t.Fatalf("Error creating TieredCache: %s", err)
 	}
