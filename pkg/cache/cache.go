@@ -1,3 +1,7 @@
+// Provide a standardised interface for using our backend caches
+// Insert/InsertTTL should be ran in goroutines to avoid waiting for results
+// Retrieve/TTL functions should return the same error `ErrNotFound` when the key does not exist
+// TTL functions should return `ErrNoExpiry` if they key was found, but no expiry info was found
 package cache
 
 import (
