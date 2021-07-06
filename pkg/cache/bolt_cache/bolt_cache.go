@@ -37,7 +37,7 @@ type BoltCacheConfig struct {
 var _ cache.Cache = new(BoltCache)
 
 func NewBoltCache(cfg *BoltCacheConfig) (*BoltCache, error) {
-	cfg.Logger.Infof("initializing BoltCache \"%s\" at \"%s\" with bucket %s", cfg.Name, cfg.path, cfg.bucketname)
+	cfg.Logger.Infof("initializing BoltCache \"%s\" with bucket %s", cfg.path, cfg.bucketname)
 	bs, err := bolt_store.NewBoltStore(cfg.path, cfg.bucketname)
 	if err != nil {
 		return nil, err
@@ -51,6 +51,7 @@ func NewBoltCache(cfg *BoltCacheConfig) (*BoltCache, error) {
 	}
 	bc.StoreExpiry = se
 
+	cfg.Logger.Infof("initialized BoltCache \"%s\"", bc.Name())
 	return bc, nil
 }
 
@@ -264,19 +265,19 @@ func (bc *BoltCache) randomEvict(evictScan int) error {
 */
 
 func (bc *BoltCache) Start() {
-	bc.Logger.Info("starting ", bc.Name())
+	bc.Logger.Info("starting BoltCache")
 	// Start the Expiry monitor/compactor
 	bc.StoreExpiry.Start()
 }
 
 func (bc *BoltCache) Stop() {
-	bc.Logger.Info("stopping ", bc.Name())
+	bc.Logger.Info("stopping BoltCache")
 	// Start the Expiry monitor/compactor
 	bc.StoreExpiry.Stop()
 }
 
 func (bc *BoltCache) Close() {
-	bc.Logger.Debug("closing ", bc.Name())
+	bc.Logger.Debug("closing BoltCache")
 	bc.Stop()
 	bc.BoltStore.Close()
 }

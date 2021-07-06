@@ -8,20 +8,27 @@ import (
 )
 
 type TieredCache struct {
+	*TieredCacheConfig
+}
+
+type TieredCacheConfig struct {
 	Caches []cache.Cache
+	cache.CacheConfig
 }
 
 var _ cache.Cache = new(TieredCache)
 
 // Todo: There is a huge amount of debug/fluff/fmt.Print awaiting logging decisions
 
-func NewTieredCache(caches []cache.Cache) (*TieredCache, error) {
-	// Start with empty struct we can pass around
-	tc := &TieredCache{
-		Caches: caches,
-	}
-
+func NewTieredCache(cfg *TieredCacheConfig) (*TieredCache, error) {
+	cfg.Logger.Infof("initializing TieredCache with %d cache(s)", cfg.Name, len(cfg.Caches))
+	tc := &TieredCache{TieredCacheConfig: cfg}
+	cfg.Logger.Infof("initialized TieredCache \"%s\"", tc.Name())
 	return tc, nil
+}
+
+func (tc *TieredCache) Name() string {
+	return tc.CacheConfig.Name
 }
 
 func (tc *TieredCache) Insert(key string, value []byte) error {
@@ -32,7 +39,7 @@ func (tc *TieredCache) Insert(key string, value []byte) error {
 func (tc *TieredCache) InsertTTL(key string, value []byte, ttl time.Duration) error {
 	var errors []error
 	for i, c := range tc.Caches {
-		fmt.Printf("InsertingTTL into cache %d\n", i)
+		tc.Logger.Debugf("InsertingTTL into cache %d (%s)", i, c.Name())
 		err := c.InsertTTL(key, value, ttl)
 		if err != nil {
 			errors = append(errors, err)
@@ -44,12 +51,44 @@ func (tc *TieredCache) InsertTTL(key string, value []byte, ttl time.Duration) er
 	return nil
 }
 
+func (tc *TieredCache) updateCaches(cacheID int, key string, value []byte) {
+	validCache := tc.Caches[cacheID]
+	ttl, err := validCache.TTL(key)
+	if err == cache.ErrNotFound {
+		tc.Logger.Warnf("Cache %d (%s) reports key \"%s\" is now a cache.ErrNotFound", cacheID, validCache.Name(), key)
+		return
+	} else if err == cache.ErrNoExpiry {
+		// Todo: does this logic make sense????
+		tc.Logger.Warnf("Cache %d (%s) reports key \"%s\" had no TTL/Expiry - not re-adding", cacheID, validCache.Name(), key)
+		return
+	} else if err != nil {
+		tc.Logger.Warnf("Cache %d (%s) reports key \"%s\"  with TTL err: %s\n", cacheID, validCache.Name(), key, err)
+		return
+	}
+
+	if ttl < time.Duration(1)*time.Minute {
+		tc.Logger.Debugf("TTL of key \"%s\" was less than a minute - not re-adding", key)
+		return
+	}
+
+	for i, c := range tc.Caches[:cacheID] {
+		tc.Logger.Debugf("Inserting key \"%s\" into cache %d (%s)", key, i, c.Name())
+
+		err := c.InsertTTL(key, value, ttl)
+		if err != nil {
+			tc.Logger.Errorf("Error inserting key \"%s\" into cache %d (%s): %s", key, i, c.Name(), err)
+			return
+		}
+	}
+
+}
+
 func (tc *TieredCache) Retrieve(key string) ([]byte, error) {
 	// Todo: LOGIC HERE
 	//return (*tc.Caches[0]).Retrieve(key)
 	var errors []error
 	for i, c := range tc.Caches {
-		fmt.Printf("Retrieving \"%s\"from cache %d\n", key, i)
+		tc.Logger.Debugf("Retrieving \"%s\" from cache %d \"%s\"", key, i, c.Name())
 		value, err := c.Retrieve(key)
 		if err == cache.ErrNotFound {
 			continue
@@ -59,34 +98,7 @@ func (tc *TieredCache) Retrieve(key string) ([]byte, error) {
 			continue
 		}
 		// We had a hit - we should update the earlier caches
-		go func() {
-			ttl, err := c.TTL(key)
-			if err == cache.ErrNotFound {
-				fmt.Printf("Cache %d which had returned %s gave TTL a cache.ErrNotFound\n", i, value)
-				return
-			} else if err == cache.ErrNoExpiry {
-				// Todo: does this logic make sense????
-				fmt.Printf("Cache %d reports key \"%s\" had no TTL/Expiry - not re-adding\n", i, key)
-				return
-			} else if err != nil {
-				fmt.Printf("Cache %d which had returned %s gave TTL err: %s\n", i, value, err)
-				return
-			}
-			if ttl < time.Duration(1)*time.Minute {
-				fmt.Printf("TTL of key was less than a minute - not re-adding\n")
-				return
-			}
-			for i, c := range tc.Caches[:i] {
-				//stuff
-				fmt.Printf("Inserting %s into cache %d\n", key, i)
-
-				err := c.InsertTTL(key, value, ttl)
-				if err != nil {
-					fmt.Printf("Error inserting \"%s\" into %d: %s\n", key, i, err)
-					return
-				}
-			}
-		}()
+		go tc.updateCaches(i, key, value)
 
 		return value, nil
 
@@ -120,7 +132,7 @@ func (tc *TieredCache) TTL(key string) (time.Duration, error) {
 func (tc *TieredCache) Remove(key string) error {
 	var errors []error
 	for i, c := range tc.Caches {
-		fmt.Printf("Removing %s from cache %d\n\n", key, i)
+		fmt.Printf("Removing %s from cache %d\n", key, i)
 		err := c.Remove(key)
 		if err != nil {
 			errors = append(errors, err)
@@ -174,23 +186,26 @@ func (tc *TieredCache) Size() uint64 {
 }
 
 func (tc *TieredCache) Start() {
+	tc.Logger.Info("starting TieredCache")
 	for i, c := range tc.Caches {
-		fmt.Printf("Starting cache %d\n", i)
+		tc.Logger.Infof("starting cache %d \"%s\"", i, c.Name())
 		c.Start()
 	}
 }
 
 func (tc *TieredCache) Stop() {
+	tc.Logger.Info("stopping TieredCache")
 	for i, c := range tc.Caches {
-		fmt.Printf("Stopping cache %d\n", i)
+		tc.Logger.Infof("stopping cache %d \"%s\"", i, c.Name())
 		c.Stop()
 	}
 }
 
 func (tc *TieredCache) Close() {
+	tc.Logger.Debug("closing TieredCache")
 	tc.Stop()
 	for i, c := range tc.Caches {
-		fmt.Printf("Closing cache %d\n", i)
+		tc.Logger.Debugf("closing cache %d \"%s\"", i, c.Name())
 		c.Close()
 	}
 }
