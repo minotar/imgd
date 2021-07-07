@@ -50,6 +50,7 @@ func (ct *CacheTester) RetrieveKey(i int, key string) {
 	value, err := ct.Cache.Retrieve(key)
 	if err != nil {
 		ct.Tester.Errorf("Key %s (%d) had an error: %s", key, i, err)
+		return
 	}
 	if string(value) != fmt.Sprint("value_", key) {
 		ct.Tester.Errorf("Key %s (%d) was not the expected value: %s", key, i, value)
@@ -60,6 +61,7 @@ func (ct *CacheTester) RetrieveDeletedKey(i int, key string) {
 	value, err := ct.Cache.Retrieve(key)
 	if value != nil {
 		ct.Tester.Errorf("Key %s (%d) after expiry/removal should have a nil value: %s", key, i, value)
+		return
 	}
 	if err != cache.ErrNotFound {
 		ct.Tester.Errorf("Key %s (%d) after expiry/removal should have been a cache.ErrNotFound. Error was: %s", key, i, err)
