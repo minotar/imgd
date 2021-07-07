@@ -7,6 +7,8 @@ import (
 	"github.com/minotar/imgd/pkg/cache"
 )
 
+const MIN_RECACHE_TTL = time.Duration(1) * time.Minute
+
 type TieredCache struct {
 	*TieredCacheConfig
 }
@@ -19,7 +21,7 @@ type TieredCacheConfig struct {
 var _ cache.Cache = new(TieredCache)
 
 func NewTieredCache(cfg *TieredCacheConfig) (*TieredCache, error) {
-	cfg.Logger.Infof("initializing TieredCache with %d cache(s)", cfg.Name, len(cfg.Caches))
+	cfg.Logger.Infof("initializing TieredCache with %d cache(s)", len(cfg.Caches))
 	tc := &TieredCache{TieredCacheConfig: cfg}
 	cfg.Logger.Infof("initialized TieredCache \"%s\"", tc.Name())
 	return tc, nil
@@ -76,7 +78,7 @@ func (tc *TieredCache) updateCaches(cacheID int, key string, value []byte) {
 		return
 	}
 
-	if ttl < time.Duration(1)*time.Minute {
+	if ttl < MIN_RECACHE_TTL {
 		tc.Logger.Debugf("TTL of key \"%s\" was less than a minute - not re-adding", key)
 		return
 	}
@@ -91,6 +93,7 @@ func (tc *TieredCache) Retrieve(key string) ([]byte, error) {
 		tc.Logger.Debugf("Retrieving \"%s\" from cache %d \"%s\"", key, i, c.Name())
 		value, err := c.Retrieve(key)
 		if err == cache.ErrNotFound {
+			// errors logic at end handles ErrNotFound
 			continue
 		} else if err != nil {
 			// This is a cache related error (vs. a missing key)
@@ -104,7 +107,11 @@ func (tc *TieredCache) Retrieve(key string) ([]byte, error) {
 		return value, nil
 	}
 
-	return nil, fmt.Errorf("error(s) retrieving \"%s\" from cache(s): %+v", key, errors)
+	// If we had a genuine error, `errors` would be populated, otherwise, it must just be ErrNotFound
+	if errors != nil {
+		return nil, fmt.Errorf("error(s) retrieving \"%s\" from cache(s): %+v", key, errors)
+	}
+	return nil, cache.ErrNotFound
 }
 
 // Probably won't be used too much
