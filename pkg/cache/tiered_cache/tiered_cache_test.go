@@ -30,8 +30,8 @@ func newBackendCache(t *testing.T, clock *test_helpers.MockClock, name string, s
 func newCacheTester(t *testing.T, size int) test_helpers.CacheTester {
 	clock := test_helpers.MockedUTC()
 
-	c1 := newBackendCache(t, clock, "cache1", size/2)
-	c2 := newBackendCache(t, clock, "cache2", size)
+	c1 := newBackendCache(t, clock, "cache0", size/2)
+	c2 := newBackendCache(t, clock, "cache1", size)
 
 	logger := &log.DummyLogger{}
 	logger.Named("TieredCacheTest")
