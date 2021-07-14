@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/flate"
 	"encoding/gob"
+	"strings"
 	"time"
 
 	"github.com/minotar/minecraft"
@@ -12,8 +13,10 @@ import (
 	pb "github.com/minotar/imgd/pkg/mcclient/mcuser_proto"
 )
 
+const TexturesBaseURL = "http://textures.minecraft.net/texture/"
+
 type textures struct {
-	SkinPath string
+	SkinURL string
 	//CapePath string
 }
 
@@ -48,7 +51,14 @@ func EncodeProtobufMcUser(user McUser) ([]byte, error) {
 		Time:     uint32(user.Timestamp.Unix()),
 		Username: user.Username,
 		UUID:     user.UUID,
-		SkinPath: user.Textures.SkinPath,
+	}
+
+	if trimmedUrl := strings.TrimPrefix(user.Textures.SkinURL, TexturesBaseURL); len(trimmedUrl) < len(user.Textures.SkinURL) {
+		u.BaseURL = pb.McUserProto_TEXTURES_MC_NET
+		u.SkinURL = trimmedUrl
+	} else {
+		u.BaseURL = pb.McUserProto_UNKNOWN
+		u.SkinURL = user.Textures.SkinURL
 	}
 
 	return proto.Marshal(u)
@@ -68,9 +78,13 @@ func DecodeProtobufMcUser(protoBytes []byte) (McUser, error) {
 			Username: u.Username,
 			UUID:     u.UUID,
 		},
-		Textures: textures{
-			SkinPath: u.SkinPath,
-		},
+		Textures: textures{},
+	}
+
+	if u.BaseURL == pb.McUserProto_TEXTURES_MC_NET {
+		user.Textures.SkinURL = TexturesBaseURL + u.SkinURL
+	} else {
+		user.Textures.SkinURL = u.SkinURL
 	}
 
 	return user, err

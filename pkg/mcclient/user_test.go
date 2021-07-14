@@ -16,7 +16,7 @@ func TestEncodeDecodeMcUser(t *testing.T) {
 			UUID:     "5c115ca73efd41178213a0aff8ef11e0",
 		},
 		Textures: textures{
-			SkinPath: "http://textures.minecraft.net/texture/6f736b4c3e2286cfad9b0d738fd7d9630d9e0a27721b7586e423cebce420da",
+			SkinURL: "http://textures.minecraft.net/texture/6f736b4c3e2286cfad9b0d738fd7d9630d9e0a27721b7586e423cebce420da",
 		},
 	}
 
