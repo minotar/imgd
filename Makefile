@@ -35,11 +35,17 @@ DEBUG_GO_FLAGS     := -gcflags "all=-N -l" -ldflags "-extldflags \"-static\" $(G
 DYN_DEBUG_GO_FLAGS := -gcflags "all=-N -l" -ldflags "$(GO_LDFLAGS)" -tags netgo $(MOD_FLAG)
 
 
+# Protobuf files
+PROTO_DEFS := $(shell find . $(DONT_FIND) -type f -name '*.proto' -print)
+PROTO_GOS := $(patsubst %.proto,%.pb.go,$(PROTO_DEFS))
 
 
 
-skind: cmd/skind/skind
-skind-debug: cmd/skind/skind-debug
+
+
+
+skind: protos cmd/skind/skind
+skind-debug: protos cmd/skind/skind-debug
 
 cmd/skind/skind: $(APP_GO_FILES) cmd/skind/main.go
 	CGO_ENABLED=0 go build $(GO_FLAGS) -o $@ ./$(@D)
@@ -69,3 +75,17 @@ clean:
 	rm -rf cmd/skind/skind-debug
 	rm -rf cmd/processd/processd
 	rm -rf cmd/processd/processd-debug
+
+
+#############
+# Protobufs #
+#############
+
+protos: $(PROTO_GOS)
+
+# use with care. This signals to make that the proto definitions don't need recompiling.
+touch-protos:
+	for proto in $(PROTO_GOS); do [ -f "./$${proto}" ] && touch "$${proto}" && echo "touched $${proto}"; done
+
+%.pb.go: $(PROTO_DEFS)
+	protoc --proto_path=./ --go_out=${GOPATH}/src ./$(patsubst %.pb.go,%.proto,$@)

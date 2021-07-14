@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package mcuser_proto;
+
+option go_package = "github.com/minotar/imgd/pkg/mcclient/mcuser_proto";
+
+message McUserProto {
+    uint32 Time = 1;
+    string Username = 2;
+    string UUID = 3;
+    string SkinPath = 4;
+    //string CapePath = 5;
+}
