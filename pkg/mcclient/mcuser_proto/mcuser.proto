@@ -6,8 +6,13 @@ option go_package = "github.com/minotar/imgd/pkg/mcclient/mcuser_proto";
 
 message McUserProto {
     uint32 Time = 1;
-    string Username = 2;
-    string UUID = 3;
-    string SkinPath = 4;
-    //string CapePath = 5;
+    string Username = 3;
+    string UUID = 4;
+    enum URLType {
+        UNKNOWN = 0;
+        TEXTURES_MC_NET = 1;
+    }
+    URLType BaseURL = 6;
+    string SkinURL = 7;
+    //string CapePath = 8;
 }
