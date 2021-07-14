@@ -133,7 +133,6 @@ func (tc *TieredCache) TTL(key string) (time.Duration, error) {
 	}
 
 	return 0, errors[len(errors)-1]
-
 }
 
 func (tc *TieredCache) Remove(key string) error {
