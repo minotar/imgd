@@ -3,7 +3,7 @@ package mcclient
 import (
 	"bytes"
 	"compress/flate"
-	"encoding/gob"
+	"io/ioutil"
 	"strings"
 	"time"
 
@@ -15,15 +15,60 @@ import (
 
 const TexturesBaseURL = "http://textures.minecraft.net/texture/"
 
+// Todo: Does it make more sense to combine this with mcuser_proto over there?
+
+// Todo: Does it make sense to make a TinyTime type?
+
+// Todo: should I rename this towards Marshal / UnMarshal ?
+// Should I be accepting an existing interface vs. returning
+
 type textures struct {
-	SkinURL string
+	SkinPath string
+	//SkinSlim bool (for "alex" support)
 	//CapePath string
+
+	// If TexturesMcNet is true, the SkinPath is just the part after the TexturesBaseURL
+	// the Protobuf expresses this as an enum to support other values
+	// This code does not need to support multiple values - unless new hosts are used
+	TexturesMcNet bool
+}
+
+// Used to get a fully qualified URL for the Skin
+func (t *textures) SkinURL() string {
+	if t.TexturesMcNet {
+		return TexturesBaseURL + t.SkinPath
+	}
+	return t.SkinPath
+}
+
+// After having made an API call, this can be used to create a textures object
+func NewTexturesFromSessionProfile(sessionProfile minecraft.SessionProfileResponse) (textures, error) {
+	var t textures
+	profileTextureProperty, err := minecraft.DecodeTextureProperty(sessionProfile)
+	if err != nil {
+		return t, err
+	}
+
+	// If Skins URL starts with the known URL, set the "Path" to just the last bit
+	if strings.HasPrefix(profileTextureProperty.Textures.Skin.URL, TexturesBaseURL) {
+		t.TexturesMcNet = true
+		t.SkinPath = strings.TrimPrefix(profileTextureProperty.Textures.Skin.URL, TexturesBaseURL)
+	} else {
+		t.TexturesMcNet = false
+		t.SkinPath = profileTextureProperty.Textures.Skin.URL
+	}
+
+	// Other logic here for the Model / Slim skin, Capes etc.
+
+	return t, nil
 }
 
 type McUser struct {
 	Timestamp time.Time // Using a Seconds uint32 will be better for space
 	minecraft.User
 	Textures textures
+	// Todo: what type to store User status?????
+	Status uint8
 }
 
 func PackMcUser(user McUser) ([]byte, error) {
@@ -46,19 +91,27 @@ func PackMcUser(user McUser) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
+func UnPackUser(packedBytes []byte) (McUser, error) {
+	zr := flate.NewReader(bytes.NewReader(packedBytes))
+	protoBytes, err := ioutil.ReadAll(zr)
+	if err != nil {
+		return McUser{}, err
+	}
+	return DecodeProtobufMcUser(protoBytes)
+
+}
+
 func EncodeProtobufMcUser(user McUser) ([]byte, error) {
 	u := &pb.McUserProto{
 		Time:     uint32(user.Timestamp.Unix()),
+		Status:   pb.McUserProto_UserStatus(user.Status),
 		Username: user.Username,
 		UUID:     user.UUID,
+		SkinPath: user.Textures.SkinPath,
 	}
 
-	if trimmedUrl := strings.TrimPrefix(user.Textures.SkinURL, TexturesBaseURL); len(trimmedUrl) < len(user.Textures.SkinURL) {
+	if user.Textures.TexturesMcNet {
 		u.BaseURL = pb.McUserProto_TEXTURES_MC_NET
-		u.SkinURL = trimmedUrl
-	} else {
-		u.BaseURL = pb.McUserProto_UNKNOWN
-		u.SkinURL = user.Textures.SkinURL
 	}
 
 	return proto.Marshal(u)
@@ -74,44 +127,19 @@ func DecodeProtobufMcUser(protoBytes []byte) (McUser, error) {
 
 	user := McUser{
 		Timestamp: getTimeFromEpoch32(u.Time),
+		Status:    uint8(u.Status),
 		User: minecraft.User{
 			Username: u.Username,
 			UUID:     u.UUID,
 		},
-		Textures: textures{},
+		Textures: textures{
+			SkinPath: u.SkinPath,
+		},
 	}
 
+	// If the enum is set, then set True
 	if u.BaseURL == pb.McUserProto_TEXTURES_MC_NET {
-		user.Textures.SkinURL = TexturesBaseURL + u.SkinURL
-	} else {
-		user.Textures.SkinURL = u.SkinURL
-	}
-
-	return user, err
-}
-
-// ===
-
-func EncodeGobMcUser(user McUser) ([]byte, error) {
-	var bytes bytes.Buffer
-	enc := gob.NewEncoder(&bytes)
-
-	err := enc.Encode(user)
-	if err != nil {
-		return nil, err
-	}
-
-	return bytes.Bytes(), nil
-}
-
-func DecodeGobMcUser(gobBytes []byte) (McUser, error) {
-	user := McUser{}
-
-	reader := bytes.NewReader(gobBytes)
-	dec := gob.NewDecoder(reader)
-	err := dec.Decode(&user)
-	if err != nil {
-		return user, err
+		user.Textures.TexturesMcNet = true
 	}
 
 	return user, err
