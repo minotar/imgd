@@ -6,13 +6,27 @@ option go_package = "github.com/minotar/imgd/pkg/mcclient/mcuser_proto";
 
 message McUserProto {
     uint32 Time = 1;
-    string Username = 3;
-    string UUID = 4;
+
+    enum UserStatus {
+        UNSET = 0;
+        OK = 1;
+        ERROR_GENERIC = 2;
+        ERROR_UNKNOWN_USER = 3;
+        ERROR_RATE_LIMIT = 4;
+    }
+    UserStatus Status = 2;
+
+    string Username = 4;
+    string UUID = 5;
+
+    // Supports other value incase another Texture host is ever used
     enum URLType {
         UNKNOWN = 0;
         TEXTURES_MC_NET = 1;
     }
-    URLType BaseURL = 6;
-    string SkinURL = 7;
-    //string CapePath = 8;
+    URLType BaseURL = 7;
+
+    //bool SkinSlim = 8
+    string SkinPath = 9;
+    //string CapePath = 10;
 }
