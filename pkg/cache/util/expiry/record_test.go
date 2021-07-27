@@ -23,20 +23,20 @@ func TestNewExpiryRecord(t *testing.T) {
 		if r.Key != keyName {
 			t.Errorf("Key should be \"%s\": %s", keyName, r.Key)
 		}
-		if r.ExpirySeconds != uint32(i) {
-			t.Errorf("ExpirySeconds did not match %d: %d", i, r.ExpirySeconds)
+		if uint32(r.Expiry) != uint32(i) {
+			t.Errorf("ExpirySeconds did not match %d: %d", i, r.Expiry)
 		}
 
-		if expectedTime := unixUTC(i); r.Expiry() != expectedTime {
-			t.Errorf("Expected Time %+v did not Expiry Time %+v", expectedTime, r.Expiry())
+		if expectedTime := unixUTC(i); r.Expiry.Time() != expectedTime {
+			t.Errorf("Expected Time %+v did not Expiry Time %+v", expectedTime, r.Expiry.Time())
 		}
 	}
 }
 
 func TestNewNoExpiryRecord(t *testing.T) {
 	r := NewExpiryRecordTTL("foo", test_helpers.MockedUTC(), 0)
-	if r.ExpirySeconds != 0 {
-		t.Errorf("An Expiry Record with TTL 0 should have ExpirySeconds 0: %d", r.ExpirySeconds)
+	if r.Expiry != 0 {
+		t.Errorf("An Expiry Record with TTL 0 should have ExpirySeconds 0: %d", r.Expiry)
 	}
 	if r.HasExpiry() == true {
 		t.Error("An Expiry Record with TTL 0 should not expire")
