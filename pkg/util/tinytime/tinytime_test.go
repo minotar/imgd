@@ -71,3 +71,25 @@ func TestTinyTimeDecode(t *testing.T) {
 		t.Errorf("TinyTime should match original test time: %v", tt_time)
 	}
 }
+
+func TestTinyTimeCompare(t *testing.T) {
+	t1 := tinytime.TinyTime(TimeSeconds - 1)
+	t2 := tinytime.TinyTime(TimeSeconds)
+	t3 := tinytime.TinyTime(TimeSeconds + 1)
+
+	if !t1.Before(t2) {
+		t.Error("t1 should be Before t2")
+	}
+	if t1.Before(t1) {
+		t.Error("t1 should not be before t1")
+	}
+
+	if !t2.Equal(t2) {
+		t.Error("t2 should be Equal to t2")
+	}
+
+	if !t3.After(t2) {
+		t.Error("t3 should be After t2")
+	}
+
+}
