@@ -3,10 +3,10 @@
 package store
 
 import (
-	"encoding/binary"
 	"time"
 
 	"github.com/minotar/imgd/pkg/cache/util/expiry"
+	"github.com/minotar/imgd/pkg/util/tinytime"
 )
 
 // Todo: if the Value will also have an expiry/freshness in it, we would do
@@ -39,15 +39,13 @@ func (s *StoreExpiry) NewStoreEntry(key string, value []byte, ttl time.Duration)
 	return e
 }
 
-func getBytesExpirySeconds(buf []byte) uint32 {
-	return binary.BigEndian.Uint32(buf[:4])
-}
-
 func HasBytesExpired(buf []byte, now time.Time) bool {
-	if expirySeconds := getBytesExpirySeconds(buf[:4]); expirySeconds == 0 {
+	tt_expiry := tinytime.Decode(buf[:4])
+
+	if tt_expiry.IsZero() {
 		// 0 seconds is "no expiry"
 		return false
-	} else if expiry := expiry.GetTimeFromEpoch32(expirySeconds); expiry.Before(now) {
+	} else if tt_expiry.Time().Before(now) {
 		// If Expiry is _before_ now, then it's expired
 		return true
 	}
@@ -58,8 +56,8 @@ func HasBytesExpired(buf []byte, now time.Time) bool {
 func DecodeStoreEntry(key, value []byte) StoreEntry {
 	return StoreEntry{
 		ExpiryRecord: expiry.ExpiryRecord{
-			Key:           string(key),
-			ExpirySeconds: getBytesExpirySeconds(value[:4]),
+			Key:    string(key),
+			Expiry: tinytime.Decode(value[:4]),
 		},
 		Value: value[4:],
 	}
@@ -79,12 +77,13 @@ type StoreEntry struct {
 //  | uint32    | []byte |
 //  |--------------------|
 
+// Todo: does this need to be a pointer?
 func (e *StoreEntry) Encode() (key, value []byte) {
 	// Uint32 takes up 4 bytes
 	buf := make([]byte, 4, 4+len(e.Value))
 
 	// boltdb uses BigEndian in places, set the first 4 bytes as expiry
-	binary.BigEndian.PutUint32(buf[:4], e.ExpirySeconds)
+	e.Expiry.Encode(buf[:4])
 	// Fill remaining slice with the Value
 	buf = append(buf, e.Value...)
 

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/minotar/imgd/pkg/cache/util/test_helpers"
+	"github.com/minotar/imgd/pkg/util/tinytime"
 )
 
 type mockClock struct {
@@ -88,11 +89,11 @@ func TestNewStoreEntry(t *testing.T) {
 			t.Error("Binary values did not match expected")
 		}
 		if i == 0 {
-			if unixUTC(0) != e.Expiry() {
-				t.Errorf("TTL Value of 0 should be Epoch 1970, not %s", e.Expiry())
+			if unixUTC(0) != e.Expiry.Time() {
+				t.Errorf("TTL Value of 0 should be Epoch 1970, not %s", e.Expiry.Time())
 			}
-		} else if expectedTime := clock.Now().Add(time.Duration(i) * time.Minute); !expectedTime.Equal(e.Expiry()) {
-			t.Errorf("Expected Time %s did not match StoreEntry Time %s", expectedTime, e.Expiry())
+		} else if expectedTime := clock.Now().Add(time.Duration(i) * time.Minute); !expectedTime.Equal(e.Expiry.Time()) {
+			t.Errorf("Expected Time %s did not match StoreEntry Time %s", expectedTime, e.Expiry.Time())
 		}
 	}
 
@@ -111,9 +112,10 @@ func TestStoreEntryExpiry(t *testing.T) {
 		if len(buf) != 4+i {
 			t.Errorf("Length of bytes should have been %d, not %d", 4+i, len(buf))
 		}
-		expirySeconds := getBytesExpirySeconds(timeBytes)
-		if expirySeconds != uint32(i) {
-			t.Errorf("Expected Expiry %d seconds, not %d", i, expirySeconds)
+		// Todo: fix tests
+		tt_expiry := tinytime.Decode(timeBytes)
+		if int(tt_expiry) != i {
+			t.Errorf("Expected Expiry %d seconds, not %d", i, tt_expiry)
 		}
 
 		if i == 0 {
@@ -122,11 +124,11 @@ func TestStoreEntryExpiry(t *testing.T) {
 			}
 		} else {
 			if HasBytesExpired(timeBytes, clock.Now()) {
-				t.Errorf("Expiry %d *should not* be expired at %s", expirySeconds, clock.Now())
+				t.Errorf("Expiry %d *should not* be expired at %s", tt_expiry, clock.Now())
 			}
 			clock.Add(time.Duration(1) * time.Second)
 			if !HasBytesExpired(timeBytes, clock.Now()) {
-				t.Errorf("Expiry %d *should* be expired at %s", expirySeconds, clock.Now())
+				t.Errorf("Expiry %d *should* be expired at %s", tt_expiry, clock.Now())
 			}
 		}
 	}
@@ -175,11 +177,11 @@ func TestStoreEntryEncodeDecode(t *testing.T) {
 			t.Error("Binary values did not match expected")
 		}
 		if i == 0 {
-			if unixUTC(0) != e2.Expiry() {
-				t.Errorf("TTL Value of 0 should be Epoch 1970, not %s", e.Expiry())
+			if unixUTC(0) != e2.Expiry.Time() {
+				t.Errorf("TTL Value of 0 should be Epoch 1970, not %s", e.Expiry.Time())
 			}
-		} else if expectedTime := clock.Now().Add(time.Duration(i) * time.Minute); !expectedTime.Equal(e.Expiry()) {
-			t.Errorf("Expected Time %s did not match BCE Time %s", expectedTime, e.Expiry())
+		} else if expectedTime := clock.Now().Add(time.Duration(i) * time.Minute); !expectedTime.Equal(e.Expiry.Time()) {
+			t.Errorf("Expected Time %s did not match BCE Time %s", expectedTime, e.Expiry.Time())
 		}
 	}
 }
