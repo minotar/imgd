@@ -20,6 +20,18 @@ func (tt TinyTime) Time() time.Time {
 	return time.Unix(int64(tt), 0).UTC()
 }
 
+func (tt TinyTime) Equal(u TinyTime) bool {
+	return tt == u
+}
+
+func (tt TinyTime) Before(u TinyTime) bool {
+	return tt < u
+}
+
+func (tt TinyTime) After(u TinyTime) bool {
+	return tt > u
+}
+
 // IsZero confirms if the TinyTime is uninitialized or Unix Epoch
 func (tt TinyTime) IsZero() bool {
 	return tt == 0

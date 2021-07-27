@@ -60,8 +60,9 @@ func (m *MemoryExpiry) AddExpiry(key string, ttl time.Duration) {
 		return
 	}
 
+	// Todo: this stuff needs fixing
 	record := expiry.NewExpiryRecordTTL(key, m.Clock, ttl)
-	expires := record.Expiry()
+	expires := record.Expiry
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -69,14 +70,14 @@ func (m *MemoryExpiry) AddExpiry(key string, ttl time.Duration) {
 	list := m.records
 
 	l := len(list)
-	if l == 0 || list[l-1].Expiry().Before(expires) {
+	if l == 0 || list[l-1].Expiry.Before(expires) {
 		// Special case: if the ttl is later than every other element,
 		// just append it to the end.
 		list = append(list, record)
 	} else {
 		// Otherwise, just do a binary search and insert it.
 		idx := sort.Search(l, func(i int) bool {
-			return !list[i].Expiry().Before(expires)
+			return !list[i].Expiry.Before(expires)
 		})
 
 		list = append(list, expiry.ExpiryRecord{})
@@ -139,7 +140,7 @@ func (m *MemoryExpiry) GetExpiry(key string) time.Time {
 		return time.Time{}
 	}
 
-	return rec.Expiry()
+	return rec.Expiry.Time()
 }
 
 // GetTTL grabs the TTL of the key (always >=1s), or 0 if no expiry/not found
