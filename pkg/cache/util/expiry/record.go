@@ -5,19 +5,20 @@ import (
 	"time"
 
 	"github.com/minotar/imgd/pkg/cache"
+	"github.com/minotar/imgd/pkg/util/tinytime"
 )
 
 // ExpiryRecord is an efficient way to encode the Expiry time in a uint32
 type ExpiryRecord struct {
 	Key string
 	// An unsigned int32 is good until 2100...
-	ExpirySeconds uint32
+	Expiry tinytime.TinyTime
 }
 
 func NewExpiryRecord(key string, expires time.Time) ExpiryRecord {
 	return ExpiryRecord{
-		Key:           key,
-		ExpirySeconds: uint32(expires.Unix()),
+		Key:    key,
+		Expiry: tinytime.NewTinyTime(expires),
 	}
 }
 
@@ -33,26 +34,17 @@ func NewExpiryRecordTTL(key string, clock clock, ttl time.Duration) ExpiryRecord
 	return NewExpiryRecord(key, expiry)
 }
 
-func GetTimeFromEpoch32(expirySeconds uint32) (t time.Time) {
-	return time.Unix(int64(expirySeconds), 0).UTC()
-}
-
-// Expiry is the time.Time that the key expires
-func (r *ExpiryRecord) Expiry() time.Time {
-	return GetTimeFromEpoch32(r.ExpirySeconds)
-}
-
 // HasExpiry determines where the key has an expiry value
 func (r *ExpiryRecord) HasExpiry() bool {
 	// 0 seconds is "no expiry"
 	// if ExpirySeconds is not 0, then it has an Expiry (true)
 	// if ExpirySeconds is 0, then it has no Expiry (false)
-	return r.ExpirySeconds != 0
+	return !r.Expiry.IsZero()
 }
 
 // HasExpired uses the given time.Time to determine if the key is valid
 func (r *ExpiryRecord) HasExpired(now time.Time) bool {
-	if r.HasExpiry() && r.Expiry().Before(now) {
+	if r.HasExpiry() && r.Expiry.Time().Before(now) {
 		// If Expiry is _before_ now, then it's expired
 		return true
 	}
@@ -64,7 +56,7 @@ func (r *ExpiryRecord) HasExpired(now time.Time) bool {
 // An error is returned if the key does not exist in the expiry records (no expiry)
 func (r *ExpiryRecord) TTL(now time.Time) (time.Duration, error) {
 	if r.HasExpiry() {
-		ttl := r.Expiry().Sub(now)
+		ttl := r.Expiry.Time().Sub(now)
 		if ttl < time.Duration(time.Second) {
 			// Technically, we could get back a 0 or less Duration - but 0 is "no expiry"
 			ttl = time.Duration(time.Second)
