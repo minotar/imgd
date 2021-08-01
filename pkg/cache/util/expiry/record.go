@@ -35,7 +35,7 @@ func NewExpiryRecordTTL(key string, clock clock, ttl time.Duration) ExpiryRecord
 }
 
 // HasExpiry determines where the key has an expiry value
-func (r *ExpiryRecord) HasExpiry() bool {
+func (r ExpiryRecord) HasExpiry() bool {
 	// 0 seconds is "no expiry"
 	// if ExpirySeconds is not 0, then it has an Expiry (true)
 	// if ExpirySeconds is 0, then it has no Expiry (false)
@@ -43,7 +43,7 @@ func (r *ExpiryRecord) HasExpiry() bool {
 }
 
 // HasExpired uses the given time.Time to determine if the key is valid
-func (r *ExpiryRecord) HasExpired(now time.Time) bool {
+func (r ExpiryRecord) HasExpired(now time.Time) bool {
 	if r.HasExpiry() && r.Expiry.Time().Before(now) {
 		// If Expiry is _before_ now, then it's expired
 		return true
@@ -54,7 +54,7 @@ func (r *ExpiryRecord) HasExpired(now time.Time) bool {
 
 // TTL uses a specific time.Time ("now") and works out the TTL of the key (always >=1s), or 0 if no expiry
 // An error is returned if the key does not exist in the expiry records (no expiry)
-func (r *ExpiryRecord) TTL(now time.Time) (time.Duration, error) {
+func (r ExpiryRecord) TTL(now time.Time) (time.Duration, error) {
 	if r.HasExpiry() {
 		ttl := r.Expiry.Time().Sub(now)
 		if ttl < time.Duration(time.Second) {
