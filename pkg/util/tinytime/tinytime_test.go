@@ -93,3 +93,37 @@ func TestTinyTimeCompare(t *testing.T) {
 	}
 
 }
+
+func BenchmarkTinyTime(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		b1 := tinytime.TinyTime(int64(i))
+		b1.IsZero()
+	}
+}
+
+func BenchmarkTime(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		b1 := time.Unix(int64(i), 0)
+		b1.IsZero()
+	}
+}
+
+func BenchmarkTinyTimeFromTime(b *testing.B) {
+	mockTime := TimeUTC()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b1 := tinytime.NewTinyTime(mockTime)
+		b1.IsZero()
+	}
+}
+
+func BenchmarkTimeFromTinyTime(b *testing.B) {
+	tt := tinytime.TinyTime(TimeSeconds)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b1 := tt.Time()
+		b1.IsZero()
+	}
+}
