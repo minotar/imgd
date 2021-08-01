@@ -342,3 +342,23 @@ func TestRemoveExpired(t *testing.T) {
 	}
 
 }
+
+func benchAddExpiry(size int, b *testing.B) {
+	// This uses increasing TTLs as the mock Clock would otherwise add each
+	// record at the same moment
+	me, _ := freshMemoryExpiry()
+	keyStr := test_helpers.RandString(size)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		me.AddExpiry(keyStr, time.Duration(i)*time.Second)
+	}
+}
+
+func BenchmarkAddExpiry32(b *testing.B) {
+	benchAddExpiry(32, b)
+}
+
+func BenchmarkAddExpiry64(b *testing.B) {
+	benchAddExpiry(64, b)
+}

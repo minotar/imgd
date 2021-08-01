@@ -9,9 +9,6 @@ import (
 	"github.com/minotar/imgd/pkg/util/tinytime"
 )
 
-// Todo: if the Value will also have an expiry/freshness in it, we would do
-// better to have a single uint32 vs. 2 of them.
-
 type StoreExpiry struct {
 	*expiry.Expiry
 }
@@ -77,7 +74,6 @@ type StoreEntry struct {
 //  | uint32    | []byte |
 //  |--------------------|
 
-// Todo: does this need to be a pointer?
 func (e *StoreEntry) Encode() (key, value []byte) {
 	// Uint32 takes up 4 bytes
 	buf := make([]byte, 4, 4+len(e.Value))
