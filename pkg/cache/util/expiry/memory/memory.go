@@ -18,10 +18,10 @@ const COMPACTOR_INTERVAL = 5 * time.Second
 
 // Handles tracking of expiration times.
 type MemoryExpiry struct {
+	mu sync.Mutex
 	*expiry.Expiry
 	removeFunc func(key string) error
 	records    []expiry.ExpiryRecord
-	mu         sync.Mutex
 }
 
 func expiryOptions(compactorFunc func()) *expiry.Options {
@@ -60,7 +60,6 @@ func (m *MemoryExpiry) AddExpiry(key string, ttl time.Duration) {
 		return
 	}
 
-	// Todo: this stuff needs fixing
 	record := expiry.NewExpiryRecordTTL(key, m.Clock, ttl)
 	expires := record.Expiry
 

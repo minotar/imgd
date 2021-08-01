@@ -230,50 +230,58 @@ func benchEncodeDecode(size int, b *testing.B) {
 	}
 }
 
-func BenchmarkBoltCacheEntryEncode32(b *testing.B) {
+func BenchmarkStoreEntryEncode32(b *testing.B) {
 	benchEncode(32, b)
 }
 
-func BenchmarkBoltCacheEntryEncode64(b *testing.B) {
+func BenchmarkStoreEntryEncode64(b *testing.B) {
 	benchEncode(64, b)
 }
 
-func BenchmarkBoltCacheEntryEncode256(b *testing.B) {
+func BenchmarkStoreEntryEncode256(b *testing.B) {
 	benchEncode(256, b)
 }
 
-func BenchmarkBoltCacheEntryEncode1024(b *testing.B) {
+func BenchmarkStoreEntryEncode1024(b *testing.B) {
 	benchEncode(1024, b)
 }
 
-func BenchmarkBoltCacheEntryDecode32(b *testing.B) {
+func BenchmarkStoreEntryDecode32(b *testing.B) {
 	benchDecode(32, b)
 }
 
-func BenchmarkBoltCacheEntryDecode64(b *testing.B) {
+func BenchmarkStoreEntryDecode64(b *testing.B) {
 	benchDecode(64, b)
 }
 
-func BenchmarkBoltCacheEntryDecode256(b *testing.B) {
+func BenchmarkStoreEntryDecode256(b *testing.B) {
 	benchDecode(256, b)
 }
 
-func BenchmarkBoltCacheEntryDecode1024(b *testing.B) {
+func BenchmarkStoreEntryDecode1024(b *testing.B) {
 	benchDecode(1024, b)
 }
 
-func BenchmarkBoltCacheEntryEncodeDecode32(b *testing.B) {
+func BenchmarkStoreEntryEncodeDecode32(b *testing.B) {
 	benchEncodeDecode(32, b)
 }
 
-func BenchmarkBoltCacheEntryEncodeDecode64(b *testing.B) {
+func BenchmarkStoreEntryEncodeDecode64(b *testing.B) {
 	benchEncodeDecode(64, b)
 }
 
-func BenchmarkBoltCacheEntryEncodeDecode256(b *testing.B) {
+func BenchmarkStoreEntryEncodeDecode256(b *testing.B) {
 	benchEncodeDecode(256, b)
 }
 
-func BenchmarkBoltCacheEntryEncodeDecode1024(b *testing.B) {
+func BenchmarkStoreEntryEncodeDecode1024(b *testing.B) {
 	benchEncodeDecode(1024, b)
+}
+
+func BenchmarkStoreEntryEncodeDecode2048(b *testing.B) {
+	benchEncodeDecode(2048, b)
+}
+
+func BenchmarkStoreEntryEncodeDecode4096(b *testing.B) {
+	benchEncodeDecode(4096, b)
 }

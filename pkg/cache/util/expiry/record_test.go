@@ -89,3 +89,22 @@ func TestExpiryRecordHasExpired(t *testing.T) {
 	}
 
 }
+
+func benchNewRecord(size int, b *testing.B) {
+	keyStr := test_helpers.RandString(size)
+	expires := unixUTC(100)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		r := NewExpiryRecord(keyStr, expires)
+		_ = r.HasExpiry()
+	}
+}
+
+func BenchmarkNewExpiryRecord32(b *testing.B) {
+	benchNewRecord(32, b)
+}
+
+func BenchmarkNewExpiryRecord64(b *testing.B) {
+	benchNewRecord(64, b)
+}
