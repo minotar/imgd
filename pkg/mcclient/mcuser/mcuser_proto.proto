@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package mcuser_proto;
+package mcuser;
 
-option go_package = "github.com/minotar/imgd/pkg/mcclient/mcuser_proto";
+option go_package = "github.com/minotar/imgd/pkg/mcclient/mcuser";
 
 message McUserProto {
     uint32 Time = 1;
