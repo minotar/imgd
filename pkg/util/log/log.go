@@ -6,16 +6,23 @@ type Logger interface {
 	//Named(name string)
 	Debug(args ...interface{})
 	Debugf(template string, args ...interface{})
+
 	Info(args ...interface{})
 	Infof(template string, args ...interface{})
+
 	Warn(args ...interface{})
 	Warnf(template string, args ...interface{})
+
 	Error(args ...interface{})
 	Errorf(template string, args ...interface{})
+
 	Panic(args ...interface{})
 	Panicf(template string, args ...interface{})
+
 	Fatal(args ...interface{})
 	Fatalf(template string, args ...interface{})
+
+	With(args ...interface{}) Logger
 }
 
 // DummyLogger is a super basic fmt.Println based and implementes the Logger interface
@@ -42,7 +49,7 @@ func (l *DummyLogger) Named(name string) {
 }
 
 // Debug just saves the line
-func (l *DummyLogger) Debug(args ...interface{}) { l.saveLine("DEBUG ", fmt.Sprint(args...)) }
+func (l *DummyLogger) Debug(args ...interface{}) { l.log("DEBUG ", fmt.Sprint(args...)) }
 
 func (l *DummyLogger) Info(args ...interface{}) { l.log("INFO ", fmt.Sprint(args...)) }
 
@@ -76,4 +83,10 @@ func (l *DummyLogger) Panicf(template string, args ...interface{}) {
 
 func (l *DummyLogger) Fatalf(template string, args ...interface{}) {
 	l.Fatal(fmt.Sprintf(template, args...))
+}
+
+func (l *DummyLogger) With(args ...interface{}) Logger {
+	newLogger := &DummyLogger{}
+	newLogger.Named(fmt.Sprintf("%s=%s", args[0], args[1]))
+	return newLogger
 }

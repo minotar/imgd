@@ -15,8 +15,8 @@ type LruCache struct {
 }
 
 type LruCacheConfig struct {
-	size int
 	cache.CacheConfig
+	size int
 }
 
 func NewLruCacheConfig(size int, cacheCfg cache.CacheConfig) *LruCacheConfig {
