@@ -28,15 +28,20 @@ type BoltCache struct {
 }
 
 type BoltCacheConfig struct {
+	cache.CacheConfig
 	path       string
 	bucketname string
-	cache.CacheConfig
 }
 
 // ensure that the cache.Cache interface is implemented
 var _ cache.Cache = new(BoltCache)
 
 func NewBoltCache(cfg *BoltCacheConfig) (*BoltCache, error) {
+	cfg.Logger = cfg.Logger.With(
+		"cacheName", cfg.Name,
+		"cacheType", "BoltCache",
+	)
+	// Todo: With the `With()`, do we need the lines specifying cache type and name to be logged??
 	cfg.Logger.Infof("initializing BoltCache \"%s\" with bucket %s", cfg.path, cfg.bucketname)
 	bs, err := bolt_store.NewBoltStore(cfg.path, cfg.bucketname)
 	if err != nil {
