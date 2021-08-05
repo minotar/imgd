@@ -2,10 +2,10 @@ package mcclient
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/minotar/imgd/pkg/cache"
 	"github.com/minotar/imgd/pkg/mcclient/mcuser"
+	"github.com/minotar/imgd/pkg/mcclient/uuid"
 	"github.com/minotar/imgd/pkg/util/log"
 )
 
@@ -16,13 +16,14 @@ import (
 // Todo: Also, add function context to logger
 // User cache name and UUID in logger.With()?
 
-// CacheLookupUsername searches the cache based on Username, expecting a UUID in response
-func (mc *McClient) CacheLookupUsername(logger log.Logger, username string) (uuid string, err error) {
+// CacheRetrieveUUIDEntry searches the cache based on Username, expecting a UUID in response
+func (mc *McClient) CacheRetrieveUUIDEntry(logger log.Logger, username string) (uuidEntry uuid.UUIDEntry, err error) {
 	// Metrics timer / tracing
 	// Though - is this useless when using a TieredCache which is inherentantly varied?
-	uuid, err = cache.RetrieveKV(mc.Caches.UUID, username)
+	uuidBytes, err := mc.Caches.UUID.Retrieve(username)
 	// Observe Cache retrieve
 	if err != nil {
+		// Return an error (and log based on severity)
 		if err == cache.ErrNotFound {
 			// Metrics stat "Miss"
 			logger.Debugf("Did not find username \"%s\" in %s", username, mc.Caches.UUID.Name())
@@ -33,35 +34,46 @@ func (mc *McClient) CacheLookupUsername(logger log.Logger, username string) (uui
 			return
 		}
 	}
-	if uuid == "" {
-		// Should not be a possible code path? (we shouldn't be adding empty values)
+
+	if len(uuidBytes) < 5 {
+		// 4 bytes or less would be an invalid status/timestamp
 		// Metrics stats Cache Empty Error
-		logger.Errorf("Empty UUID returned for username \"%s\" in %s", username, mc.Caches.UUID.Name())
-		return uuid, fmt.Errorf("cache returned empty UUID")
+		logger.Errorf("Null UUID returned for username \"%s\" in %s: %v", username, mc.Caches.UUID.Name(), uuidBytes)
+		return uuid.UUIDEntry{}, fmt.Errorf("cache returned null UUID")
 	}
+
+	uuidEntry = uuid.DecodeUUIDEntry(uuidBytes)
+
 	// Metrics stat Hit
-	logger.Debugf("Found username \"%s\" in %s: %s", username, mc.Caches.UUID.Name(), uuid)
+	logger.Debugf("Found username \"%s\" in %s: %v", username, mc.Caches.UUID.Name(), uuidEntry)
 	return
 }
 
-func (mc *McClient) CacheAddUsername(logger log.Logger, username string, uuid string, ttl time.Duration) (err error) {
+// CacheInsertUUIDEntry takes a valid UUIDEntry and caches it
+// There is no sanity checking on the input
+// The item is cached witha TTL assuming it's brand-new
+func (mc *McClient) CacheInsertUUIDEntry(logger log.Logger, username string, uuidEntry uuid.UUIDEntry) (err error) {
+	// Technically this could be empty / nil???
+	uuidBytes := uuidEntry.Encode()
+
 	// Metrics timer / tracing
 	// Though - is this useless when using a TieredCache which is inherentantly varied?
-	err = cache.InsertKV(mc.Caches.UUID, username, uuid, ttl)
-	// Observe Cache retrieve
+	err = mc.Caches.UUID.InsertTTL(username, uuidBytes, uuidEntry.TTL())
+	// Observe Cache insert
 	if err != nil {
 		// stats.CacheUUID("error")
-		logger.Errorf("Failed Insert username:UUID into cache (%s:%s): %v", username, uuid, err)
+		logger.Errorf("Failed Insert username:UUID into cache (%s:%s): %v", username, uuidEntry, err)
 	}
 	return
 }
 
-func (mc *McClient) CacheLookupUUID(logger log.Logger, uuid string) (user mcuser.McUser, err error) {
+func (mc *McClient) CacheRetrieveMcUser(logger log.Logger, uuid string) (user mcuser.McUser, err error) {
 	// Metrics timer / tracing
 	// Though - is this useless when using a TieredCache which is inherentantly varied?
 	userBytes, err := mc.Caches.UserData.Retrieve(uuid)
 	// Observe Cache retrieve
 	if err != nil {
+		// Return an error (and log based on severity)
 		if err == cache.ErrNotFound {
 			// Metrics stat "Miss"
 			logger.Debugf("Did not find uuid \"%s\" in %s", uuid, mc.Caches.UserData.Name())
@@ -84,7 +96,7 @@ func (mc *McClient) CacheLookupUUID(logger log.Logger, uuid string) (user mcuser
 	return
 }
 
-func (mc *McClient) CacheAddUUID(logger log.Logger, uuid string, user mcuser.McUser, ttl time.Duration) (err error) {
+func (mc *McClient) CacheInsertMcUser(logger log.Logger, uuid string, user mcuser.McUser) (err error) {
 	packedUserBytes, err := user.Compress()
 	if err != nil {
 		// stats.CacheUser("pack_error")
@@ -93,8 +105,8 @@ func (mc *McClient) CacheAddUUID(logger log.Logger, uuid string, user mcuser.McU
 
 	// Metrics timer / tracing
 	// Though - is this useless when using a TieredCache which is inherentantly varied?
-	err = mc.Caches.UUID.InsertTTL(uuid, packedUserBytes, ttl)
-	// Observe Cache retrieve
+	err = mc.Caches.UUID.InsertTTL(uuid, packedUserBytes, user.TTL())
+	// Observe Cache insert
 	if err != nil {
 		// stats.CacheUser("insert_error")
 		logger.Errorf("Failed Insert UUID:user into cache (%s:%s): %v", uuid, user.Username, err)
