@@ -3,13 +3,14 @@ package mcclient
 
 import (
 	"errors"
-	"strings"
 	"time"
 
 	"github.com/minotar/imgd/pkg/cache"
 	"github.com/minotar/imgd/pkg/util/log"
 
 	"github.com/minotar/imgd/pkg/mcclient/mcuser"
+	"github.com/minotar/imgd/pkg/mcclient/status"
+	mc_uuid "github.com/minotar/imgd/pkg/mcclient/uuid"
 	"github.com/minotar/minecraft"
 )
 
@@ -74,159 +75,110 @@ func (mc *McClient) GetSkin(logger log.Logger, userReq UserReq) minecraft.Skin {
 	var uuid string
 	if userReq.UUID == "" {
 		logger = logger.With("username", userReq.Username)
-		fetchedUuid, err := mc.GetUUID(logger, userReq.Username)
+		uuidEntry, err := mc.GetUUIDEntry(logger, userReq.Username)
 		if err != nil {
 			skin, _ := minecraft.FetchSkinForSteve()
 			return skin
 		}
-		uuid = fetchedUuid
+		uuid = uuidEntry.UUID
 	} else {
 		uuid = userReq.UUID
 	}
 
 	logger = logger.With("uuid", uuid)
-	user, err := mc.GetUser(logger, uuid)
+	user, err := mc.GetMcUser(logger, uuid)
 
 	_, _ = user, err
 	return minecraft.Skin{}
+}
+
+func (mc *McClient) RequestUUIDEntry(logger log.Logger, username string, uuidEntry mc_uuid.UUIDEntry) mc_uuid.UUIDEntry {
+	// Metrics timer / tracing
+	// GetUUID uses the GetAPIProfile which would also pull the Username (not wanted)
+	uuidFresh, err := mc.API.GetUUID(username)
+	// Observe GetUUID timer
+	uuidEntryFresh := mc_uuid.NewUUIDEntry(logger, username, uuidFresh, err)
+
+	if !uuidEntryFresh.IsValid() && uuidEntry.IsValid() {
+		// New result errored, but the original/stale Entry was already valid - Don't cache!
+		return uuidEntry
+	}
+
+	// Todo: goroutine?
+	mc.CacheInsertUUIDEntry(logger, username, uuidEntryFresh)
+	return uuidEntryFresh
 }
 
 // Todo: This should handle all cache / API
 // Todo: Do we want a WaitGroup here?
 // Only real downside is that we can't goroutine to insert into cache?
 // Unless we have 2 locks? 1 here, and then one that blocks reads when writing?
-func (mc *McClient) GetUUID(logger log.Logger, username string) (string, error) {
-	uuid, err := mc.CacheLookupUsername(logger, username)
+func (mc *McClient) GetUUIDEntry(logger log.Logger, username string) (uuidEntry mc_uuid.UUIDEntry, err error) {
+	uuidEntry, err = mc.CacheRetrieveUUIDEntry(logger, username)
 	if err != nil && err != cache.ErrNotFound {
 		// Cache experieneed a proper error (already would be logged)
-		return "", err
+		return
 	}
 
-	if minecraft.RegexUUIDPlain.MatchString(uuid) {
-		// Great success - we have a cached result
-		return uuid, nil
-	}
-
-	var errCode string
-	// Either we cache missed (cache.ErrNotFound), OR, we have a cached error code
-	if err == cache.ErrNotFound {
-		// Metrics timer / tracing
-		// GetUUID uses the GetAPIProfile which would also pull the Username (not wanted)
-		uuid, err := mc.API.GetUUID(username)
-		// Observe GetUUID
-		if minecraft.RegexUUIDPlain.MatchString(uuid) {
-			// Great success - we have a fresh result
-			// Todo: goroutine?
-			mc.CacheAddUsername(logger, username, uuid, usernameTTL)
-			return uuid, nil
+	if uuidEntry.IsValid() {
+		if uuidEntry.IsFresh() {
+			// Great success - we have a cached result
+			return
 		}
-		// Need to decide on what to do based on returned API errors
-		// eg. Cache a meta code for X TTL
-		// Set errCode based on this
-		var ttl time.Duration
-		errCode, ttl = errorToMetaCode(logger, username, err)
-		// Todo: goroutine?
-		mc.CacheAddUsername(logger, username, errCode, ttl)
-	} else {
-		// Todo: Convert error code to number
-		errCode = uuid
+		return mc.RequestUUIDEntry(logger, username, uuidEntry), nil
 	}
 
-	return "", metaCodeToError(logger, username, errCode)
+	// uuidEntry is either a cached bad status, or was not found in Cache
+
+	if err == cache.ErrNotFound {
+		// We cache missed (cache.ErrNotFound) so let's re-request
+		uuidEntry = mc.RequestUUIDEntry(logger, username, uuidEntry)
+	}
+
+	return uuidEntry, uuidEntry.Status.GetError()
 }
 
-func (mc *McClient) GetUser(logger log.Logger, uuid string) (mcuser.McUser, error) {
-	user, err := mc.CacheLookupUUID(logger, uuid)
+func (mc *McClient) RequestMcUser(logger log.Logger, uuid string, mcUser mcuser.McUser) mcuser.McUser {
+	// Metrics timer / tracing
+	// GetUUID uses the GetAPIProfile which would also pull the Username (not wanted)
+	sessionProfile, err := mc.API.GetSessionProfile(uuid)
+	// Observe GetUUID timer
+
+	mcUserFresh := mcuser.NewMcUser(logger, uuid, sessionProfile, err)
+
+	if !mcUserFresh.IsValid() && mcUser.IsValid() {
+		// New result errored, but the original/stale Entry was already valid - Don't cache!
+		return mcUser
+	}
+
+	// Todo: goroutine?
+	mc.CacheInsertMcUser(logger, uuid, mcUserFresh)
+	return mcUserFresh
+}
+
+func (mc *McClient) GetMcUser(logger log.Logger, uuid string) (mcUser mcuser.McUser, err error) {
+	mcUser, err = mc.CacheRetrieveMcUser(logger, uuid)
 	if err != nil && err != cache.ErrNotFound {
 		// Cache experieneed a proper error (already would be logged)
-		return user, err
+		return
 	}
 
-	if user.Status == StatusOk {
-		// Known positive result
-		// Todo: Stale checks??
-		return user, err
+	if mcUser.Status == status.StatusOk {
+		if mcUser.IsFresh() {
+			// Known positive result
+			return
+		}
+		return mc.RequestMcUser(logger, uuid, mcUser), nil
 	}
+
+	// mcUser is either a cached bad status, or was not found in Cache
 
 	if err == cache.ErrNotFound {
-		// Todo: !!! this
-		// Metrics timer / tracing
-		// GetUUID uses the GetAPIProfile which would also pull the Username (not wanted)
-		apiUser, err := mc.API.GetUUID(username)
-		// Observe GetUUID
+		// We cache missed (cache.ErrNotFound) so let's re-request
+		mcUser = mc.RequestMcUser(logger, uuid, mcUser)
 	}
 
-	// Todo: !!!
-
-	return user, nil
+	return mcUser, mcUser.Status.GetError()
 }
 
 // Todo: Counters also support exemplars!
-
-// Takes an error from the GetAPIProfile or GetSessionProfile and returns a metacode and TTL
-func errorToMetaCode(logger log.Logger, query string, err error) (string, time.Duration) {
-	errMsg := err.Error()
-
-	switch {
-
-	// Todo: We should have already tagged the logger with the UUID/Username
-	// Do we need to specify it in the message??
-	case errMsg == "unable to GetAPIProfile: user not found":
-		logger.Infof("No UUID found for: %s", query)
-		// Previously named "UnknownUsername"
-		// stats.Errored("APIProfileUnknown")
-		return metaUnknownCode, usernameUnknownTTL
-
-	case errMsg == "unable to GetSessionProfile: user not found":
-		logger.Infof("No User found for: %s", query)
-		// Previously named "UnknownUsername"
-		// stats.Errored("SessionProfileUnknown")
-		return metaUnknownCode, uuidUnknownTTL
-
-	case errMsg == "unable to GetAPIProfile: rate limited":
-		logger.Warnf("Rate limited looking up UUID for: %s", query)
-		// Previously named "LookupUUIDRateLimit"
-		// stats.Errored("APIProfileRateLimit")
-		return metaRateLimitCode, usernameRateLimitTTL
-
-	case errMsg == "unable to GetSessionProfile: rate limited":
-		logger.Warnf("Rate limited looking up User for: %s", query)
-		// Previously named "LookupUUIDRateLimit"
-		// stats.Errored("SessionProfileRateLimit")
-		return metaRateLimitCode, uuidRateLimitTTL
-
-	case strings.HasPrefix(errMsg, "unable to GetAPIProfile"):
-		logger.Errorf("Failed UUID lookup for \"%s\": %s", query, errMsg)
-		// Previously named "LookupUUID"
-		// stats.Errored("APIProfileGeneric")
-		return metaErrorCode, usernameErrorTTL
-
-	case strings.HasPrefix(errMsg, "unable to GetSessionProfile"):
-		logger.Errorf("Failed SessionProfile lookup for \"%s\": %s", query, errMsg)
-		// Previously named "LookupUUID"
-		// stats.Errored("SessionProfileGeneric")
-		return metaErrorCode, uuidErrorTTL
-
-	default:
-		// Todo: Probably a DPanicf preferred
-		logger.Errorf("Unknown lookup error occured for \"%s\": %s", query, errMsg)
-		// Stat GenericLookup Error
-		return metaErrorCode, uuidErrorTTL
-
-	}
-}
-
-func metaCodeToError(logger log.Logger, query string, errCode string) error {
-	switch errCode {
-
-	case metaUnknownCode:
-		return ErrUserNotFound
-	case metaRateLimitCode:
-		return ErrRateLimit
-	case metaErrorCode:
-		return ErrLookupFailed
-	default:
-		logger.Errorf("Unexpected Meta Error Code \"%s\" for: %s", errCode, query)
-		return ErrUnknownLookupFailure
-	}
-}
