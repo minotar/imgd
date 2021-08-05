@@ -4,7 +4,11 @@ import (
 	"bytes"
 	"compress/flate"
 	"io/ioutil"
+	"time"
 
+	"github.com/minotar/imgd/pkg/util/log"
+
+	"github.com/minotar/imgd/pkg/mcclient/status"
 	"github.com/minotar/imgd/pkg/util/tinytime"
 	"github.com/minotar/minecraft"
 	"google.golang.org/protobuf/proto"
@@ -14,8 +18,28 @@ type McUser struct {
 	minecraft.User
 	Textures  textures
 	Timestamp tinytime.TinyTime
-	// Todo: what type to store User status?????
-	Status uint8
+	Status    status.Status
+}
+
+func NewMcUser(logger log.Logger, uuid string, sessionProfile minecraft.SessionProfileResponse, err error) McUser {
+	// Todo: handle this error!
+	textures, _ := NewTexturesFromSessionProfile(sessionProfile)
+	return McUser{
+		Status:    status.NewStatusFromError(logger, uuid, err),
+		Timestamp: tinytime.NewTinyTime(time.Now()),
+		User:      sessionProfile.User,
+		Textures:  textures,
+	}
+}
+
+func (u McUser) IsFresh() bool {
+	// Add the Timestamp to the Fresh TTL to get the point it's no longer fresh
+	staleTime := u.Timestamp.Time().Add(status.UserFreshTTL)
+	return time.Now().Before(staleTime)
+}
+
+func (u McUser) TTL() time.Duration {
+	return u.Status.DurationUser()
 }
 
 // Decompress a Protobuf McUser
@@ -35,7 +59,7 @@ func decodeMcUserProtobuf(protoBytes []byte) (McUser, error) {
 
 	user := McUser{
 		Timestamp: tinytime.TinyTime(pb.Time),
-		Status:    uint8(pb.Status),
+		Status:    status.Status(pb.Status),
 		User: minecraft.User{
 			Username: pb.Username,
 			UUID:     pb.UUID,

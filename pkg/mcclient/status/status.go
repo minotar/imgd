@@ -1,9 +1,28 @@
-package mcuser
+package status
 
 import (
 	"strings"
+	"time"
 
 	"github.com/minotar/imgd/pkg/util/log"
+)
+
+const (
+	day = 24 * time.Hour
+
+	uuidTTL = 60 * day
+	// Detect sooner if a username has changed hands?
+	//uuidFresh        = 30 * day
+	uuidUnknownTTL   = 14 * day
+	uuidRateLimitTTL = 2 * time.Hour
+	uuidErrorTTL     = 1 * time.Hour
+
+	userTTL = 60 * day
+	// Detect sooner when a skin changes
+	UserFreshTTL     = 2 * time.Hour
+	userUnknownTTL   = 7 * day
+	userRateLimitTTL = 1 * time.Hour
+	userErrorTTL     = 30 * time.Minute
 )
 
 // Todo: Username vs. UUID logic??
@@ -19,6 +38,10 @@ type Status uint8
 
 // Implements the error interface
 var _ error = new(Status)
+
+func (s Status) Byte() byte {
+	return byte(s)
+}
 
 func (s Status) Error() string {
 	switch s {
@@ -39,11 +62,47 @@ func (s Status) Error() string {
 	}
 }
 
-// Todo: Do I add a TTL method?
+func (s Status) GetError() error {
+	if s == StatusOk {
+		return nil
+	}
+	return s
+}
+
+func (s Status) DurationUUID() time.Duration {
+	switch s {
+	case StatusOk:
+		return uuidTTL
+	case StatusErrorUnknownUser:
+		return uuidUnknownTTL
+	case StatusErrorRateLimit:
+		return uuidRateLimitTTL
+	default:
+		// StatusUnSet, StatusErrorGeneric, Others
+		return uuidErrorTTL
+	}
+}
+
+func (s Status) DurationUser() time.Duration {
+	switch s {
+	case StatusOk:
+		return userTTL
+	case StatusErrorUnknownUser:
+		return userUnknownTTL
+	case StatusErrorRateLimit:
+		return userRateLimitTTL
+	default:
+		// StatusUnSet, StatusErrorGeneric, Others
+		return userErrorTTL
+	}
+}
 
 func NewStatusFromError(logger log.Logger, query string, err error) Status {
-	errMsg := err.Error()
+	if err == nil {
+		return StatusOk
+	}
 
+	errMsg := err.Error()
 	switch {
 
 	// Todo: We should have already tagged the logger with the UUID/Username
