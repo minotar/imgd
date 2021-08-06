@@ -34,6 +34,8 @@ const (
 	StatusErrorRateLimit
 )
 
+// Status is for recording the API response status for a specific request
+// It does not correspond to the data validity - simple a record of how the API responded
 type Status uint8
 
 // Implements the error interface
@@ -62,6 +64,8 @@ func (s Status) Error() string {
 	}
 }
 
+// Creates an `error` based on the previous API response status
+// This is for raising an error already recorded as a Status
 func (s Status) GetError() error {
 	if s == StatusOk {
 		return nil
@@ -97,6 +101,7 @@ func (s Status) DurationUser() time.Duration {
 	}
 }
 
+// Todo: remove the `query` here as it should already be tagged on the logger
 func NewStatusFromError(logger log.Logger, query string, err error) Status {
 	if err == nil {
 		return StatusOk

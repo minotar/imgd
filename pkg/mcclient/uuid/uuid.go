@@ -27,7 +27,7 @@ func NewUUIDEntry(logger log.Logger, username string, uuid string, err error) UU
 }
 
 func (u UUIDEntry) IsValid() bool {
-	// Todo: Status Okay or Stale??
+	// Todo: Status Okay or Stale?? - Ideally would want to log a failure of that check
 	return minecraft.RegexUUIDPlain.MatchString(u.UUID)
 }
 

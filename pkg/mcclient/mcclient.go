@@ -9,7 +9,6 @@ import (
 	"github.com/minotar/imgd/pkg/util/log"
 
 	"github.com/minotar/imgd/pkg/mcclient/mcuser"
-	"github.com/minotar/imgd/pkg/mcclient/status"
 	mc_uuid "github.com/minotar/imgd/pkg/mcclient/uuid"
 	"github.com/minotar/minecraft"
 )
@@ -77,6 +76,7 @@ func (mc *McClient) GetSkin(logger log.Logger, userReq UserReq) minecraft.Skin {
 		logger = logger.With("username", userReq.Username)
 		uuidEntry, err := mc.GetUUIDEntry(logger, userReq.Username)
 		if err != nil {
+			logger.Debugf("Falling back to Steve: %v", err)
 			skin, _ := minecraft.FetchSkinForSteve()
 			return skin
 		}
@@ -87,8 +87,13 @@ func (mc *McClient) GetSkin(logger log.Logger, userReq UserReq) minecraft.Skin {
 
 	logger = logger.With("uuid", uuid)
 	user, err := mc.GetMcUser(logger, uuid)
+	if err != nil {
+		logger.Debugf("Falling back to Steve: %v", err)
+		skin, _ := minecraft.FetchSkinForSteve()
+		return skin
+	}
 
-	_, _ = user, err
+	_ = user
 	return minecraft.Skin{}
 }
 
@@ -104,6 +109,7 @@ func (mc *McClient) RequestUUIDEntry(logger log.Logger, username string, uuidEnt
 		return uuidEntry
 	}
 
+	logger.With("uuid", uuidEntryFresh.UUID)
 	// Todo: goroutine?
 	mc.CacheInsertUUIDEntry(logger, username, uuidEntryFresh)
 	return uuidEntryFresh
@@ -115,32 +121,35 @@ func (mc *McClient) RequestUUIDEntry(logger log.Logger, username string, uuidEnt
 // Unless we have 2 locks? 1 here, and then one that blocks reads when writing?
 func (mc *McClient) GetUUIDEntry(logger log.Logger, username string) (uuidEntry mc_uuid.UUIDEntry, err error) {
 	uuidEntry, err = mc.CacheRetrieveUUIDEntry(logger, username)
-	if err != nil && err != cache.ErrNotFound {
-		// Cache experieneed a proper error (already would be logged)
-		return
+	if err != nil {
+		if err == cache.ErrNotFound {
+			// We cache missed (cache.ErrNotFound) so let's request from API
+			uuidEntry = mc.RequestUUIDEntry(logger, username, uuidEntry)
+			// We need to generate a new error though
+			return uuidEntry, uuidEntry.Status.GetError()
+		} else {
+			// Cache experieneed a proper error (already would be logged)
+			return
+		}
 	}
+
+	// Cache was a hit (though still might be a bad result)
 
 	if uuidEntry.IsValid() {
 		if uuidEntry.IsFresh() {
 			// Great success - we have a cached result
 			return
 		}
+		// A stale result should be re-requested
 		return mc.RequestUUIDEntry(logger, username, uuidEntry), nil
 	}
 
-	// uuidEntry is either a cached bad status, or was not found in Cache
-
-	if err == cache.ErrNotFound {
-		// We cache missed (cache.ErrNotFound) so let's re-request
-		uuidEntry = mc.RequestUUIDEntry(logger, username, uuidEntry)
-	}
-
+	// A bad result was returned from the cache, generate an error from it
 	return uuidEntry, uuidEntry.Status.GetError()
 }
 
 func (mc *McClient) RequestMcUser(logger log.Logger, uuid string, mcUser mcuser.McUser) mcuser.McUser {
 	// Metrics timer / tracing
-	// GetUUID uses the GetAPIProfile which would also pull the Username (not wanted)
 	sessionProfile, err := mc.API.GetSessionProfile(uuid)
 	// Observe GetUUID timer
 
@@ -151,6 +160,7 @@ func (mc *McClient) RequestMcUser(logger log.Logger, uuid string, mcUser mcuser.
 		return mcUser
 	}
 
+	// Todo: Add username to logger With() field?
 	// Todo: goroutine?
 	mc.CacheInsertMcUser(logger, uuid, mcUserFresh)
 	return mcUserFresh
@@ -158,26 +168,30 @@ func (mc *McClient) RequestMcUser(logger log.Logger, uuid string, mcUser mcuser.
 
 func (mc *McClient) GetMcUser(logger log.Logger, uuid string) (mcUser mcuser.McUser, err error) {
 	mcUser, err = mc.CacheRetrieveMcUser(logger, uuid)
-	if err != nil && err != cache.ErrNotFound {
-		// Cache experieneed a proper error (already would be logged)
-		return
+	if err != nil {
+		if err == cache.ErrNotFound {
+			// We cache missed (cache.ErrNotFound) so let's request from API
+			mcUser = mc.RequestMcUser(logger, uuid, mcUser)
+			// We need to generate a new error though
+			return mcUser, mcUser.Status.GetError()
+		} else {
+			// Cache experieneed a proper error (already would be logged)
+			return
+		}
 	}
 
-	if mcUser.Status == status.StatusOk {
+	// Cache was a hit (though still might be a bad result)
+
+	if mcUser.IsValid() {
 		if mcUser.IsFresh() {
 			// Known positive result
 			return
 		}
+		// A stale result should be re-requested
 		return mc.RequestMcUser(logger, uuid, mcUser), nil
 	}
 
-	// mcUser is either a cached bad status, or was not found in Cache
-
-	if err == cache.ErrNotFound {
-		// We cache missed (cache.ErrNotFound) so let's re-request
-		mcUser = mc.RequestMcUser(logger, uuid, mcUser)
-	}
-
+	// A bad result was returned from the cache, generate an error from it
 	return mcUser, mcUser.Status.GetError()
 }
 
