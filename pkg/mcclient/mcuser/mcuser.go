@@ -32,6 +32,11 @@ func NewMcUser(logger log.Logger, uuid string, sessionProfile minecraft.SessionP
 	}
 }
 
+func (u McUser) IsValid() bool {
+	// Todo: Status Okay or Stale?? - Ideally would want to log a failure of that check
+	return u.Textures.SkinPath != ""
+}
+
 func (u McUser) IsFresh() bool {
 	// Add the Timestamp to the Fresh TTL to get the point it's no longer fresh
 	staleTime := u.Timestamp.Time().Add(status.UserFreshTTL)
