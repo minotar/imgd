@@ -6,12 +6,14 @@ import (
 	"os"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"go.uber.org/zap"
 
 	"github.com/prometheus/common/version"
 
 	_ "github.com/minotar/imgd/pkg/build"
 	"github.com/minotar/imgd/pkg/skind"
 	"github.com/minotar/imgd/pkg/util/cfg"
+	"github.com/minotar/imgd/pkg/util/log"
 )
 
 const Var1 = "Hi"
@@ -31,11 +33,20 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 }
 
 func main() {
+
+	mainLogger, _ := zap.NewDevelopment()
+	defer mainLogger.Sync() // flushes buffer, if any
+	sugarLogger := mainLogger.Sugar()
+
+	logger := &log.ZapLogger{sugarLogger}
+
 	var config Config
 	v := cfg.Parse(&config)
 	flaggedVersion := v.GetBool("version")
 
 	fmt.Printf("Config: %+v\n", config)
+
+	config.Logger = logger
 
 	switch {
 	case flaggedVersion:

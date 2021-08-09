@@ -1,6 +1,10 @@
 package log
 
-import "fmt"
+import (
+	"fmt"
+
+	"go.uber.org/zap"
+)
 
 type Logger interface {
 	//Named(name string)
@@ -89,4 +93,29 @@ func (l *DummyLogger) With(args ...interface{}) Logger {
 	newLogger := &DummyLogger{}
 	newLogger.Named(fmt.Sprintf("%s=%s", args[0], args[1]))
 	return newLogger
+}
+
+var _ Logger = new(ZapLogger)
+
+type ZapLogger struct {
+	Sugar *zap.SugaredLogger
+}
+
+func (zl *ZapLogger) Debug(args ...interface{}) { zl.Sugar.Debug(args...) }
+func (zl *ZapLogger) Info(args ...interface{})  { zl.Sugar.Info(args...) }
+func (zl *ZapLogger) Warn(args ...interface{})  { zl.Sugar.Warn(args...) }
+func (zl *ZapLogger) Error(args ...interface{}) { zl.Sugar.Error(args...) }
+func (zl *ZapLogger) Panic(args ...interface{}) { zl.Sugar.Panic(args...) }
+func (zl *ZapLogger) Fatal(args ...interface{}) { zl.Sugar.Fatal(args...) }
+
+func (zl *ZapLogger) Debugf(template string, args ...interface{}) { zl.Sugar.Debugf(template, args...) }
+func (zl *ZapLogger) Infof(template string, args ...interface{})  { zl.Sugar.Infof(template, args...) }
+func (zl *ZapLogger) Warnf(template string, args ...interface{})  { zl.Sugar.Warnf(template, args...) }
+func (zl *ZapLogger) Errorf(template string, args ...interface{}) { zl.Sugar.Errorf(template, args...) }
+func (zl *ZapLogger) Panicf(template string, args ...interface{}) { zl.Sugar.Panicf(template, args...) }
+func (zl *ZapLogger) Fatalf(template string, args ...interface{}) { zl.Sugar.Fatalf(template, args...) }
+
+func (zl *ZapLogger) With(args ...interface{}) Logger {
+	newSugar := zl.Sugar.With(args...)
+	return &ZapLogger{newSugar}
 }

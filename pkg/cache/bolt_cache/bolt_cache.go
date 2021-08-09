@@ -27,6 +27,14 @@ type BoltCache struct {
 	*BoltCacheConfig
 }
 
+func NewBoltCacheConfig(cacheConfig cache.CacheConfig, path string, bucketname string) *BoltCacheConfig {
+	return &BoltCacheConfig{
+		CacheConfig: cacheConfig,
+		path:        path,
+		bucketname:  bucketname,
+	}
+}
+
 type BoltCacheConfig struct {
 	cache.CacheConfig
 	path       string
