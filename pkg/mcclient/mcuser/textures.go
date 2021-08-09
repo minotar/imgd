@@ -27,6 +27,13 @@ func (t textures) SkinURL() string {
 	return t.SkinPath
 }
 
+//
+func (t textures) Skin(mcClient *minecraft.Minecraft) (skin minecraft.Skin) {
+	skin.URL = t.SkinURL()
+	skin.Mc = mcClient
+	return
+}
+
 // After having made an API call, this can be used to create a textures object
 func NewTexturesFromSessionProfile(sessionProfile minecraft.SessionProfileResponse) (textures, error) {
 	var t textures
