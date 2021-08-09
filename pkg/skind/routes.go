@@ -1,25 +1,33 @@
 package skind
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/minotar/imgd/pkg/mcclient"
 )
 
 // Requires "uuid" or "username" vars
-func SkinPageHandler(storage map[int]map[string]string) http.Handler {
+func SkinPageHandler(skind *Skind) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger := skind.Cfg.Logger
+		logger.Info("Incoming Request!!!!")
 
-		var uuid string
+		var userReq mcclient.UserReq
 		vars := mux.Vars(r)
 
 		if username, name_req := vars["username"]; name_req {
-			uuid, _ = storage[1][username]
-			fmt.Printf("uuid: %+v\n", uuid)
+			userReq.Username = username
+			logger.Debugf("username: %+v\n", userReq.Username)
+		} else {
+			userReq.UUID = vars["uuid"]
+			logger.Debugf("uuid: %+v\n", userReq.UUID)
 		}
 
-		fmt.Printf("We got the UUID as: %+v", uuid)
-		w.WriteHeader(204)
+		skin := skind.McClient.GetSkinFromReq(logger, userReq)
+
+		logger.Infof("User hash is: %s", skin.Hash)
+
+		w.WriteHeader(200)
 	})
 }
