@@ -3,6 +3,7 @@ package mcclient
 
 import (
 	"github.com/minotar/imgd/pkg/util/log"
+	"github.com/minotar/minecraft"
 
 	"github.com/minotar/imgd/pkg/mcclient/mcuser"
 	mc_uuid "github.com/minotar/imgd/pkg/mcclient/uuid"
@@ -42,4 +43,23 @@ func (mc *McClient) RequestMcUser(logger log.Logger, uuid string, mcUser mcuser.
 	// Todo: goroutine?
 	mc.CacheInsertMcUser(logger, uuid, mcUserFresh)
 	return mcUserFresh
+}
+
+func (mc *McClient) RequestTexture(logger log.Logger, textureKey string, textureURL string) (texture minecraft.Texture, err error) {
+	// Use our API object for the request
+	texture.Mc = mc.API
+	texture.URL = textureURL
+
+	// Retry logic?
+
+	// Metrics timer / tracing
+	err = texture.Fetch()
+	// Observe Texture Fetch() timer
+
+	if err != nil {
+		return
+	}
+
+	mc.CacheInsertTexture(logger, textureKey, texture)
+	return
 }

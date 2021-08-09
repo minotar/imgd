@@ -43,21 +43,30 @@ func (mc *McClient) GetSkinFromReq(logger log.Logger, userReq UserReq) minecraft
 	}
 
 	logger = logger.With("uuid", uuid)
-	user, err := mc.GetMcUser(logger, uuid)
+	mcUser, err := mc.GetMcUser(logger, uuid)
 	if err != nil {
 		logger.Debugf("Falling back to Steve: %v", err)
 		skin, _ := minecraft.FetchSkinForSteve()
 		return skin
 	}
 
-	skin, err := mc.GetSkin(logger, user)
+	// Todo: do we need to re-add the Username label to the logger?
+
+	logger = logger.With("skinPath", mcUser.Textures.SkinPath)
+
+	// We use the SkinPath (which is either just the hash, or a full URL id the base URL changes)
+	textureKey := mcUser.Textures.SkinPath
+	textureURL := mcUser.Textures.SkinURL()
+
+	texture, err := mc.GetTexture(logger, textureKey, textureURL)
 	if err != nil {
 		logger.Debugf("Falling back to Steve: %v", err)
 		skin, _ := minecraft.FetchSkinForSteve()
 		return skin
 	}
 
-	return skin
+	// Return our Texture in the Skin struct
+	return minecraft.Skin{Texture: texture}
 }
 
 // Todo: This should handle all cache / API
@@ -124,7 +133,18 @@ func (mc *McClient) GetMcUser(logger log.Logger, uuid string) (mcUser mcuser.McU
 
 // Todo: Counters also support exemplars!
 
-func (mc *McClient) GetSkin(logger log.Logger, mcUser mcuser.McUser) (skin minecraft.Skin, err error) {
-	skin = mcUser.Textures.Skin(mc.API)
+func (mc *McClient) GetTexture(logger log.Logger, textureKey string, textureURL string) (texture minecraft.Texture, err error) {
+	texture, err = mc.CacheRetrieveTexture(logger, textureKey)
+	if err != nil {
+		if err == cache.ErrNotFound {
+			// We cache missed (cache.ErrNotFound) so let's request from API
+			return mc.RequestTexture(logger, textureKey, textureURL)
+		} else {
+			// Cache experieneed a proper error (already would be logged)
+			return
+		}
+	}
 
+	// Cache was a hit (we don't have logic to cache bad textures)
+	return
 }
