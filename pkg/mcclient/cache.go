@@ -1,13 +1,21 @@
 package mcclient
 
 import (
+	"bytes"
 	"fmt"
+	"image/png"
 	"strings"
+	"time"
 
 	"github.com/minotar/imgd/pkg/cache"
 	"github.com/minotar/imgd/pkg/mcclient/mcuser"
 	"github.com/minotar/imgd/pkg/mcclient/uuid"
 	"github.com/minotar/imgd/pkg/util/log"
+	"github.com/minotar/minecraft"
+)
+
+const (
+	skinTTL = 1 * time.Hour
 )
 
 // Todo: metrics / tracing / timing
@@ -117,6 +125,65 @@ func (mc *McClient) CacheInsertMcUser(logger log.Logger, uuid string, user mcuse
 	if err != nil {
 		// stats.CacheUser("insert_error")
 		logger.Errorf("Failed Insert UUID:user into cache %s: %v", mc.Caches.UserData.Name(), err)
+	}
+	return
+}
+
+//
+
+func (mc *McClient) CacheRetrieveTexture(logger log.Logger, textureKey string) (texture minecraft.Texture, err error) {
+	// logger should already be With() the skinPath/texturePath (and UUID and Username)
+	textureKey = strings.ToLower(textureKey)
+	// Metrics timer / tracing
+	// Though - is this useless when using a TieredCache which is inherentantly varied?
+	textureBytes, err := mc.Caches.Textures.Retrieve(textureKey)
+	// Observe Cache retrieve
+	if err != nil {
+		// Return an error (and log based on severity)
+		if err == cache.ErrNotFound {
+			// Metrics stat "Miss"
+			logger.Debugf("Did not find texture in %s", mc.Caches.Textures.Name())
+			return
+		} else {
+			// Metrics stat Cache RetrieveError
+			logger.Errorf("Failed to lookup up texture in %s: %v", mc.Caches.Textures.Name(), err)
+			return
+		}
+	}
+
+	textureReader := bytes.NewReader(textureBytes)
+
+	err = texture.Decode(textureReader)
+	if err != nil {
+		logger.Errorf("Failed to decode texture from %s: %v", mc.Caches.Textures.Name(), err)
+		// Metrics stats Cache Decode Error
+		return
+	}
+	// Metrics stat Hit
+	logger.Debugf("Found texture in %s", mc.Caches.Textures.Name())
+	return
+}
+
+func (mc *McClient) CacheInsertTexture(logger log.Logger, textureKey string, texture minecraft.Texture) (err error) {
+	// logger should already be With() the skinPath/texturePath (and UUID and Username)
+	textureKey = strings.ToLower(textureKey)
+
+	textureBuf := new(bytes.Buffer)
+	// Todo: research better lossless encoding - or just try the png.Encoder with higher compression
+	// bimg/vips ? Maybe cache as a different format if more efficient
+	err = png.Encode(textureBuf, texture.Image)
+	if err != nil {
+		// stats.CacheUser("pack_error")
+		logger.Errorf("Failed to PNG encode texture for cache: %v", err)
+	}
+
+	// Metrics timer / tracing
+	// Though - is this useless when using a TieredCache which is inherentantly varied?
+	err = mc.Caches.UUID.InsertTTL(textureKey, textureBuf.Bytes(), skinTTL)
+	// Observe Cache insert
+	if err != nil {
+		// stats.CacheUser("insert_error")
+		logger.Errorf("Failed Insert texture PNG into cache %s: %v", mc.Caches.Textures.Name(), err)
 	}
 	return
 }
