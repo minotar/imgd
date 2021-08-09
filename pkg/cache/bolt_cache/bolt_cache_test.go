@@ -21,14 +21,14 @@ const (
 func newCache(t *testing.T) *BoltCache {
 	logger := &log.DummyLogger{}
 	logger.Named("BoltTest")
-	cache, err := NewBoltCache(&BoltCacheConfig{
-		path:       TestBoltPath,
-		bucketname: TestBoltBucketName,
-		CacheConfig: cache.CacheConfig{
-			Name:   "BoltTest",
-			Logger: logger,
-		},
-	})
+
+	cacheConfig := cache.CacheConfig{
+		Name:   "BoltTest",
+		Logger: logger,
+	}
+	boltCacheConfig := NewBoltCacheConfig(cacheConfig, TestBoltPath, TestBoltBucketName)
+
+	cache, err := NewBoltCache(boltCacheConfig)
 	if err != nil {
 		t.Fatalf("Error creating BoltCache: %s", err)
 	}
