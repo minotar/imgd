@@ -41,6 +41,18 @@ func (mc *McClient) RequestMcUser(logger log.Logger, uuid string, mcUser mcuser.
 
 	// Todo: Add username to logger With() field?
 	// Todo: goroutine?
+	logger.With("username", mc)
+	if mcUserFresh.IsValid() {
+		username := mcUserFresh.Username
+		logger = logger.With("username", username)
+		// Cache the Username -> UUID mapping
+		// Todo: Is it okay to copy these values to new object? Status?
+		go mc.CacheInsertUUIDEntry(logger, username, mc_uuid.UUIDEntry{
+			UUID:      mcUserFresh.UUID,
+			Timestamp: mcUserFresh.Timestamp,
+			Status:    mcUserFresh.Status,
+		})
+	}
 	mc.CacheInsertMcUser(logger, uuid, mcUserFresh)
 	return mcUserFresh
 }
