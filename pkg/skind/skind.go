@@ -43,6 +43,7 @@ func New(cfg Config) (*Skind, error) {
 	bc_cfg := bolt_cache.NewBoltCacheConfig(cacheConfig, "/tmp/bolt_cache_skind.db", "skind")
 
 	bc, _ := bolt_cache.NewBoltCache(bc_cfg)
+	bc.Start()
 
 	skind := &Skind{
 		Cfg: cfg,

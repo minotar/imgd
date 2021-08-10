@@ -50,9 +50,11 @@ func (mc *McClient) GetSkinFromReq(logger log.Logger, userReq UserReq) minecraft
 		return skin
 	}
 
-	// Todo: do we need to re-add the Username label to the logger?
-
-	logger = logger.With("skinPath", mcUser.Textures.SkinPath)
+	// Re-add username (fixes any capitilsation issues as well)
+	logger = logger.With(
+		"username", mcUser.Username,
+		"skinPath", mcUser.Textures.SkinPath,
+	)
 
 	// We use the SkinPath (which is either just the hash, or a full URL id the base URL changes)
 	textureKey := mcUser.Textures.SkinPath
