@@ -18,8 +18,8 @@ const (
 	COMPACTION_MAX_SCAN = 50000
 )
 
-var ErrCompactionInterupted = errors.New("Compaction was interupted")
-var ErrCompactionFinished = errors.New("Compaction has finished")
+var ErrCompactionInterupted = errors.New("compaction was interupted")
+var ErrCompactionFinished = errors.New("compaction has finished")
 
 type BoltCache struct {
 	*bolt_store.BoltStore
@@ -27,18 +27,18 @@ type BoltCache struct {
 	*BoltCacheConfig
 }
 
-func NewBoltCacheConfig(cacheConfig cache.CacheConfig, path string, bucketname string) *BoltCacheConfig {
+func NewBoltCacheConfig(cacheConfig cache.CacheConfig, path string, bucketName string) *BoltCacheConfig {
 	return &BoltCacheConfig{
 		CacheConfig: cacheConfig,
 		path:        path,
-		bucketname:  bucketname,
+		bucketName:  bucketName,
 	}
 }
 
 type BoltCacheConfig struct {
 	cache.CacheConfig
 	path       string
-	bucketname string
+	bucketName string
 }
 
 // ensure that the cache.Cache interface is implemented
@@ -48,10 +48,10 @@ func NewBoltCache(cfg *BoltCacheConfig) (*BoltCache, error) {
 	cfg.Logger = cfg.Logger.With(
 		"cacheName", cfg.Name,
 		"cacheType", "BoltCache",
+		"bucketName", cfg.bucketName,
 	)
-	// Todo: With the `With()`, do we need the lines specifying cache type and name to be logged??
-	cfg.Logger.Infof("initializing BoltCache \"%s\" with bucket %s", cfg.path, cfg.bucketname)
-	bs, err := bolt_store.NewBoltStore(cfg.path, cfg.bucketname)
+	cfg.Logger.Infof("initializing BoltCache \"%s\"", cfg.path)
+	bs, err := bolt_store.NewBoltStore(cfg.path, cfg.bucketName)
 	if err != nil {
 		return nil, err
 	}
@@ -164,12 +164,16 @@ func (bc *BoltCache) expiryScan(reviewTime time.Time, chunkSize int) {
 	var keyMarker string
 	var scanErr error
 	dbLength := int(bc.Len())
+	logger := bc.Logger.With("dbLength", dbLength)
+	logger.Info("Starting expiryScan")
+
+	// Todo: Metrics start timer
 
 	// Keep scanning until it's interupted or finishes (via a return)
 	// Crucially, this loop ensures that we aren't holding a Write lock for an extended time
 	for {
 		if keyMarker != "" {
-			bc.Logger.Debugf("keyMarker starts as %s", keyMarker)
+			logger.Debugf("keyMarker starts as %s", keyMarker)
 		}
 		// Start a transaction for processing a chunk of keys
 		// Technically, keys might be added/removed between transactions
@@ -183,13 +187,13 @@ func (bc *BoltCache) expiryScan(reviewTime time.Time, chunkSize int) {
 			for k, v = firstOrSeek(c, keyMarker); i < chunkSize; k, v = c.Next() {
 				// Check on every key that the cache is still running/not stopping
 				if !bc.IsRunning() {
-					bc.Logger.Info("expiryScan is exiting as BoltCache is no longer running")
+					logger.Info("expiryScan is exiting as BoltCache is no longer running")
 					scanErr = ErrCompactionInterupted
 					return nil
 				}
 
 				if k == nil {
-					bc.Logger.Debug("expiryScan compaction loop has finished")
+					logger.Debug("expiryScan compaction loop has finished")
 					scanErr = ErrCompactionFinished
 					return nil
 				}
@@ -199,10 +203,10 @@ func (bc *BoltCache) expiryScan(reviewTime time.Time, chunkSize int) {
 				//bc.Logger.Debugf("Scanned %s", k)
 
 				if store_expiry.HasBytesExpired(v[:4], reviewTime) {
-					bc.Logger.Debugf("expiryScan is deleting: %s", k)
+					logger.Debugf("expiryScan is deleting %s", k)
 					err := c.Delete()
 					if err != nil {
-						bc.Logger.Warnf("expiryScan was unable to delete \"%s\" from %s: %s", k, bc.Bucket, err)
+						logger.Warnf("expiryScan was unable to delete \"%s\": %s", k, err)
 					}
 					expiredCount++
 				}
@@ -212,23 +216,29 @@ func (bc *BoltCache) expiryScan(reviewTime time.Time, chunkSize int) {
 			// The for loop above would have assigned k to the next key, but not scanned it
 			// We now use that assignment to set the Marker for the next iteration
 			keyMarker = string(k)
-			bc.Logger.Debugf("keyMarker starts as %s", keyMarker)
+			logger.Debugf("keyMarker starts as %s", keyMarker)
 			if k == nil {
-				bc.Logger.Debug("expiryScan compaction loop has finished")
+				logger.Debug("expiryScan compaction loop has finished")
 				scanErr = ErrCompactionFinished
 				return nil
 			}
 			return nil
 			// end of DB transaction
 		})
-		// We need to check scanErr for globally set errors/state
 
-		// Todo: Merge all this??
-		if scanErr == ErrCompactionInterupted {
-			bc.Logger.Infof("Caching is %+v, exiting ExpiryScan. Len: %d, Scanned: %d, Expired: %d", bc.IsRunning(), dbLength, scannedCount, expiredCount)
-			return
-		} else if scanErr == ErrCompactionFinished {
-			bc.Logger.Infof("All keys have been scanned. Len: %d, Scanned: %d, Expired: %d", dbLength, scannedCount, expiredCount)
+		// We need to check scanErr for globally set errors/state
+		if scanErr != nil {
+			logger = logger.With(
+				"scannedCount", scannedCount,
+				"expiredCount", expiredCount,
+			)
+
+			if scanErr == ErrCompactionFinished {
+				logger.Infof("expiryScan has scanned all keys")
+			} else {
+				// scanErr == ErrCompactionInterupted
+				logger.Infof("Caching is %+v, exiting expiryScan", bc.IsRunning())
+			}
 			return
 		}
 	}
