@@ -38,7 +38,7 @@ func main() {
 	defer mainLogger.Sync() // flushes buffer, if any
 	sugarLogger := mainLogger.Sugar()
 
-	logger := &log.ZapLogger{sugarLogger}
+	logger := &log.ZapLogger{Sugar: sugarLogger}
 
 	var config Config
 	v := cfg.Parse(&config)

@@ -4,8 +4,7 @@ import (
 	"flag"
 
 	"github.com/felixge/fgprof"
-	"github.com/minotar/imgd/pkg/cache"
-	"github.com/minotar/imgd/pkg/cache/bolt_cache"
+	cache_config "github.com/minotar/imgd/pkg/cache/util/config"
 	"github.com/minotar/imgd/pkg/mcclient"
 	"github.com/minotar/imgd/pkg/util/log"
 	"github.com/minotar/minecraft"
@@ -14,7 +13,8 @@ import (
 )
 
 type Config struct {
-	Server       server.Config `yaml:"server,omitempty"`
+	Server       server.Config   `yaml:"server,omitempty"`
+	McClient     mcclient.Config `yaml:"mcclient,omitempty"`
 	Logger       log.Logger
 	CorsAllowAll bool
 }
@@ -25,6 +25,7 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	//c.Server.ExcludeRequestInLog = true
 
 	c.Server.RegisterFlags(f)
+	c.McClient.RegisterFlags(f)
 
 }
 
@@ -36,26 +37,35 @@ type Skind struct {
 }
 
 func New(cfg Config) (*Skind, error) {
-
-	cacheConfig := cache.CacheConfig{
-		Name:   "BoltAll",
-		Logger: cfg.Logger,
+	cfg.McClient.CacheUUID.Logger = cfg.Logger
+	cacheUUID, err := cache_config.NewCache(cfg.McClient.CacheUUID)
+	if err != nil {
+		cfg.Logger.Panicf("Unable to create cache UUID: %v", err)
 	}
-	bc_cfg := bolt_cache.NewBoltCacheConfig(cacheConfig, "/tmp/bolt_cache_skind.db", "skind")
+	cacheUUID.Start()
 
-	bc, _ := bolt_cache.NewBoltCache(bc_cfg)
-	bc.Start()
+	cfg.McClient.CacheUserData.Logger = cfg.Logger
+	cacheUserData, _ := cache_config.NewCache(cfg.McClient.CacheUserData)
+	if err != nil {
+		cfg.Logger.Panicf("Unable to create cache UserData: %v", err)
+	}
+	cacheUserData.Start()
+
+	cfg.McClient.CacheTextures.Logger = cfg.Logger
+	cacheTextures, _ := cache_config.NewCache(cfg.McClient.CacheTextures)
+	if err != nil {
+		cfg.Logger.Panicf("Unable to create cache Textures: %v", err)
+	}
+	cacheTextures.Start()
 
 	skind := &Skind{
-		Cfg: cfg,
-		McClient: &mcclient.McClient{
-			API: minecraft.NewMinecraft(),
-		},
+		Cfg:      cfg,
+		McClient: mcclient.NewMcClient(&cfg.McClient),
 	}
 
-	skind.McClient.Caches.UUID = bc
-	skind.McClient.Caches.UserData = bc
-	skind.McClient.Caches.Textures = bc
+	skind.McClient.Caches.UUID = cacheUUID
+	skind.McClient.Caches.UserData = cacheUserData
+	skind.McClient.Caches.Textures = cacheTextures
 
 	return skind, nil
 }
