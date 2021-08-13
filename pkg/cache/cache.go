@@ -7,6 +7,7 @@ package cache
 import (
 	"bytes"
 	"errors"
+	"flag"
 	"time"
 
 	"github.com/minotar/imgd/pkg/storage"
@@ -32,6 +33,10 @@ type Cache interface {
 type CacheConfig struct {
 	Name   string
 	Logger util_log.Logger
+}
+
+func (c *CacheConfig) RegisterFlags(f *flag.FlagSet, cacheID string) {
+	f.StringVar(&c.Name, cacheID+".name", "Cache"+cacheID, "Internal name of cache")
 }
 
 // Errors
