@@ -14,8 +14,9 @@ import (
 )
 
 type Config struct {
-	Server server.Config `yaml:"server,omitempty"`
-	Logger log.Logger
+	Server       server.Config `yaml:"server,omitempty"`
+	Logger       log.Logger
+	CorsAllowAll bool
 }
 
 // RegisterFlags registers flag.
@@ -68,8 +69,24 @@ func (s *Skind) Run() error {
 
 	s.Server.HTTP.Path("/debug/fgprof").Handler(fgprof.Handler())
 
-	s.Server.HTTP.Path("/skin/{uuid:" + minecraft.ValidUUIDPlainRegex + "}").Handler(SkinPageHandler(s))
-	s.Server.HTTP.Path("/skin/{username:" + minecraft.ValidUsernameRegex + "}").Handler(SkinPageHandler(s))
+	skinHandler := SkinPageHandler(s)
+	downloadSkinHandler := BrowserDownloadHandler(skinHandler)
+	dashedRedirectHandler := DashedRedirectUUIDHandler()
+
+	if s.Cfg.CorsAllowAll {
+		skinHandler = CorsHandler(skinHandler)
+		downloadSkinHandler = CorsHandler(downloadSkinHandler)
+		dashedRedirectHandler = CorsHandler(dashedRedirectHandler)
+	}
+
+	s.Server.HTTP.Path("/skin/{uuid:" + minecraft.ValidUUIDPlainRegex + "}").Handler(skinHandler).Name("skinUUID")
+	s.Server.HTTP.Path("/skin/{username:" + minecraft.ValidUsernameRegex + "}").Handler(skinHandler).Name("usernameUUID")
+
+	s.Server.HTTP.Path("/download/{uuid:" + minecraft.ValidUUIDPlainRegex + "}").Handler(downloadSkinHandler).Name("skinUUID")
+	s.Server.HTTP.Path("/download/{username:" + minecraft.ValidUsernameRegex + "}").Handler(downloadSkinHandler).Name("usernameUUID")
+
+	s.Server.HTTP.Path("/download/{uuid:" + minecraft.ValidUUIDDashRegex + "}{extension:(?:.png)?}").Handler(dashedRedirectHandler)
+	s.Server.HTTP.Path("/skin/{uuid:" + minecraft.ValidUUIDDashRegex + "}{extension:(?:.png)?}").Handler(dashedRedirectHandler)
 
 	return s.Server.Run()
 
