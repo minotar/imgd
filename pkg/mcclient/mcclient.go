@@ -19,7 +19,8 @@ type McClient struct {
 		UserData cache.Cache
 		Textures cache.Cache
 	}
-	API               *minecraft.Minecraft
+	API *minecraft.Minecraft
+	// Todo: I think unused..?
 	TexturesMcNetBase string
 }
 
