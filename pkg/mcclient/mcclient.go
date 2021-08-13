@@ -50,7 +50,7 @@ func (mc *McClient) GetSkinFromReq(logger log.Logger, userReq UserReq) minecraft
 		return skin
 	}
 
-	// Re-add username (fixes any capitilsation issues as well)
+	// Re-add username (fixes any capitalisation issues as well)
 	logger = logger.With(
 		"username", mcUser.Username,
 		"skinPath", mcUser.Textures.SkinPath,
@@ -96,6 +96,7 @@ func (mc *McClient) GetUUIDEntry(logger log.Logger, username string) (uuidEntry 
 			// Great success - we have a cached result
 			return
 		}
+		logger.Debugf("Stale UUIDEntry was dated: %v", uuidEntry.Timestamp.Time())
 		// A stale result should be re-requested
 		return mc.RequestUUIDEntry(logger, username, uuidEntry), nil
 	}
@@ -125,6 +126,7 @@ func (mc *McClient) GetMcUser(logger log.Logger, uuid string) (mcUser mcuser.McU
 			// Known positive result
 			return
 		}
+		logger.Debugf("Stale McUser was dated: %v", mcUser.Timestamp.Time())
 		// A stale result should be re-requested
 		return mc.RequestMcUser(logger, uuid, mcUser), nil
 	}

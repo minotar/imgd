@@ -47,6 +47,7 @@ func main() {
 	fmt.Printf("Config: %+v\n", config)
 
 	config.Logger = logger
+	config.Config.CorsAllowAll = true
 
 	switch {
 	case flaggedVersion:
@@ -57,15 +58,15 @@ func main() {
 	// Start skind
 	s, err := skind.New(config.Config)
 	if err != nil {
-		fmt.Printf("Error initialising skind: %s\n", err)
+		logger.Errorf("Error initialising skind: %v", err)
 	}
 
-	fmt.Printf("Starting skind %s\n", version.Info())
+	logger.Infof("Starting skind %s", version.Info())
 
 	err = s.Run()
 
 	if err != nil {
-		fmt.Printf("Error running skind : %s\n", err)
+		logger.Errorf("Error running skind : %v", err)
 		os.Exit(1)
 	}
 }
