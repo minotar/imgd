@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"flag"
+	"strings"
 	"time"
 
 	"github.com/minotar/imgd/pkg/storage"
@@ -36,7 +37,7 @@ type CacheConfig struct {
 }
 
 func (c *CacheConfig) RegisterFlags(f *flag.FlagSet, cacheID string) {
-	f.StringVar(&c.Name, cacheID+".name", "Cache"+cacheID, "Internal name of cache")
+	f.StringVar(&c.Name, strings.ToLower("cache."+cacheID+".name"), "Cache"+cacheID, "Internal name of cache")
 }
 
 // Errors
