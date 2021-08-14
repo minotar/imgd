@@ -37,6 +37,9 @@ type Skind struct {
 }
 
 func New(cfg Config) (*Skind, error) {
+	// Set the GRPC to localhost only
+	cfg.Server.GRPCListenAddress = "127.0.0.1"
+
 	cfg.McClient.CacheUUID.Logger = cfg.Logger
 	cacheUUID, err := cache_config.NewCache(cfg.McClient.CacheUUID)
 	if err != nil {
@@ -90,13 +93,12 @@ func (s *Skind) Run() error {
 	}
 
 	s.Server.HTTP.Path("/skin/{uuid:" + minecraft.ValidUUIDPlainRegex + "}").Handler(skinHandler).Name("skinUUID")
-	s.Server.HTTP.Path("/skin/{username:" + minecraft.ValidUsernameRegex + "}").Handler(skinHandler).Name("usernameUUID")
+	s.Server.HTTP.Path("/skin/{username:" + minecraft.ValidUsernameRegex + "}").Handler(skinHandler).Name("skinUsername")
+	s.Server.HTTP.Path("/skin/{uuid:" + minecraft.ValidUUIDDashRegex + "}{extension:(?:.png)?}").Handler(dashedRedirectHandler).Name("skinDashedRedirect")
 
-	s.Server.HTTP.Path("/download/{uuid:" + minecraft.ValidUUIDPlainRegex + "}").Handler(downloadSkinHandler).Name("skinUUID")
-	s.Server.HTTP.Path("/download/{username:" + minecraft.ValidUsernameRegex + "}").Handler(downloadSkinHandler).Name("usernameUUID")
-
-	s.Server.HTTP.Path("/download/{uuid:" + minecraft.ValidUUIDDashRegex + "}{extension:(?:.png)?}").Handler(dashedRedirectHandler)
-	s.Server.HTTP.Path("/skin/{uuid:" + minecraft.ValidUUIDDashRegex + "}{extension:(?:.png)?}").Handler(dashedRedirectHandler)
+	s.Server.HTTP.Path("/download/{uuid:" + minecraft.ValidUUIDPlainRegex + "}").Handler(downloadSkinHandler).Name("downloadUUID")
+	s.Server.HTTP.Path("/download/{username:" + minecraft.ValidUsernameRegex + "}").Handler(downloadSkinHandler).Name("downloadUsername")
+	s.Server.HTTP.Path("/download/{uuid:" + minecraft.ValidUUIDDashRegex + "}{extension:(?:.png)?}").Handler(dashedRedirectHandler).Name("downloadDashedRedirect")
 
 	return s.Server.Run()
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/boltdb/bolt"
@@ -44,8 +45,9 @@ type BoltCacheConfig struct {
 
 func (c *BoltCacheConfig) RegisterFlags(f *flag.FlagSet, cacheID string) {
 	c.CacheConfig.RegisterFlags(f, cacheID)
-	f.StringVar(&c.path, cacheID+".bolt-path", "/tmp/bolt_cache_"+cacheID+".db", "Path for Bolt data file (cannot be used by other caches)")
-	f.StringVar(&c.bucketName, cacheID+".bolt-bucketname", cacheID, "Name of bucket within Bolt data file")
+	defaultPath := strings.ToLower("/tmp/bolt_cache_" + cacheID + ".db")
+	f.StringVar(&c.path, strings.ToLower("cache."+cacheID+".bolt-path"), defaultPath, "Path for Bolt data file (cannot be used by other caches)")
+	f.StringVar(&c.bucketName, strings.ToLower("cache."+cacheID+".bolt-bucketname"), cacheID, "Name of bucket within Bolt data file")
 }
 
 // ensure that the cache.Cache interface is implemented
