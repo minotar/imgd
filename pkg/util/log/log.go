@@ -101,6 +101,12 @@ type ZapLogger struct {
 	Sugar *zap.SugaredLogger
 }
 
+func NewZapLogger(_logger *zap.Logger) *ZapLogger {
+	return &ZapLogger{
+		Sugar: _logger.WithOptions(zap.AddCallerSkip(1)).Sugar(),
+	}
+}
+
 func (zl *ZapLogger) Debug(args ...interface{}) { zl.Sugar.Debug(args...) }
 func (zl *ZapLogger) Info(args ...interface{})  { zl.Sugar.Info(args...) }
 func (zl *ZapLogger) Warn(args ...interface{})  { zl.Sugar.Warn(args...) }
