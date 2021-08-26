@@ -36,9 +36,7 @@ func main() {
 
 	mainLogger, _ := zap.NewDevelopment()
 	defer mainLogger.Sync() // flushes buffer, if any
-	sugarLogger := mainLogger.Sugar()
-
-	logger := &log.ZapLogger{Sugar: sugarLogger}
+	logger := log.NewZapLogger(mainLogger)
 
 	var config Config
 	v := cfg.Parse(&config)

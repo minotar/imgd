@@ -21,7 +21,6 @@ type Config struct {
 
 // RegisterFlags registers flag.
 func (c *Config) RegisterFlags(f *flag.FlagSet) {
-	c.Server.MetricsNamespace = "skind"
 	//c.Server.ExcludeRequestInLog = true
 
 	c.Server.RegisterFlags(f)
@@ -37,6 +36,8 @@ type Skind struct {
 }
 
 func New(cfg Config) (*Skind, error) {
+	// Set namespace for all metrics
+	cfg.Server.MetricsNamespace = "skind"
 	// Set the GRPC to localhost only
 	cfg.Server.GRPCListenAddress = "127.0.0.1"
 
