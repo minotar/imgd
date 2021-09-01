@@ -6,6 +6,7 @@ package cache
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"flag"
 	"strings"
@@ -29,6 +30,9 @@ type Cache interface {
 	Start()
 	// Stop the cache / expiry tracker
 	Stop()
+	// WithContext returns a Cache object enabled for metrics/instrumentation
+	// based on the given context.Context
+	WithContext(ctx context.Context) Cache
 }
 
 type CacheConfig struct {

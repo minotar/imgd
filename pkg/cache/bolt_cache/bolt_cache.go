@@ -1,6 +1,7 @@
 package bolt_cache
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/minotar/imgd/pkg/cache"
+	"github.com/minotar/imgd/pkg/cache/util/context_cache"
 	store_expiry "github.com/minotar/imgd/pkg/cache/util/expiry/store"
 	"github.com/minotar/imgd/pkg/storage/bolt_store"
 )
@@ -312,4 +314,11 @@ func (bc *BoltCache) Close() {
 	bc.Logger.Debug("closing BoltCache")
 	bc.Stop()
 	bc.BoltStore.Close()
+}
+
+func (bc *BoltCache) WithContext(ctx context.Context) cache.Cache {
+	return &context_cache.ContextCache{
+		Cache:   bc,
+		Context: ctx,
+	}
 }
