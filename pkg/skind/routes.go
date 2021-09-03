@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/minotar/imgd/pkg/mcclient"
 	"github.com/minotar/minecraft"
+	"go.opentelemetry.io/otel/trace"
 )
 
 
@@ -35,6 +36,7 @@ func SkinPageHandler(skind *Skind) http.Handler {
 
 		var userReq mcclient.UserReq
 		vars := mux.Vars(r)
+		logger.Debugf("Mux Vars: %v", vars)
 
 		if username, name_req := vars["username"]; name_req {
 			userReq.Username = username
@@ -44,12 +46,24 @@ func SkinPageHandler(skind *Skind) http.Handler {
 			logger.Debugf("uuid: %+v\n", userReq.UUID)
 		}
 
-		skin := skind.McClient.GetSkinFromReq(logger, userReq)
+		tracer := otel.Tracer("github.com/minotar/imgd/pkg/skind")
+		ctx := r.Context()
+
+		var span trace.Span
+		ctx, span = tracer.Start(ctx, "SkinPageHandler")
+		defer span.End()
+
+		w.Header().Add("X-Request-Id", span.SpanContext().TraceID().String())
+
+		skin := skind.McClient.GetSkinFromReq(logger, ctx, userReq)
 
 		logger.Infof("User hash is: %s", skin.Hash)
 
 		// No more header changes after writing
+
+		_, span2 := tracer.Start(ctx, "WriteSkin")
 		WriteSkin(w, skin)
+		span2.End()
 		logger.Debug(w.Header())
 	})
 }

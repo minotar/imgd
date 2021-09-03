@@ -2,8 +2,12 @@
 package mcclient
 
 import (
+	"context"
+
 	"github.com/minotar/imgd/pkg/cache"
 	"github.com/minotar/imgd/pkg/util/log"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/minotar/imgd/pkg/mcclient/mcuser"
 	mc_uuid "github.com/minotar/imgd/pkg/mcclient/uuid"
@@ -24,27 +28,21 @@ type McClient struct {
 	TexturesMcNetBase string
 }
 
-// Todo: Not sure I love this or whether a Context might make more sense
-type UserReq struct{ minecraft.User }
-
 // Todo: I need to be providing logging and request context in here
-func (mc *McClient) GetSkinFromReq(logger log.Logger, userReq UserReq) minecraft.Skin {
-	var uuid string
-	if userReq.UUID == "" {
-		logger = logger.With("username", userReq.Username)
-		uuidEntry, err := mc.GetUUIDEntry(logger, userReq.Username)
-		if err != nil {
-			logger.Debugf("Falling back to Steve: %v", err)
-			skin, _ := minecraft.FetchSkinForSteve()
-			return skin
-		}
-		uuid = uuidEntry.UUID
-	} else {
-		uuid = userReq.UUID
+func (mc *McClient) GetSkinFromReq(logger log.Logger, ctx context.Context, userReq UserReq) minecraft.Skin {
+
+	tracer := otel.Tracer("github.com/minotar/imgd/pkg/mcclient")
+	ctx, span := tracer.Start(ctx, "GetSkinFromReq")
+	defer span.End()
+
+	logger, uuid, err := userReq.GetUUID(logger, ctx, mc)
+	if err != nil {
+		logger.Debugf("Falling back to Steve: %v", err)
+		skin, _ := minecraft.FetchSkinForSteve()
+		return skin
 	}
 
-	logger = logger.With("uuid", uuid)
-	mcUser, err := mc.GetMcUser(logger, uuid)
+	mcUser, err := mc.GetMcUser(logger, ctx, uuid)
 	if err != nil {
 		logger.Debugf("Falling back to Steve: %v", err)
 		skin, _ := minecraft.FetchSkinForSteve()
@@ -61,7 +59,7 @@ func (mc *McClient) GetSkinFromReq(logger log.Logger, userReq UserReq) minecraft
 	textureKey := mcUser.Textures.SkinPath
 	textureURL := mcUser.Textures.SkinURL()
 
-	texture, err := mc.GetTexture(logger, textureKey, textureURL)
+	texture, err := mc.GetTexture(logger, ctx, textureKey, textureURL)
 	if err != nil {
 		logger.Debugf("Falling back to Steve: %v", err)
 		skin, _ := minecraft.FetchSkinForSteve()
@@ -76,12 +74,12 @@ func (mc *McClient) GetSkinFromReq(logger log.Logger, userReq UserReq) minecraft
 // Todo: Do we want a WaitGroup here?
 // Only real downside is that we can't goroutine to insert into cache?
 // Unless we have 2 locks? 1 here, and then one that blocks reads when writing?
-func (mc *McClient) GetUUIDEntry(logger log.Logger, username string) (uuidEntry mc_uuid.UUIDEntry, err error) {
-	uuidEntry, err = mc.CacheRetrieveUUIDEntry(logger, username)
+func (mc *McClient) GetUUIDEntry(logger log.Logger, ctx context.Context, username string) (uuidEntry mc_uuid.UUIDEntry, err error) {
+	uuidEntry, err = mc.CacheRetrieveUUIDEntry(logger, ctx, username)
 	if err != nil {
 		if err == cache.ErrNotFound {
 			// We cache missed (cache.ErrNotFound) so let's request from API
-			uuidEntry = mc.RequestUUIDEntry(logger, username, uuidEntry)
+			uuidEntry = mc.RequestUUIDEntry(logger, ctx, username, uuidEntry)
 			// We need to generate a new error though
 			return uuidEntry, uuidEntry.Status.GetError()
 		} else {
@@ -99,19 +97,25 @@ func (mc *McClient) GetUUIDEntry(logger log.Logger, username string) (uuidEntry 
 		}
 		logger.Debugf("Stale UUIDEntry was dated: %v", uuidEntry.Timestamp.Time())
 		// A stale result should be re-requested
-		return mc.RequestUUIDEntry(logger, username, uuidEntry), nil
+		return mc.RequestUUIDEntry(logger, ctx, username, uuidEntry), nil
 	}
 
 	// A bad result was returned from the cache, generate an error from it
 	return uuidEntry, uuidEntry.Status.GetError()
 }
 
-func (mc *McClient) GetMcUser(logger log.Logger, uuid string) (mcUser mcuser.McUser, err error) {
-	mcUser, err = mc.CacheRetrieveMcUser(logger, uuid)
+func (mc *McClient) GetMcUser(logger log.Logger, ctx context.Context, uuid string) (mcUser mcuser.McUser, err error) {
+
+	tracer := otel.Tracer("github.com/minotar/imgd/pkg/mcclient")
+	var span trace.Span
+	ctx, span = tracer.Start(ctx, "GetMcUser")
+	defer span.End()
+
+	mcUser, err = mc.CacheRetrieveMcUser(logger, ctx, uuid)
 	if err != nil {
 		if err == cache.ErrNotFound {
 			// We cache missed (cache.ErrNotFound) so let's request from API
-			mcUser = mc.RequestMcUser(logger, uuid, mcUser)
+			mcUser = mc.RequestMcUser(logger, ctx, uuid, mcUser)
 			// We need to generate a new error though
 			return mcUser, mcUser.Status.GetError()
 		} else {
@@ -127,9 +131,10 @@ func (mc *McClient) GetMcUser(logger log.Logger, uuid string) (mcUser mcuser.McU
 			// Known positive result
 			return
 		}
+		span.AddEvent("Stale McUser")
 		logger.Debugf("Stale McUser was dated: %v", mcUser.Timestamp.Time())
 		// A stale result should be re-requested
-		return mc.RequestMcUser(logger, uuid, mcUser), nil
+		return mc.RequestMcUser(logger, ctx, uuid, mcUser), nil
 	}
 
 	// A bad result was returned from the cache, generate an error from it
@@ -138,12 +143,18 @@ func (mc *McClient) GetMcUser(logger log.Logger, uuid string) (mcUser mcuser.McU
 
 // Todo: Counters also support exemplars!
 
-func (mc *McClient) GetTexture(logger log.Logger, textureKey string, textureURL string) (texture minecraft.Texture, err error) {
-	texture, err = mc.CacheRetrieveTexture(logger, textureKey)
+func (mc *McClient) GetTexture(logger log.Logger, ctx context.Context, textureKey string, textureURL string) (texture minecraft.Texture, err error) {
+
+	tracer := otel.Tracer("github.com/minotar/imgd/pkg/mcclient")
+	var span trace.Span
+	ctx, span = tracer.Start(ctx, "GetTexture")
+	defer span.End()
+
+	texture, err = mc.CacheRetrieveTexture(logger, ctx, textureKey)
 	if err != nil {
 		if err == cache.ErrNotFound {
 			// We cache missed (cache.ErrNotFound) so let's request from API
-			return mc.RequestTexture(logger, textureKey, textureURL)
+			return mc.RequestTexture(logger, ctx, textureKey, textureURL)
 		} else {
 			// Cache experieneed a proper error (already would be logged)
 			return

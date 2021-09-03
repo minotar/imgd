@@ -6,12 +6,15 @@ package context_cache
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/minotar/imgd/pkg/cache"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"go.opentelemetry.io/otel/trace"
+
+	"go.opentelemetry.io/otel"
 )
 
 type ContextCache struct {
@@ -38,15 +41,16 @@ var (
 // Insert a new value into the store
 func (cc *ContextCache) Insert(key string, value []byte) error {
 
-	curSpan := trace.SpanContextFromContext(cc.Context)
+	tracer := otel.Tracer("github.com/minotar/imgd/pkg/cache")
+	_, span := tracer.Start(cc.Context, fmt.Sprintf("%s-Insert", cc.Name()))
+	defer span.End()
 
 	insertHist := insertHistogram.WithLabelValues(cc.Name())
 
 	observeFunc := func(value float64) {
-
-		if exemplarObserver, ok := insertHist.(prometheus.ExemplarObserver); ok && curSpan.IsValid() {
+		if exemplarObserver, ok := insertHist.(prometheus.ExemplarObserver); ok && span.SpanContext().IsValid() {
 			exemplarObserver.ObserveWithExemplar(value, prometheus.Labels{
-				"TraceID": curSpan.TraceID().String(),
+				"TraceID": span.SpanContext().TraceID().String(),
 			})
 		}
 	}
@@ -60,7 +64,18 @@ func (cc *ContextCache) Insert(key string, value []byte) error {
 // Retrieve will attempt to find the key in the store. Returns
 // nil if it does not exist with an ErrNotFound
 func (cc *ContextCache) Retrieve(key string) ([]byte, error) {
-	return cc.Cache.Retrieve(key)
+
+	tracer := otel.Tracer("github.com/minotar/imgd/pkg/cache")
+	_, span := tracer.Start(cc.Context, fmt.Sprintf("%s-Retrieve", cc.Name()))
+	defer span.End()
+
+	val, err := cc.Cache.Retrieve(key)
+	if err == nil {
+		span.AddEvent("Cache Hit")
+	} else if err == cache.ErrNotFound {
+		span.AddEvent("Cache Miss")
+	}
+	return val, err
 }
 
 // Remove will silently attempt to delete the key from the store
@@ -75,6 +90,10 @@ func (cc *ContextCache) Flush() error {
 
 // InsertTTL inserts a new value into the store with the given expiry
 func (cc *ContextCache) InsertTTL(key string, value []byte, ttl time.Duration) error {
+	tracer := otel.Tracer("github.com/minotar/imgd/pkg/cache")
+	_, span := tracer.Start(cc.Context, fmt.Sprintf("%s-InsertTTL", cc.Name()))
+	defer span.End()
+
 	return cc.Cache.InsertTTL(key, value, ttl)
 }
 

@@ -2,6 +2,7 @@ package mcclient
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"image/png"
 	"strings"
@@ -24,22 +25,23 @@ const (
 // User cache name and UUID in logger.With()?
 
 // CacheRetrieveUUIDEntry searches the cache based on Username, expecting a UUID in response
-func (mc *McClient) CacheRetrieveUUIDEntry(logger log.Logger, username string) (uuidEntry uuid.UUIDEntry, err error) {
+func (mc *McClient) CacheRetrieveUUIDEntry(logger log.Logger, ctx context.Context, username string) (uuidEntry uuid.UUIDEntry, err error) {
 	// logger should already be With() the username
 	username = strings.ToLower(username)
 	// Metrics timer / tracing
 	// Though - is this useless when using a TieredCache which is inherentantly varied?
-	uuidBytes, err := mc.Caches.UUID.Retrieve(username)
+	cacheCtx := mc.Caches.UUID.WithContext(ctx)
+	uuidBytes, err := cacheCtx.Retrieve(username)
 	// Observe Cache retrieve
 	if err != nil {
 		// Return an error (and log based on severity)
 		if err == cache.ErrNotFound {
 			// Metrics stat "Miss"
-			logger.Debugf("Did not find username in %s", mc.Caches.UUID.Name())
+			logger.Debugf("Did not find username in %s", cacheCtx.Name())
 			return
 		} else {
 			// Metrics stat Cache RetrieveError
-			logger.Errorf("Failed to lookup up username in %s: %v", mc.Caches.UUID.Name(), err)
+			logger.Errorf("Failed to lookup up username in %s: %v", cacheCtx.Name(), err)
 			return
 		}
 	}
@@ -47,14 +49,14 @@ func (mc *McClient) CacheRetrieveUUIDEntry(logger log.Logger, username string) (
 	if len(uuidBytes) < 5 {
 		// 4 bytes or less would be an invalid status/timestamp
 		// Metrics stats Cache Empty Error
-		logger.Errorf("Null UUID returned for username in %s: %v", mc.Caches.UUID.Name(), uuidBytes)
+		logger.Errorf("Null UUID returned for username in %s: %v", cacheCtx.Name(), uuidBytes)
 		return uuid.UUIDEntry{}, fmt.Errorf("cache returned null UUID")
 	}
 
 	uuidEntry = uuid.DecodeUUIDEntry(uuidBytes)
 
 	// Metrics stat Hit
-	logger.Debugf("Found username in %s", mc.Caches.UUID.Name())
+	logger.Debugf("Found username in %s", cacheCtx.Name())
 	return
 }
 
@@ -78,34 +80,35 @@ func (mc *McClient) CacheInsertUUIDEntry(logger log.Logger, username string, uui
 	return
 }
 
-func (mc *McClient) CacheRetrieveMcUser(logger log.Logger, uuid string) (user mcuser.McUser, err error) {
+func (mc *McClient) CacheRetrieveMcUser(logger log.Logger, ctx context.Context, uuid string) (user mcuser.McUser, err error) {
 	// logger should already be With() the UUID (and maybe username)
 	uuid = strings.ToLower(uuid)
 	// Metrics timer / tracing
 	// Though - is this useless when using a TieredCache which is inherentantly varied?
-	userBytes, err := mc.Caches.UserData.Retrieve(uuid)
+	cacheCtx := mc.Caches.UserData.WithContext(ctx)
+	userBytes, err := cacheCtx.Retrieve(uuid)
 	// Observe Cache retrieve
 	if err != nil {
 		// Return an error (and log based on severity)
 		if err == cache.ErrNotFound {
 			// Metrics stat "Miss"
-			logger.Debugf("Did not find uuid in %s", mc.Caches.UserData.Name())
+			logger.Debugf("Did not find uuid in %s", cacheCtx.Name())
 			return
 		} else {
 			// Metrics stat Cache RetrieveError
-			logger.Errorf("Failed to lookup up uuid in %s: %v", mc.Caches.UserData.Name(), err)
+			logger.Errorf("Failed to lookup up uuid in %s: %v", cacheCtx.Name(), err)
 			return
 		}
 	}
 
 	user, err = mcuser.DecompressMcUser(userBytes)
 	if err != nil {
-		logger.Errorf("Failed to decode McUser from uuid in %s: %v", mc.Caches.UserData.Name(), err)
+		logger.Errorf("Failed to decode McUser from uuid in %s: %v", cacheCtx.Name(), err)
 		// Metrics stats Cache Decode Error
 		return
 	}
 	// Metrics stat Hit
-	logger.Debugf("Found uuid in %s", mc.Caches.UserData.Name())
+	logger.Debugf("Found uuid in %s", cacheCtx.Name())
 	return
 }
 
@@ -118,6 +121,8 @@ func (mc *McClient) CacheInsertMcUser(logger log.Logger, uuid string, user mcuse
 		logger.Errorf("Failed to pack UUID:user ready to cache: %v", err)
 	}
 
+	logger.Info("McUser Data is packed")
+
 	// Metrics timer / tracing
 	// Though - is this useless when using a TieredCache which is inherentantly varied?
 	err = mc.Caches.UUID.InsertTTL(uuid, packedUserBytes, user.TTL())
@@ -126,27 +131,31 @@ func (mc *McClient) CacheInsertMcUser(logger log.Logger, uuid string, user mcuse
 		// stats.CacheUser("insert_error")
 		logger.Errorf("Failed Insert UUID:user into cache %s: %v", mc.Caches.UserData.Name(), err)
 	}
+
+	logger.Info("apparently data was cached")
+
 	return
 }
 
 //
 
-func (mc *McClient) CacheRetrieveTexture(logger log.Logger, textureKey string) (texture minecraft.Texture, err error) {
+func (mc *McClient) CacheRetrieveTexture(logger log.Logger, ctx context.Context, textureKey string) (texture minecraft.Texture, err error) {
 	// logger should already be With() the skinPath/texturePath (and UUID and Username)
 	textureKey = strings.ToLower(textureKey)
 	// Metrics timer / tracing
 	// Though - is this useless when using a TieredCache which is inherentantly varied?
-	textureBytes, err := mc.Caches.Textures.Retrieve(textureKey)
+	cacheCtx := mc.Caches.Textures.WithContext(ctx)
+	textureBytes, err := cacheCtx.Retrieve(textureKey)
 	// Observe Cache retrieve
 	if err != nil {
 		// Return an error (and log based on severity)
 		if err == cache.ErrNotFound {
 			// Metrics stat "Miss"
-			logger.Debugf("Did not find texture in %s", mc.Caches.Textures.Name())
+			logger.Debugf("Did not find texture in %s", cacheCtx.Name())
 			return
 		} else {
 			// Metrics stat Cache RetrieveError
-			logger.Errorf("Failed to lookup up texture in %s: %v", mc.Caches.Textures.Name(), err)
+			logger.Errorf("Failed to lookup up texture in %s: %v", cacheCtx.Name(), err)
 			return
 		}
 	}
@@ -155,12 +164,12 @@ func (mc *McClient) CacheRetrieveTexture(logger log.Logger, textureKey string) (
 
 	err = texture.Decode(textureReader)
 	if err != nil {
-		logger.Errorf("Failed to decode texture from %s: %v", mc.Caches.Textures.Name(), err)
+		logger.Errorf("Failed to decode texture from %s: %v", cacheCtx.Name(), err)
 		// Metrics stats Cache Decode Error
 		return
 	}
 	// Metrics stat Hit
-	logger.Debugf("Found texture in %s", mc.Caches.Textures.Name())
+	logger.Debugf("Found texture in %s", cacheCtx.Name())
 	return
 }
 

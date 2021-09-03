@@ -1,15 +1,26 @@
 package skind
 
 import (
+	"context"
 	"flag"
 
 	"github.com/felixge/fgprof"
+	"github.com/weaveworks/common/server"
+
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
+	tracesdk "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
+
 	cache_config "github.com/minotar/imgd/pkg/cache/util/config"
 	"github.com/minotar/imgd/pkg/mcclient"
 	"github.com/minotar/imgd/pkg/util/log"
 	"github.com/minotar/minecraft"
-
-	"github.com/weaveworks/common/server"
 )
 
 type Config struct {
@@ -74,12 +85,55 @@ func New(cfg Config) (*Skind, error) {
 	return skind, nil
 }
 
+func tracerProvider() (*tracesdk.TracerProvider, error) {
+	// Create the Jaeger exporter
+	exp, err := jaeger.New(jaeger.WithCollectorEndpoint())
+	if err != nil {
+		return nil, err
+	}
+	tp := tracesdk.NewTracerProvider(
+		// Always be sure to batch in production.
+		tracesdk.WithBatcher(exp),
+		// Record information about this application in an Resource.
+		tracesdk.WithResource(resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceNameKey.String("skind"),
+			attribute.String("environment", "dev"),
+			attribute.Int64("ID", 1),
+		)),
+	)
+	return tp, nil
+}
+
 func (s *Skind) Run() error {
+
+	//traceExporter, err := stdouttrace.New(
+	//	stdouttrace.WithPrettyPrint(),
+	//)
+	tp, err := tracerProvider()
+	if err != nil {
+		s.Cfg.Logger.Fatalf("failed to initialize stdouttrace export pipeline: %v", err)
+	}
+
+	//bsp := tracesdk.NewBatchSpanProcessor(traceExporter)
+	//tp := tracesdk.NewTracerProvider(sdktrace.WithSpanProcessor(bsp))
+
+	otel.SetTracerProvider(tp)
+	propagator := propagation.NewCompositeTextMapPropagator(propagation.Baggage{}, propagation.TraceContext{})
+	otel.SetTextMapPropagator(propagator)
+
+	// Handle this error in a sensible manner where possible
+	defer func() { _ = tp.Shutdown(context.Background()) }()
+
 	//t.Server.HTTP.Handle("/services", http.HandlerFunc(t.servicesHandler))
 	if err := s.initServer(); err != nil {
 		return err
 	}
 	// init other bits
+
+	s.McClient.API.Client.Transport = otelhttp.NewTransport(s.McClient.API.Client.Transport)
+
+	s.Server.HTTP.Use(otelmux.Middleware("skind"))
 
 	s.Server.HTTP.Path("/debug/fgprof").Handler(fgprof.Handler())
 
