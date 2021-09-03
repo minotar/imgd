@@ -24,23 +24,13 @@ type McClient struct {
 	TexturesMcNetBase string
 }
 
-// Todo: Not sure I love this or whether a Context might make more sense
-type UserReq struct{ minecraft.User }
-
 // Todo: I need to be providing logging and request context in here
 func (mc *McClient) GetSkinFromReq(logger log.Logger, userReq UserReq) minecraft.Skin {
-	var uuid string
-	if userReq.UUID == "" {
-		logger = logger.With("username", userReq.Username)
-		uuidEntry, err := mc.GetUUIDEntry(logger, userReq.Username)
-		if err != nil {
-			logger.Debugf("Falling back to Steve: %v", err)
-			skin, _ := minecraft.FetchSkinForSteve()
-			return skin
-		}
-		uuid = uuidEntry.UUID
-	} else {
-		uuid = userReq.UUID
+	logger, uuid, err := userReq.GetUUID(logger, mc)
+	if err != nil {
+		logger.Debugf("Falling back to Steve: %v", err)
+		skin, _ := minecraft.FetchSkinForSteve()
+		return skin
 	}
 
 	logger = logger.With("uuid", uuid)
