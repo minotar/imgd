@@ -120,7 +120,7 @@ func (mc *McClient) CacheInsertMcUser(logger log.Logger, uuid string, user mcuse
 
 	// Metrics timer / tracing
 	// Though - is this useless when using a TieredCache which is inherentantly varied?
-	err = mc.Caches.UUID.InsertTTL(uuid, packedUserBytes, user.TTL())
+	err = mc.Caches.UserData.InsertTTL(uuid, packedUserBytes, user.TTL())
 	// Observe Cache insert
 	if err != nil {
 		// stats.CacheUser("insert_error")
@@ -179,7 +179,7 @@ func (mc *McClient) CacheInsertTexture(logger log.Logger, textureKey string, tex
 
 	// Metrics timer / tracing
 	// Though - is this useless when using a TieredCache which is inherentantly varied?
-	err = mc.Caches.UUID.InsertTTL(textureKey, textureBuf.Bytes(), skinTTL)
+	err = mc.Caches.Textures.InsertTTL(textureKey, textureBuf.Bytes(), skinTTL)
 	// Observe Cache insert
 	if err != nil {
 		// stats.CacheUser("insert_error")
