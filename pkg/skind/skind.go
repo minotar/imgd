@@ -2,13 +2,13 @@ package skind
 
 import (
 	"flag"
+	"net/http"
 
 	"github.com/felixge/fgprof"
 	cache_config "github.com/minotar/imgd/pkg/cache/util/config"
 	"github.com/minotar/imgd/pkg/mcclient"
 	"github.com/minotar/imgd/pkg/util/log"
 	"github.com/minotar/imgd/pkg/util/route_helpers"
-	"github.com/minotar/minecraft"
 
 	"github.com/weaveworks/common/server"
 )
@@ -76,32 +76,28 @@ func New(cfg Config) (*Skind, error) {
 	return skind, nil
 }
 
+// Requires "uuid" or "username" vars
+func (s *Skind) SkinPageHandler() http.Handler {
+	logger := s.Cfg.Logger
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userReq := route_helpers.MuxToUserReq(r)
+		skin := s.McClient.GetSkinFromReq(logger, userReq)
+
+		logger.Infof("User hash is: %s", skin.Hash)
+
+		// No more header changes after writing
+		WriteSkin(w, skin)
+		logger.Debug(w.Header())
+	})
+}
+
 func (s *Skind) Run() error {
 	//t.Server.HTTP.Handle("/services", http.HandlerFunc(t.servicesHandler))
 	if err := s.initServer(); err != nil {
 		return err
 	}
 	// init other bits
-
-	s.Server.HTTP.Path("/debug/fgprof").Handler(fgprof.Handler())
-
-	skinHandler := SkinPageHandler(s)
-	downloadSkinHandler := route_helpers.BrowserDownloadHandler(skinHandler)
-	dashedRedirectHandler := route_helpers.DashedRedirectUUIDHandler()
-
-	if s.Cfg.CorsAllowAll {
-		skinHandler = route_helpers.CorsHandler(skinHandler)
-		downloadSkinHandler = route_helpers.CorsHandler(downloadSkinHandler)
-		dashedRedirectHandler = route_helpers.CorsHandler(dashedRedirectHandler)
-	}
-
-	s.Server.HTTP.Path("/skin/{uuid:" + minecraft.ValidUUIDPlainRegex + "}").Handler(skinHandler).Name("skinUUID")
-	s.Server.HTTP.Path("/skin/{username:" + minecraft.ValidUsernameRegex + "}").Handler(skinHandler).Name("skinUsername")
-	s.Server.HTTP.Path("/skin/{uuid:" + minecraft.ValidUUIDDashRegex + "}{extension:(?:.png)?}").Handler(dashedRedirectHandler).Name("skinDashedRedirect")
-
-	s.Server.HTTP.Path("/download/{uuid:" + minecraft.ValidUUIDPlainRegex + "}").Handler(downloadSkinHandler).Name("downloadUUID")
-	s.Server.HTTP.Path("/download/{username:" + minecraft.ValidUsernameRegex + "}").Handler(downloadSkinHandler).Name("downloadUsername")
-	s.Server.HTTP.Path("/download/{uuid:" + minecraft.ValidUUIDDashRegex + "}{extension:(?:.png)?}").Handler(dashedRedirectHandler).Name("downloadDashedRedirect")
 
 	return s.Server.Run()
 
@@ -113,6 +109,16 @@ func (s *Skind) initServer() error {
 	if err != nil {
 		return err
 	}
+
+	serv.HTTP.Use(route_helpers.LoggingMiddleware(s.Cfg.Logger))
+
+	serv.HTTP.Path("/debug/fgprof").Handler(fgprof.Handler())
+
+	if s.Cfg.CorsAllowAll {
+		serv.HTTP.Use(route_helpers.CorsHandler)
+	}
+
+	RegisterRoutes(serv.HTTP, s.SkinPageHandler())
 
 	s.Server = serv
 	return nil

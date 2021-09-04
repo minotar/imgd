@@ -4,24 +4,23 @@ import (
 	"image/png"
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"github.com/minotar/imgd/pkg/util/route_helpers"
 	"github.com/minotar/minecraft"
 )
 
-// Requires "uuid" or "username" vars
-func SkinPageHandler(skind *Skind) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger := skind.Cfg.Logger
+func RegisterRoutes(m *mux.Router, skinHandler http.Handler) {
+	skinSR := m.PathPrefix("/skin/").Subrouter()
+	skinSR.Path(route_helpers.UUIDPath).Handler(skinHandler).Name("skinUUID")
+	skinSR.Path(route_helpers.UsernamePath).Handler(skinHandler).Name("skinUsername")
+	route_helpers.SubRouteDashedRedirect(skinSR)
 
-		userReq := route_helpers.MuxToUserReq(r)
-		skin := skind.McClient.GetSkinFromReq(logger, userReq)
+	downloadSkinHandler := route_helpers.BrowserDownloadHandler(skinHandler)
 
-		logger.Infof("User hash is: %s", skin.Hash)
-
-		// No more header changes after writing
-		WriteSkin(w, skin)
-		logger.Debug(w.Header())
-	})
+	downloadSR := m.PathPrefix("/download/").Subrouter()
+	downloadSR.Path(route_helpers.UUIDPath).Handler(downloadSkinHandler).Name("downloadUUID")
+	downloadSR.Path(route_helpers.UsernamePath).Handler(downloadSkinHandler).Name("downloadUsername")
+	route_helpers.SubRouteDashedRedirect(downloadSR)
 }
 
 func WriteSkin(w http.ResponseWriter, skin minecraft.Skin) {
