@@ -6,6 +6,15 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/minotar/imgd/pkg/mcclient"
+	"github.com/minotar/imgd/pkg/util/log"
+	"github.com/minotar/minecraft"
+)
+
+const (
+	UUIDPath     = "/{uuid:" + minecraft.ValidUUIDPlainRegex + "}"
+	DashPath     = "/{dashedUUID:" + minecraft.ValidUUIDDashRegex + "}"
+	UsernamePath = "/{username:" + minecraft.ValidUsernameRegex + "}"
+	UserPath     = "/{user:" + minecraft.ValidUsernameRegex + "|" + minecraft.ValidUUIDPlainRegex + "}"
 )
 
 func CorsHandler(next http.Handler) http.Handler {
@@ -33,6 +42,10 @@ func DashedRedirectUUIDHandler() http.Handler {
 	})
 }
 
+func SubRouteDashedRedirect(m *mux.Router) {
+	m.Path(DashPath + "{?:(?:.[a-z]{3})?}").Handler(DashedRedirectUUIDHandler()).Name("dashedRedirect")
+}
+
 // var "username" or "uuid" _MUST_ be present
 func MuxToUserReq(r *http.Request) (userReq mcclient.UserReq) {
 	vars := mux.Vars(r)
@@ -43,4 +56,19 @@ func MuxToUserReq(r *http.Request) (userReq mcclient.UserReq) {
 		userReq.UUID = uuid
 	}
 	return
+}
+
+func LoggingMiddleware(logger log.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			logger.With(
+				"method", r.Method,
+				"content_length", r.ContentLength,
+				"host", r.Host,
+				"remote_addr", r.RemoteAddr,
+				"url", r.URL,
+			).Debug("incoming")
+			next.ServeHTTP(w, r)
+		})
+	}
 }

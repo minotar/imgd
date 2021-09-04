@@ -39,10 +39,11 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 type Processd struct {
 	Cfg Config
 
-	Server    *server.Server
-	Client    *http.Client
-	UserAgent string
-	SkindURL  string
+	Server        *server.Server
+	Client        *http.Client
+	UserAgent     string
+	SkindURL      string
+	ProcessRoutes map[string]SkinProcessor
 }
 
 func New(cfg Config) (*Processd, error) {
@@ -51,13 +52,18 @@ func New(cfg Config) (*Processd, error) {
 	// Set the GRPC to localhost only
 	cfg.Server.GRPCListenAddress = "127.0.0.3"
 
+	processRoutes := map[string]SkinProcessor{
+		"Avatar": GetHead,
+	}
+
 	processd := &Processd{
-		Cfg:      cfg,
-		SkindURL: cfg.SkindURL,
+		Cfg: cfg,
 		Client: &http.Client{
 			Timeout: cfg.UpstreamTimeout,
 		},
-		UserAgent: "minotar/imgd/processd (https://github.com/minotar/imgd) - default",
+		UserAgent:     "minotar/imgd/processd (https://github.com/minotar/imgd) - default",
+		SkindURL:      cfg.SkindURL,
+		ProcessRoutes: processRoutes,
 	}
 
 	return processd, nil
@@ -69,7 +75,7 @@ func handleError(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (s *Processd) SkinLookupWrapper(processFunc func(minecraft.Skin) http.Handler) http.Handler {
+func (s *Processd) SkinLookupWrapper(processFunc SkinProcessor) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		var userLookup string
@@ -81,6 +87,7 @@ func (s *Processd) SkinLookupWrapper(processFunc func(minecraft.Skin) http.Handl
 		if err != nil {
 			//return nil, fmt.Errorf("unable to create request: %v", err)
 			//Use Steve and call original process logic?
+			s.Cfg.Logger.Errorf("It broken: %v", err)
 			return
 		}
 
@@ -96,18 +103,21 @@ func (s *Processd) SkinLookupWrapper(processFunc func(minecraft.Skin) http.Handl
 		if err != nil {
 			//return nil, fmt.Errorf("unable to GET URL: %v", err)
 			//Use Steve and call original process logic?
+			s.Cfg.Logger.Errorf("It broken: %v", err)
 			return
 		}
 		defer resp.Body.Close()
 
 		if s.Cfg.UseETags {
+			respETag := resp.Header.Get("ETag")
 			// If the response was a StatusNotModified (it should be as we already sent the If-None-Match!)
 			// If the ETag matches from request to response, then no need to process
-			if resp.StatusCode == http.StatusNotModified || reqETag == resp.Header.Get("ETag") {
+			if resp.StatusCode == http.StatusNotModified || reqETag == respETag {
 				w.WriteHeader(http.StatusNotModified)
 				return
 			}
-			// Todo: Can we add the etag to the responseWriter here?
+			// Need to unset ETag if we later have an issue!
+			w.Header().Set("ETag", respETag)
 		}
 
 		skin := minecraft.Skin{}
@@ -127,10 +137,6 @@ func (s *Processd) Run() error {
 	}
 	// init other bits
 
-	s.Server.HTTP.Path("/debug/fgprof").Handler(fgprof.Handler())
-
-	RegisterRoutes(s.Server.HTTP, s.SkinLookupWrapper)
-
 	return s.Server.Run()
 
 	//return nil
@@ -142,7 +148,10 @@ func (s *Processd) initServer() error {
 		return err
 	}
 
+	serv.HTTP.Path("/debug/fgprof").Handler(fgprof.Handler())
+
+	RegisterRoutes(serv.HTTP, s.SkinLookupWrapper, s.ProcessRoutes)
+
 	s.Server = serv
 	return nil
-
 }
