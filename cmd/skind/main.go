@@ -16,8 +16,6 @@ import (
 	"github.com/minotar/imgd/pkg/util/log"
 )
 
-const Var1 = "Hi"
-
 func init() {
 	prometheus.MustRegister(version.NewCollector("skind"))
 }
@@ -45,7 +43,7 @@ func main() {
 	fmt.Printf("Config: %+v\n", config)
 
 	config.Logger = logger
-	config.Config.CorsAllowAll = true
+	//config.Config.CorsAllowAll = true
 
 	switch {
 	case flaggedVersion:
