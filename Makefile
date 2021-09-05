@@ -70,11 +70,26 @@ cmd/processd/processd-debug: $(APP_GO_FILES) cmd/processd/main.go
 
 
 
+imgd: cmd/imgd/imgd
+imgd-debug: cmd/imgd/imgd-debug
+
+cmd/imgd/imgd: $(APP_GO_FILES) cmd/imgd/main.go
+	CGO_ENABLED=0 go build $(GO_FLAGS) -o $@ ./$(@D)
+	$(NETGO_CHECK)
+
+cmd/imgd/imgd-debug: $(APP_GO_FILES) cmd/imgd/main.go
+	CGO_ENABLED=0 go build $(DEBUG_GO_FLAGS) -o $@ ./$(@D)
+	$(NETGO_CHECK)
+
+
+
 clean:
 	rm -rf cmd/skind/skind
 	rm -rf cmd/skind/skind-debug
 	rm -rf cmd/processd/processd
 	rm -rf cmd/processd/processd-debug
+	rm -rf cmd/imgd/imgd
+	rm -rf cmd/imgd/imgd-debug
 
 
 #############
