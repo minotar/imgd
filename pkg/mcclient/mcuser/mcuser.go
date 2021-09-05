@@ -3,6 +3,7 @@ package mcuser
 import (
 	"bytes"
 	"compress/flate"
+	"fmt"
 	"io/ioutil"
 	"time"
 
@@ -45,6 +46,14 @@ func (u McUser) IsFresh() bool {
 
 func (u McUser) TTL() time.Duration {
 	return u.Status.DurationUser()
+}
+
+func (u McUser) String() string {
+	if u.IsValid() {
+		return fmt.Sprintf("{%s:%s  %s}", u.Username, u.UUID, u.Timestamp.Time())
+	} else {
+		return fmt.Sprintf("{%s %s:%s %s}", u.Status, u.Username, u.UUID, u.Timestamp.Time())
+	}
 }
 
 // Decompress a Protobuf McUser

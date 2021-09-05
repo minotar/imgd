@@ -83,6 +83,19 @@ cmd/imgd/imgd-debug: $(APP_GO_FILES) cmd/imgd/main.go
 
 
 
+cacheconv: cmd/cacheconv/cacheconv
+cacheconv-debug: cmd/cacheconv/cacheconv-debug
+
+cmd/cacheconv/cacheconv: $(APP_GO_FILES) cmd/cacheconv/main.go
+	CGO_ENABLED=0 go build $(GO_FLAGS) -o $@ ./$(@D)
+	$(NETGO_CHECK)
+
+cmd/cacheconv/cacheconv-debug: $(APP_GO_FILES) cmd/cacheconv/main.go
+	CGO_ENABLED=0 go build $(DEBUG_GO_FLAGS) -o $@ ./$(@D)
+	$(NETGO_CHECK)
+
+
+
 clean:
 	rm -rf cmd/skind/skind
 	rm -rf cmd/skind/skind-debug
@@ -90,6 +103,8 @@ clean:
 	rm -rf cmd/processd/processd-debug
 	rm -rf cmd/imgd/imgd
 	rm -rf cmd/imgd/imgd-debug
+	rm -rf cmd/cacheconv/cacheconv
+	rm -rf cmd/cacheconv/cacheconv-debug
 
 
 #############

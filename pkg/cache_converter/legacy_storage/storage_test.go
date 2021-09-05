@@ -1,4 +1,4 @@
-package storage
+package legacy_storage
 
 import (
 	"testing"

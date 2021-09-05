@@ -1,6 +1,7 @@
 package uuid
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/minotar/imgd/pkg/mcclient/status"
@@ -41,6 +42,14 @@ func (u UUIDEntry) IsFresh() bool {
 
 func (u UUIDEntry) TTL() time.Duration {
 	return u.Status.DurationUUID()
+}
+
+func (u UUIDEntry) String() string {
+	if u.IsValid() {
+		return fmt.Sprintf("{%s: %s}", u.UUID, u.Timestamp.Time())
+	} else {
+		return fmt.Sprintf("{%s: %s}", u.Status, u.Timestamp.Time())
+	}
 }
 
 // Super simple format
