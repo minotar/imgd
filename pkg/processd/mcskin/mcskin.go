@@ -1,3 +1,6 @@
+// mcskin has the logic for constructing the skin into the desired shape
+// It also will detect width/image type and can be used as an http.Handler to
+// then deliver this to a client
 package mcskin
 
 import (
@@ -97,6 +100,7 @@ func GetWidth(inp string) int {
 	return out
 }
 
+// GetImageType checks for specific extensions, otherwise uses PNG
 func GetImageType(ext string) ImageType {
 	switch ext {
 	case ".svg":
@@ -106,6 +110,7 @@ func GetImageType(ext string) ImageType {
 	}
 }
 
+// Based on *http.Request, read the Gorilla Mux vars for "width" and "extension"
 func GetWidthType(r *http.Request) (width int, imageType ImageType) {
 	vars := mux.Vars(r)
 	if reqWidth, widthGiven := vars["width"]; widthGiven {
@@ -122,23 +127,10 @@ func GetWidthType(r *http.Request) (width int, imageType ImageType) {
 	return
 }
 
+// Create a McSkin for manual usage (vs. using the Handlers)
 func NewMcSkinFromRequest(r *http.Request, skin minecraft.Skin) *McSkin {
 	mcSkin := &McSkin{Skin: skin}
 	mcSkin.Width, mcSkin.Type = GetWidthType(r)
-	return mcSkin
-}
-
-// Sets skin.Processed to the face of the user.
-func HandlerHead(skin minecraft.Skin) http.Handler {
-	mcSkin := &McSkin{Skin: skin}
-	mcSkin.Processor = mcSkin.GetHead
-	return mcSkin
-}
-
-// Sets skin.Processed to the face of the user.
-func HandlerHelm(skin minecraft.Skin) http.Handler {
-	mcSkin := &McSkin{Skin: skin}
-	mcSkin.Processor = mcSkin.GetHelm
 	return mcSkin
 }
 
@@ -148,26 +140,6 @@ type McSkin struct {
 	Processor func() error
 	Type      ImageType
 	Width     int
-}
-
-// The
-func (skin *McSkin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if skin.Processor == nil {
-		http.Error(w, "No processor", 500)
-		return
-	}
-
-	skin.Width, skin.Type = GetWidthType(r)
-	skin.Processor()
-
-	switch skin.Type {
-	case ImageTypePNG:
-		w.Header().Add("Content-Type", string(ImageTypePNG))
-		skin.WritePNG(w)
-	case ImageTypeSVG:
-		w.Header().Add("Content-Type", string(ImageTypeSVG))
-		skin.WriteSVG(w)
-	}
 }
 
 // Sets skin.Processed to the face of the user.
@@ -221,7 +193,8 @@ func (skin *McSkin) GetCube() error {
 }
 
 // Sets skin.Processed to an isometric render of the head from a top-left angle (showing 3 sides).
-func (skin *McSkin) GetCubeHelm(width int) error {
+func (skin *McSkin) GetCubeHelm() error {
+	width := skin.Width
 	// Crop out the top of the head
 	topFlat := imaging.Crop(skin.Image, image.Rect(8, 0, 16, 8))
 	// Resize appropriately, so that it fills the `width` when rotated 45 def.
@@ -282,7 +255,7 @@ func (skin *McSkin) GetCubeHelm(width int) error {
 }
 
 // Sets skin.Processed to the upper portion of the body (slightly higher cutoff than waist).
-func (skin *McSkin) GetBust(width int) error {
+func (skin *McSkin) GetBust() error {
 	headImg := skin.cropHead(skin.Image).(*image.NRGBA)
 	upperBodyImg := skin.renderUpperBody()
 
@@ -297,7 +270,7 @@ func (skin *McSkin) GetBust(width int) error {
 }
 
 // Sets skin.Processed to the upper portion of the body (slightly higher cutoff than waist) but with any armor which the user has.
-func (skin *McSkin) GetArmorBust(width int) error {
+func (skin *McSkin) GetArmorBust() error {
 	helmImg := skin.cropHelm(skin.Image).(*image.NRGBA)
 	upperArmorImg := skin.renderUpperArmor()
 
@@ -312,7 +285,7 @@ func (skin *McSkin) GetArmorBust(width int) error {
 }
 
 // Sets skin.Processed to a front render of the body.
-func (skin *McSkin) GetBody(width int) error {
+func (skin *McSkin) GetBody() error {
 	headImg := skin.cropHead(skin.Image).(*image.NRGBA)
 	upperBodyImg := skin.renderUpperBody()
 	lowerBodyImg := skin.renderLowerBody()
@@ -326,7 +299,7 @@ func (skin *McSkin) GetBody(width int) error {
 }
 
 // Sets skin.Processed to a front render of the body but with any armor which the user has.
-func (skin *McSkin) GetArmorBody(width int) error {
+func (skin *McSkin) GetArmorBody() error {
 	helmImg := skin.cropHelm(skin.Image).(*image.NRGBA)
 	upperArmorImg := skin.renderUpperArmor()
 	lowerArmorImg := skin.renderLowerArmor()
