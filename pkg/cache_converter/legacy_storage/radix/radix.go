@@ -5,8 +5,7 @@ import (
 
 	"github.com/mediocregopher/radix.v2/pool"
 	"github.com/mediocregopher/radix.v2/redis"
-	"github.com/minotar/imgd/storage"
-	"github.com/minotar/imgd/storage/util/redisinfo"
+	storage "github.com/minotar/imgd/pkg/cache_converter/legacy_storage"
 )
 
 // RedisCache stores our Redis Pool
@@ -28,7 +27,7 @@ var _ storage.Storage = new(RedisCache)
 
 // Insert will SET the key in Redis with an expiry TTL
 func (r *RedisCache) Insert(key string, value []byte, ttl time.Duration) error {
-	resp := r.pool.Cmd("SET", key, value, "EX", ttl.Seconds())
+	resp := r.pool.Cmd("SET", key, value, "EX", int(ttl.Seconds()))
 	return resp.Err
 }
 
@@ -65,17 +64,11 @@ func (r *RedisCache) Len() uint {
 }
 
 func (r *RedisCache) Size() uint64 {
-	resp := r.pool.Cmd("INFO")
-	if resp.Err != nil {
-		return 0
-	}
+	return 0
+}
 
-	info, err := resp.Bytes()
-	if err != nil {
-		return 0
-	}
-
-	return redisinfo.ParseUsedMemory(info)
+func (r *RedisCache) Pool() *pool.Pool {
+	return r.pool
 }
 
 func (r *RedisCache) Close() {

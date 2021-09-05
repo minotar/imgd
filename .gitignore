@@ -1,12 +1,15 @@
-# Compiled, pre-install files
-/imgd
-/imgd.exe
 
 /cmd/skind/skind
+/cmd/skind/skind-debug
 /cmd/skind/skind.exe
 
 /cmd/processd/processd
+/cmd/processd/processd-debug
 /cmd/processd/processd.exe
+
+/cmd/imgd/imgd
+/cmd/imgd/imgd-debug
+/cmd/imgd/imgd.exe
 
 
 /src
