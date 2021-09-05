@@ -1,4 +1,4 @@
-package skind
+package imgd
 
 import (
 	"flag"
@@ -7,6 +7,8 @@ import (
 	"github.com/felixge/fgprof"
 	cache_config "github.com/minotar/imgd/pkg/cache/util/config"
 	"github.com/minotar/imgd/pkg/mcclient"
+	"github.com/minotar/imgd/pkg/processd"
+	"github.com/minotar/imgd/pkg/skind"
 	"github.com/minotar/imgd/pkg/util/log"
 	"github.com/minotar/imgd/pkg/util/route_helpers"
 
@@ -25,26 +27,27 @@ type Config struct {
 func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	//c.Server.ExcludeRequestInLog = true
 
-	f.BoolVar(&c.CorsAllowAll, "skind.cors-allow-all", true, "Permissive CORS policy")
-	f.BoolVar(&c.UseETags, "skind.use-etags", true, "Use etags to skip re-processing")
+	f.BoolVar(&c.CorsAllowAll, "imgd.cors-allow-all", true, "Permissive CORS policy")
+	f.BoolVar(&c.UseETags, "imgd.use-etags", true, "Use etags to skip re-processing")
 
 	c.Server.RegisterFlags(f)
 	c.McClient.RegisterFlags(f)
 
 }
 
-type Skind struct {
+type Imgd struct {
 	Cfg Config
 
-	Server   *server.Server
-	McClient *mcclient.McClient
+	Server        *server.Server
+	McClient      *mcclient.McClient
+	ProcessRoutes map[string]processd.SkinProcessor
 }
 
-func New(cfg Config) (*Skind, error) {
+func New(cfg Config) (*Imgd, error) {
 	// Set namespace for all metrics
-	cfg.Server.MetricsNamespace = "skind"
+	cfg.Server.MetricsNamespace = "imgd"
 	// Set the GRPC to localhost only
-	cfg.Server.GRPCListenAddress = "127.0.0.2"
+	cfg.Server.GRPCListenAddress = "127.0.0.4"
 
 	cfg.McClient.CacheUUID.Logger = cfg.Logger
 	cacheUUID, err := cache_config.NewCache(cfg.McClient.CacheUUID)
@@ -67,9 +70,10 @@ func New(cfg Config) (*Skind, error) {
 	}
 	cacheTextures.Start()
 
-	skind := &Skind{
-		Cfg:      cfg,
-		McClient: mcclient.NewMcClient(&cfg.McClient),
+	skind := &Imgd{
+		Cfg:           cfg,
+		McClient:      mcclient.NewMcClient(&cfg.McClient),
+		ProcessRoutes: processd.DefaultProcessRoutes,
 	}
 
 	skind.McClient.Caches.UUID = cacheUUID
@@ -80,17 +84,17 @@ func New(cfg Config) (*Skind, error) {
 }
 
 // Requires "uuid" or "username" vars
-func (s *Skind) SkinPageHandler() http.Handler {
-	logger := s.Cfg.Logger
+func (i *Imgd) SkinPageHandler() http.Handler {
+	logger := i.Cfg.Logger
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userReq := route_helpers.MuxToUserReq(r)
-		skin := s.McClient.GetSkinFromReq(logger, userReq)
+		skin := i.McClient.GetSkinFromReq(logger, userReq)
 
 		logger.Infof("User hash is: %s", skin.Hash)
 
 		reqETag := r.Header.Get("If-None-Match")
-		if s.Cfg.UseETags {
+		if i.Cfg.UseETags {
 			// If the response was a StatusNotModified (it should be as we already sent the If-None-Match!)
 			// If the ETag matches from request to response, then no need to process
 			if reqETag == skin.Hash {
@@ -103,40 +107,66 @@ func (s *Skind) SkinPageHandler() http.Handler {
 		}
 
 		// No more header changes after writing
-		WriteSkin(w, skin)
+		skind.WriteSkin(w, skin)
 		logger.Debug(w.Header())
 	})
 }
 
-func (s *Skind) Run() error {
+func (i *Imgd) SkinLookupWrapper(processFunc processd.SkinProcessor) http.Handler {
+	logger := i.Cfg.Logger
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userReq := route_helpers.MuxToUserReq(r)
+		skin := i.McClient.GetSkinFromReq(logger, userReq)
+
+		reqETag := r.Header.Get("If-None-Match")
+		if i.Cfg.UseETags {
+			// If the response was a StatusNotModified (it should be as we already sent the If-None-Match!)
+			// If the ETag matches from request to response, then no need to process
+			if reqETag == skin.Hash {
+				w.WriteHeader(http.StatusNotModified)
+				return
+			}
+			// Need to unset ETag if we later have an issue!
+			// Todo: do we still want to use Skin Hash
+			w.Header().Set("ETag", skin.Hash)
+		}
+
+		handler := processFunc(skin)
+		handler.ServeHTTP(w, r)
+	})
+}
+
+func (i *Imgd) Run() error {
 	//t.Server.HTTP.Handle("/services", http.HandlerFunc(t.servicesHandler))
-	if err := s.initServer(); err != nil {
+	if err := i.initServer(); err != nil {
 		return err
 	}
 	// init other bits
 
-	return s.Server.Run()
+	return i.Server.Run()
 
 	//return nil
 }
 
-func (s *Skind) initServer() error {
-	serv, err := server.New(s.Cfg.Server)
+func (i *Imgd) initServer() error {
+	serv, err := server.New(i.Cfg.Server)
 	if err != nil {
 		return err
 	}
 
-	serv.HTTP.Use(route_helpers.LoggingMiddleware(s.Cfg.Logger))
+	serv.HTTP.Use(route_helpers.LoggingMiddleware(i.Cfg.Logger))
 
 	serv.HTTP.Path("/debug/fgprof").Handler(fgprof.Handler())
 
-	if s.Cfg.CorsAllowAll {
+	if i.Cfg.CorsAllowAll {
 		serv.HTTP.Use(route_helpers.CorsHandler)
 	}
 
-	RegisterRoutes(serv.HTTP, s.SkinPageHandler())
+	skind.RegisterRoutes(serv.HTTP, i.SkinPageHandler())
+	processd.RegisterRoutes(serv.HTTP, i.SkinLookupWrapper, i.ProcessRoutes)
 
-	s.Server = serv
+	i.Server = serv
 	return nil
 
 }

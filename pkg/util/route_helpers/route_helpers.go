@@ -14,7 +14,10 @@ const (
 	UUIDPath     = "/{uuid:" + minecraft.ValidUUIDPlainRegex + "}"
 	DashPath     = "/{dashedUUID:" + minecraft.ValidUUIDDashRegex + "}"
 	UsernamePath = "/{username:" + minecraft.ValidUsernameRegex + "}"
-	UserPath     = "/{user:" + minecraft.ValidUsernameRegex + "|" + minecraft.ValidUUIDPlainRegex + "}"
+	//UserPath     = "/{user:" + minecraft.ValidUsernameRegex + "|" + minecraft.ValidUUIDPlainRegex + "}"
+	// We technically only allow up to size 300, but we'll fallback on larger
+	WidthPath     = "{width:[0-9]{1,4}}"
+	ExtensionPath = "{extension:(?:\\.png|\\.svg)?}"
 )
 
 func CorsHandler(next http.Handler) http.Handler {
@@ -29,6 +32,7 @@ func CorsHandler(next http.Handler) http.Handler {
 func BrowserDownloadHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Todo: pretty download name would be nice...
+		// Maybe via a Context????
 		w.Header().Add("Content-Disposition", "attachment; filename=\"skin.png\"")
 		next.ServeHTTP(w, r)
 	})

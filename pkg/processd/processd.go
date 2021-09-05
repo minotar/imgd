@@ -10,9 +10,23 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/minotar/imgd/pkg/processd/mcskin"
 	"github.com/minotar/imgd/pkg/util/log"
+	"github.com/minotar/imgd/pkg/util/route_helpers"
 	"github.com/minotar/minecraft"
 
 	"github.com/weaveworks/common/server"
+)
+
+var (
+	DefaultProcessRoutes = map[string]SkinProcessor{
+		"Avatar":                 mcskin.HandlerHead,
+		"Helm":                   mcskin.HandlerHelm,
+		"Cube":                   mcskin.HandlerCube,
+		"CubeHelm":               mcskin.HandlerCubeHelm,
+		"Bust":                   mcskin.HandlerBust,
+		"Body":                   mcskin.HandlerBody,
+		"Armor/Bust|Armour/Bust": mcskin.HandlerArmorBust,
+		"Armor/Body|Armour/Body": mcskin.HandlerArmorBody,
+	}
 )
 
 type Config struct {
@@ -28,13 +42,12 @@ type Config struct {
 func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	//c.Server.ExcludeRequestInLog = true
 
-	c.Server.RegisterFlags(f)
-
 	f.DurationVar(&c.UpstreamTimeout, "processd.upstream-timeout", 10*time.Second, "Timeout for Skin lookup")
 	f.StringVar(&c.SkindURL, "processd.skind-url", "http://localhost:4643/skin/", "API for skin lookups")
 	f.BoolVar(&c.CorsAllowAll, "processd.cors-allow-all", true, "Permissive CORS policy")
 	f.BoolVar(&c.UseETags, "processd.use-etags", true, "Use etags to skip re-processing")
 
+	c.Server.RegisterFlags(f)
 }
 
 type Processd struct {
@@ -53,17 +66,6 @@ func New(cfg Config) (*Processd, error) {
 	// Set the GRPC to localhost only
 	cfg.Server.GRPCListenAddress = "127.0.0.3"
 
-	processRoutes := map[string]SkinProcessor{
-		"Avatar":                 mcskin.HandlerHead,
-		"Helm":                   mcskin.HandlerHelm,
-		"Cube":                   mcskin.HandlerCube,
-		"CubeHelm":               mcskin.HandlerCubeHelm,
-		"Bust":                   mcskin.HandlerBust,
-		"Body":                   mcskin.HandlerBody,
-		"Armor/Bust|Armour/Bust": mcskin.HandlerArmorBust,
-		"Armor/Body|Armour/Body": mcskin.HandlerArmorBody,
-	}
-
 	processd := &Processd{
 		Cfg: cfg,
 		Client: &http.Client{
@@ -71,7 +73,7 @@ func New(cfg Config) (*Processd, error) {
 		},
 		UserAgent:     "minotar/imgd/processd (https://github.com/minotar/imgd) - default",
 		SkindURL:      cfg.SkindURL,
-		ProcessRoutes: processRoutes,
+		ProcessRoutes: DefaultProcessRoutes,
 	}
 
 	return processd, nil
@@ -86,42 +88,52 @@ func handleSkinLookupError(w http.ResponseWriter, r *http.Request, processFunc S
 	handler.ServeHTTP(w, r)
 }
 
-func (s *Processd) SkinLookupWrapper(processFunc SkinProcessor) http.Handler {
+func (p *Processd) SkinLookupWrapper(processFunc SkinProcessor) http.Handler {
+	logger := p.Cfg.Logger
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
+
+		userReq := route_helpers.MuxToUserReq(r)
 		var userLookup string
-		if user, userGiven := vars["user"]; userGiven {
-			userLookup = user
+
+		if userReq.UUID != "" {
+			userLookup = userReq.UUID
+		} else if userReq.Username != "" {
+			userLookup = userReq.Username
+		} else {
+			logger.Errorf("Request came through without Username/UUID: %v", mux.Vars(r))
+			handleSkinLookupError(w, r, processFunc)
+			return
 		}
 
-		skinReq, err := http.NewRequestWithContext(r.Context(), "GET", fmt.Sprint(s.SkindURL, userLookup), nil)
+		skinReq, err := http.NewRequestWithContext(r.Context(), "GET", fmt.Sprint(p.SkindURL, userLookup), nil)
 		if err != nil {
 			//return nil, fmt.Errorf("unable to create request: %v", err)
 			//Use Steve and call original process logic?
-			s.Cfg.Logger.Errorf("It broken: %v", err)
+			logger.Errorf("It broken: %v", err)
 			handleSkinLookupError(w, r, processFunc)
 			return
 		}
 
 		reqETag := r.Header.Get("If-None-Match")
 
-		skinReq.Header.Set("User-Agent", s.UserAgent)
-		if s.Cfg.UseETags {
+		skinReq.Header.Set("User-Agent", p.UserAgent)
+		if p.Cfg.UseETags {
 			skinReq.Header.Set("If-None-Match", reqETag)
 		}
 		//req.Header.Set("X-Request-ID", "magic-to-use-existing-or-add-new")
 
-		resp, err := s.Client.Do(skinReq)
+		resp, err := p.Client.Do(skinReq)
 		if err != nil {
 			//return nil, fmt.Errorf("unable to GET URL: %v", err)
 			//Use Steve and call original process logic?
-			s.Cfg.Logger.Errorf("It broken: %v", err)
+			logger.Errorf("It broken: %v", err)
 			handleSkinLookupError(w, r, processFunc)
 			return
 		}
 		defer resp.Body.Close()
 
-		if s.Cfg.UseETags {
+		if p.Cfg.UseETags {
 			respETag := resp.Header.Get("ETag")
 			// If the response was a StatusNotModified (it should be as we already sent the If-None-Match!)
 			// If the ETag matches from request to response, then no need to process
@@ -143,28 +155,32 @@ func (s *Processd) SkinLookupWrapper(processFunc SkinProcessor) http.Handler {
 	})
 }
 
-func (s *Processd) Run() error {
+func (p *Processd) Run() error {
 	//t.Server.HTTP.Handle("/services", http.HandlerFunc(t.servicesHandler))
-	if err := s.initServer(); err != nil {
+	if err := p.initServer(); err != nil {
 		return err
 	}
 	// init other bits
 
-	return s.Server.Run()
+	return p.Server.Run()
 
 	//return nil
 }
 
-func (s *Processd) initServer() error {
-	serv, err := server.New(s.Cfg.Server)
+func (p *Processd) initServer() error {
+	serv, err := server.New(p.Cfg.Server)
 	if err != nil {
 		return err
 	}
 
 	serv.HTTP.Path("/debug/fgprof").Handler(fgprof.Handler())
 
-	RegisterRoutes(serv.HTTP, s.SkinLookupWrapper, s.ProcessRoutes)
+	RegisterRoutes(serv.HTTP, p.SkinLookupWrapper, p.ProcessRoutes)
 
-	s.Server = serv
+	if p.Cfg.CorsAllowAll {
+		serv.HTTP.Use(route_helpers.CorsHandler)
+	}
+
+	p.Server = serv
 	return nil
 }

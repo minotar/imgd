@@ -15,11 +15,23 @@ type SkinWrapper func(SkinProcessor) http.Handler
 
 // skinWrapper would eg. be SkinLookupWrapper
 func RegisterRoutes(m *mux.Router, skinWrapper SkinWrapper, processRoutes map[string]SkinProcessor) {
+	usernamePath := route_helpers.UsernamePath
+	uuidPath := route_helpers.UUIDPath
+	extPath := route_helpers.ExtensionPath
+	widPath := route_helpers.WidthPath
 
 	for resource, processor := range processRoutes {
-		mainPath := "/{resource:" + strings.ToLower(resource) + "}" + route_helpers.UserPath
-		m.Path(mainPath).Handler(skinWrapper(processor)).Name(resource)
-		m.Path(mainPath + "/{width:[0-9]+}").Handler(skinWrapper(processor)).Name(resource)
+		resPath := "/{resource:" + strings.ToLower(resource) + "}"
+
+		// Todo: name Routes based on UUID vs. Username?
+
+		// Username
+		m.Path(resPath + usernamePath + extPath).Handler(skinWrapper(processor)).Name(resource)
+		m.Path(resPath + usernamePath + "/" + widPath + extPath).Handler(skinWrapper(processor)).Name(resource)
+
+		// UUID
+		m.Path(resPath + uuidPath + extPath).Handler(skinWrapper(processor)).Name(resource)
+		m.Path(resPath + uuidPath + "/" + widPath + extPath).Handler(skinWrapper(processor)).Name(resource)
 	}
 
 }
