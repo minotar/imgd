@@ -54,8 +54,14 @@ func New(cfg Config) (*Processd, error) {
 	cfg.Server.GRPCListenAddress = "127.0.0.3"
 
 	processRoutes := map[string]SkinProcessor{
-		"Avatar": mcskin.HandlerHead,
-		"Helm":   mcskin.HandlerHelm,
+		"Avatar":                 mcskin.HandlerHead,
+		"Helm":                   mcskin.HandlerHelm,
+		"Cube":                   mcskin.HandlerCube,
+		"CubeHelm":               mcskin.HandlerCubeHelm,
+		"Bust":                   mcskin.HandlerBust,
+		"Body":                   mcskin.HandlerBody,
+		"Armor/Bust|Armour/Bust": mcskin.HandlerArmorBust,
+		"Armor/Body|Armour/Body": mcskin.HandlerArmorBody,
 	}
 
 	processd := &Processd{
