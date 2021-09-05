@@ -8,6 +8,7 @@ import (
 
 	"github.com/felixge/fgprof"
 	"github.com/gorilla/mux"
+	"github.com/minotar/imgd/pkg/processd/mcskin"
 	"github.com/minotar/imgd/pkg/util/log"
 	"github.com/minotar/minecraft"
 
@@ -53,7 +54,8 @@ func New(cfg Config) (*Processd, error) {
 	cfg.Server.GRPCListenAddress = "127.0.0.3"
 
 	processRoutes := map[string]SkinProcessor{
-		"Avatar": GetHead,
+		"Avatar": mcskin.HandlerHead,
+		"Helm":   mcskin.HandlerHelm,
 	}
 
 	processd := &Processd{
@@ -71,8 +73,11 @@ func New(cfg Config) (*Processd, error) {
 
 // need some skin lookup wrapper
 
-func handleError(w http.ResponseWriter, r *http.Request) {
+func handleSkinLookupError(w http.ResponseWriter, r *http.Request, processFunc SkinProcessor) {
+	skin, _ := minecraft.FetchSkinForSteve()
 
+	handler := processFunc(skin)
+	handler.ServeHTTP(w, r)
 }
 
 func (s *Processd) SkinLookupWrapper(processFunc SkinProcessor) http.Handler {
@@ -88,6 +93,7 @@ func (s *Processd) SkinLookupWrapper(processFunc SkinProcessor) http.Handler {
 			//return nil, fmt.Errorf("unable to create request: %v", err)
 			//Use Steve and call original process logic?
 			s.Cfg.Logger.Errorf("It broken: %v", err)
+			handleSkinLookupError(w, r, processFunc)
 			return
 		}
 
@@ -104,6 +110,7 @@ func (s *Processd) SkinLookupWrapper(processFunc SkinProcessor) http.Handler {
 			//return nil, fmt.Errorf("unable to GET URL: %v", err)
 			//Use Steve and call original process logic?
 			s.Cfg.Logger.Errorf("It broken: %v", err)
+			handleSkinLookupError(w, r, processFunc)
 			return
 		}
 		defer resp.Body.Close()

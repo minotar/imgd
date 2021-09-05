@@ -1,4 +1,4 @@
-package main
+package mcskin
 
 import (
 	"image"
@@ -7,11 +7,13 @@ import (
 	"image/png"
 	"io"
 	"math"
+	"net/http"
 	"strconv"
 
-	"github.com/ajstarks/svgo"
+	svg "github.com/ajstarks/svgo"
 	"github.com/disintegration/gift"
 	"github.com/disintegration/imaging"
+	"github.com/gorilla/mux"
 	"github.com/minotar/minecraft"
 )
 
@@ -68,28 +70,123 @@ const (
 	BustHeight = 16
 )
 
-type mcSkin struct {
-	Processed image.Image
-	Mode      string
-	minecraft.Skin
+// Set the default, min and max width to resize processed images to
+const (
+	DefaultWidth = int(180)
+	MinWidth     = int(8)
+	MaxWidth     = int(300)
+)
+
+const (
+	ImageTypePNG ImageType = "image/png"
+	ImageTypeSVG ImageType = "image/svg+xml"
+)
+
+type ImageType string
+
+// GetWidth converts and sanitizes the string for the avatar width.
+func GetWidth(inp string) int {
+	out, err := strconv.Atoi(inp)
+	if err != nil {
+		return DefaultWidth
+	} else if out > MaxWidth {
+		return MaxWidth
+	} else if out < MinWidth {
+		return MinWidth
+	}
+	return out
+}
+
+func GetImageType(ext string) ImageType {
+	switch ext {
+	case ".svg":
+		return ImageTypeSVG
+	default:
+		return ImageTypePNG
+	}
+}
+
+func GetWidthType(r *http.Request) (width int, imageType ImageType) {
+	vars := mux.Vars(r)
+	if reqWidth, widthGiven := vars["width"]; widthGiven {
+		width = GetWidth(reqWidth)
+	} else {
+		width = DefaultWidth
+	}
+
+	if reqExtension, extensionGiven := vars["extension"]; extensionGiven {
+		imageType = GetImageType(reqExtension)
+	} else {
+		imageType = ImageTypePNG
+	}
+	return
+}
+
+func NewMcSkinFromRequest(r *http.Request, skin minecraft.Skin) *McSkin {
+	mcSkin := &McSkin{Skin: skin}
+	mcSkin.Width, mcSkin.Type = GetWidthType(r)
+	return mcSkin
 }
 
 // Sets skin.Processed to the face of the user.
-func (skin *mcSkin) GetHead(width int) error {
+func HandlerHead(skin minecraft.Skin) http.Handler {
+	mcSkin := &McSkin{Skin: skin}
+	mcSkin.Processor = mcSkin.GetHead
+	return mcSkin
+}
+
+// Sets skin.Processed to the face of the user.
+func HandlerHelm(skin minecraft.Skin) http.Handler {
+	mcSkin := &McSkin{Skin: skin}
+	mcSkin.Processor = mcSkin.GetHelm
+	return mcSkin
+}
+
+type McSkin struct {
+	minecraft.Skin
+	Processed image.Image
+	Processor func() error
+	Type      ImageType
+	Width     int
+}
+
+// The
+func (skin *McSkin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if skin.Processor == nil {
+		http.Error(w, "No processor", 500)
+		return
+	}
+
+	skin.Width, skin.Type = GetWidthType(r)
+	skin.Processor()
+
+	switch skin.Type {
+	case ImageTypePNG:
+		w.Header().Add("Content-Type", string(ImageTypePNG))
+		skin.WritePNG(w)
+	case ImageTypeSVG:
+		w.Header().Add("Content-Type", string(ImageTypeSVG))
+		skin.WriteSVG(w)
+	}
+}
+
+// Sets skin.Processed to the face of the user.
+func (skin *McSkin) GetHead() error {
 	skin.Processed = skin.cropHead(skin.Image)
-	skin.resize(width, imaging.NearestNeighbor)
+	skin.resize(imaging.NearestNeighbor)
 	return nil
 }
 
 // Sets skin.Processed to the face of the user overlaid with their helmet.
-func (skin *mcSkin) GetHelm(width int) error {
+func (skin *McSkin) GetHelm() error {
 	skin.Processed = skin.cropHelm(skin.Image)
-	skin.resize(width, imaging.NearestNeighbor)
+	skin.resize(imaging.NearestNeighbor)
 	return nil
 }
 
 // Sets skin.Processed to an isometric render of the head from a top-left angle (showing 3 sides).
-func (skin *mcSkin) GetCube(width int) error {
+func (skin *McSkin) GetCube() error {
+	width := skin.Width
 	// Crop out the top of the head
 	topFlat := imaging.Crop(skin.Image, image.Rect(8, 0, 16, 8))
 	// Resize appropriately, so that it fills the `width` when rotated 45 def.
@@ -124,7 +221,7 @@ func (skin *mcSkin) GetCube(width int) error {
 }
 
 // Sets skin.Processed to an isometric render of the head from a top-left angle (showing 3 sides).
-func (skin *mcSkin) GetCubeHelm(width int) error {
+func (skin *McSkin) GetCubeHelm(width int) error {
 	// Crop out the top of the head
 	topFlat := imaging.Crop(skin.Image, image.Rect(8, 0, 16, 8))
 	// Resize appropriately, so that it fills the `width` when rotated 45 def.
@@ -185,7 +282,7 @@ func (skin *mcSkin) GetCubeHelm(width int) error {
 }
 
 // Sets skin.Processed to the upper portion of the body (slightly higher cutoff than waist).
-func (skin *mcSkin) GetBust(width int) error {
+func (skin *McSkin) GetBust(width int) error {
 	headImg := skin.cropHead(skin.Image).(*image.NRGBA)
 	upperBodyImg := skin.renderUpperBody()
 
@@ -194,13 +291,13 @@ func (skin *mcSkin) GetBust(width int) error {
 	bustImg.Rect.Max.Y = BustHeight
 	skin.Processed = bustImg
 
-	skin.resize(width, imaging.NearestNeighbor)
+	skin.resize(imaging.NearestNeighbor)
 
 	return nil
 }
 
 // Sets skin.Processed to the upper portion of the body (slightly higher cutoff than waist) but with any armor which the user has.
-func (skin *mcSkin) GetArmorBust(width int) error {
+func (skin *McSkin) GetArmorBust(width int) error {
 	helmImg := skin.cropHelm(skin.Image).(*image.NRGBA)
 	upperArmorImg := skin.renderUpperArmor()
 
@@ -209,13 +306,13 @@ func (skin *mcSkin) GetArmorBust(width int) error {
 	bustImg.Rect.Max.Y = BustHeight
 	skin.Processed = bustImg
 
-	skin.resize(width, imaging.NearestNeighbor)
+	skin.resize(imaging.NearestNeighbor)
 
 	return nil
 }
 
 // Sets skin.Processed to a front render of the body.
-func (skin *mcSkin) GetBody(width int) error {
+func (skin *McSkin) GetBody(width int) error {
 	headImg := skin.cropHead(skin.Image).(*image.NRGBA)
 	upperBodyImg := skin.renderUpperBody()
 	lowerBodyImg := skin.renderLowerBody()
@@ -223,13 +320,13 @@ func (skin *mcSkin) GetBody(width int) error {
 	bodyImg := skin.addHead(upperBodyImg, headImg)
 	skin.Processed = skin.addLegs(bodyImg, lowerBodyImg)
 
-	skin.resize(width, imaging.NearestNeighbor)
+	skin.resize(imaging.NearestNeighbor)
 
 	return nil
 }
 
 // Sets skin.Processed to a front render of the body but with any armor which the user has.
-func (skin *mcSkin) GetArmorBody(width int) error {
+func (skin *McSkin) GetArmorBody(width int) error {
 	helmImg := skin.cropHelm(skin.Image).(*image.NRGBA)
 	upperArmorImg := skin.renderUpperArmor()
 	lowerArmorImg := skin.renderLowerArmor()
@@ -237,13 +334,13 @@ func (skin *mcSkin) GetArmorBody(width int) error {
 	bodyImg := skin.addHead(upperArmorImg, helmImg)
 	skin.Processed = skin.addLegs(bodyImg, lowerArmorImg)
 
-	skin.resize(width, imaging.NearestNeighbor)
+	skin.resize(imaging.NearestNeighbor)
 
 	return nil
 }
 
 // Returns the torso and arms.
-func (skin *mcSkin) renderUpperBody() *image.NRGBA {
+func (skin *McSkin) renderUpperBody() *image.NRGBA {
 	// This will be the base.
 	upperBodyImg := image.NewNRGBA(image.Rect(0, 0, LaWidth+TorsoWidth+RaWidth, TorsoHeight))
 
@@ -262,7 +359,7 @@ func (skin *mcSkin) renderUpperBody() *image.NRGBA {
 }
 
 // Returns the torso and arms but with any armor which the user has.
-func (skin *mcSkin) renderUpperArmor() *image.NRGBA {
+func (skin *McSkin) renderUpperArmor() *image.NRGBA {
 	// This will be the base.
 	upperArmorBodyImg := skin.renderUpperBody()
 
@@ -284,7 +381,7 @@ func (skin *mcSkin) renderUpperArmor() *image.NRGBA {
 }
 
 // Given a base, torso and arms, it will return them all arranged correctly.
-func (skin *mcSkin) drawUpper(base, torso, la, ra *image.NRGBA) *image.NRGBA {
+func (skin *McSkin) drawUpper(base, torso, la, ra *image.NRGBA) *image.NRGBA {
 	// Torso
 	fastDraw(base, torso, LaWidth, 0)
 	// Left Arm
@@ -296,7 +393,7 @@ func (skin *mcSkin) drawUpper(base, torso, la, ra *image.NRGBA) *image.NRGBA {
 }
 
 // Returns the legs.
-func (skin *mcSkin) renderLowerBody() *image.NRGBA {
+func (skin *McSkin) renderLowerBody() *image.NRGBA {
 	// This will be the base.
 	lowerBodyImg := image.NewNRGBA(image.Rect(0, 0, LlWidth+RlWidth, LlHeight))
 
@@ -314,7 +411,7 @@ func (skin *mcSkin) renderLowerBody() *image.NRGBA {
 }
 
 // Returns the legs but with any armor which the user has.
-func (skin *mcSkin) renderLowerArmor() *image.NRGBA {
+func (skin *McSkin) renderLowerArmor() *image.NRGBA {
 	// This will be the base.
 	lowerArmorBodyImg := skin.renderLowerBody()
 
@@ -333,7 +430,7 @@ func (skin *mcSkin) renderLowerArmor() *image.NRGBA {
 }
 
 // Given a base and legs, it will return them all arranged correctly.
-func (skin *mcSkin) drawLower(base, ll, rl *image.NRGBA) *image.NRGBA {
+func (skin *McSkin) drawLower(base, ll, rl *image.NRGBA) *image.NRGBA {
 	// Left Leg
 	fastDraw(base, ll, 0, 0)
 	// Right Leg
@@ -343,7 +440,7 @@ func (skin *mcSkin) drawLower(base, ll, rl *image.NRGBA) *image.NRGBA {
 }
 
 // Rams the head onto the base (hopefully body...) to return a Frankenstein.
-func (skin *mcSkin) addHead(base, head *image.NRGBA) *image.NRGBA {
+func (skin *McSkin) addHead(base, head *image.NRGBA) *image.NRGBA {
 	base.Pix = append(make([]uint8, HeadHeight*base.Stride), base.Pix...)
 	base.Rect.Max.Y += HeadHeight
 	fastDraw(base, head, LaWidth, 0)
@@ -352,7 +449,7 @@ func (skin *mcSkin) addHead(base, head *image.NRGBA) *image.NRGBA {
 }
 
 // Attached the legs onto the base (likely body).
-func (skin *mcSkin) addLegs(base, legs *image.NRGBA) *image.NRGBA {
+func (skin *McSkin) addLegs(base, legs *image.NRGBA) *image.NRGBA {
 	base.Pix = append(base.Pix, make([]uint8, LlHeight*base.Stride)...)
 	base.Rect.Max.Y += LlHeight
 	fastDraw(base, legs, LaWidth, HeadHeight+TorsoHeight)
@@ -361,12 +458,12 @@ func (skin *mcSkin) addLegs(base, legs *image.NRGBA) *image.NRGBA {
 }
 
 // Writes the *processed* image as a PNG to the given writer.
-func (skin *mcSkin) WritePNG(w io.Writer) error {
+func (skin *McSkin) WritePNG(w io.Writer) error {
 	return png.Encode(w, skin.Processed)
 }
 
 // Writes the processed image as an svg.
-func (skin *mcSkin) WriteSVG(w io.Writer) error {
+func (skin *McSkin) WriteSVG(w io.Writer) error {
 	canvas := svg.New(w)
 	bounds := skin.Processed.Bounds()
 	img := skin.Processed.(*image.NRGBA)
@@ -393,19 +490,19 @@ func (skin *mcSkin) WriteSVG(w io.Writer) error {
 }
 
 // Writes the *original* skin image as a png to the given writer.
-func (skin *mcSkin) WriteSkin(w io.Writer) error {
+func (skin *McSkin) WriteSkin(w io.Writer) error {
 	return png.Encode(w, skin.Image)
 }
 
 // Resizes the skin to the given dimensions, keeping aspect ratio.
-func (skin *mcSkin) resize(width int, filter imaging.ResampleFilter) {
-	if skin.Mode != "None" {
-		skin.Processed = imaging.Resize(skin.Processed, width, 0, filter)
+func (skin *McSkin) resize(filter imaging.ResampleFilter) {
+	if skin.Type != ImageTypeSVG {
+		skin.Processed = imaging.Resize(skin.Processed, skin.Width, 0, filter)
 	}
 }
 
 // Removes the skin's alpha matte from the given image.
-func (skin *mcSkin) removeAlpha(img *image.NRGBA) {
+func (skin *McSkin) removeAlpha(img *image.NRGBA) {
 	// If it's already a transparent image, do nothing
 	if skin.AlphaSig[3] == 0 {
 		return
@@ -424,18 +521,18 @@ func (skin *mcSkin) removeAlpha(img *image.NRGBA) {
 }
 
 // Checks if the skin is a 1.8 skin using its height.
-func (skin *mcSkin) is18Skin() bool {
+func (skin *McSkin) is18Skin() bool {
 	bounds := skin.Image.Bounds()
 	return bounds.Max.Y == 64
 }
 
 // Returns the head of the skin image.
-func (skin *mcSkin) cropHead(img image.Image) image.Image {
+func (skin *McSkin) cropHead(img image.Image) image.Image {
 	return imaging.Crop(img, image.Rect(HeadX, HeadY, HeadX+HeadWidth, HeadY+HeadHeight))
 }
 
 // Returns the head of the skin image overlayed with the helm.
-func (skin *mcSkin) cropHelm(img image.Image) image.Image {
+func (skin *McSkin) cropHelm(img image.Image) image.Image {
 	headImg := skin.cropHead(img)
 	helmImg := imaging.Crop(img, image.Rect(HelmX, HelmY, HelmX+HeadWidth, HelmY+HeadHeight))
 	skin.removeAlpha(helmImg)
