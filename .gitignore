@@ -11,6 +11,9 @@
 /cmd/imgd/imgd-debug
 /cmd/imgd/imgd.exe
 
+/cmd/cacheconv/cacheconv
+/cmd/cacheconv/cacheconv-debug
+/cmd/cacheconv/cacheconv.exe
 
 /src
 /config.gcfg

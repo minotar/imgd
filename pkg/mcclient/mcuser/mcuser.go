@@ -17,7 +17,7 @@ import (
 
 type McUser struct {
 	minecraft.User
-	Textures  textures
+	Textures  Textures
 	Timestamp tinytime.TinyTime
 	Status    status.Status
 }
@@ -78,7 +78,7 @@ func decodeMcUserProtobuf(protoBytes []byte) (McUser, error) {
 			Username: pb.Username,
 			UUID:     pb.UUID,
 		},
-		Textures: textures{
+		Textures: Textures{
 			SkinPath: pb.SkinPath,
 		},
 	}

@@ -5,6 +5,7 @@ package cache_converter
 
 import (
 	"flag"
+	"strings"
 	"time"
 
 	"github.com/minotar/imgd/pkg/util/log"
@@ -20,11 +21,9 @@ import (
 	store_expiry "github.com/minotar/imgd/pkg/cache/util/expiry/store"
 )
 
-type IteratingProcessor func(k, v []byte, ttl time.Duration)
+type IteratingProcessor func(k string, v []byte, ttl time.Duration)
 
-type CacheInsertProcessor interface {
-	Insert(string, []byte, time.Duration) error
-}
+type CacheInsertProcessor func(string, []byte, time.Duration) error
 
 type Config struct {
 	Logger          log.Logger
@@ -127,21 +126,21 @@ func (cc *CacheConverter) MigrateV3toV4() {
 }
 
 func (cc *CacheConverter) boltIterator(bc *bolt_cache.BoltCache, processor IteratingProcessor) {
-	// some generic processor func
 
 	err := bc.DB.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bc.Bucket))
 
 		return b.ForEach(func(k, v []byte) error {
+			key := string(k)
+			key = strings.ToLower(key)
 			data := make([]byte, len(v))
 			copy(data, v)
 			bse := store_expiry.DecodeStoreEntry(k, data)
 			ttl, err := bse.TTL(cc.Now)
 			if err != nil {
-				cc.Cfg.Logger.Warnf("%s key threw a TTL error: %v", k, err)
+				cc.Cfg.Logger.Warnf("%s key threw a TTL error: %v", key, err)
 			}
-			//bc.Logger.Debugf("key=%s, value=%s\n", k, bse.Value)
-			processor(k, bse.Value, ttl)
+			processor(key, bse.Value, ttl)
 			return nil
 		})
 	})
@@ -150,18 +149,61 @@ func (cc *CacheConverter) boltIterator(bc *bolt_cache.BoltCache, processor Itera
 	}
 }
 
+func (cc *CacheConverter) radixIterator(r *radix.RedisCache, processor IteratingProcessor) {
+
+	scanner := radix_util.NewScanner(r.Pool(), radix_util.ScanOpts{Command: "SCAN"})
+
+	for scanner.HasNext() {
+		key := scanner.Next()
+		key = strings.ToLower(key)
+		value, err := r.Retrieve(key)
+		if err != nil {
+			cc.Cfg.Logger.Warnf("%s key threw a retrieve error: %v", key, err)
+		}
+		resp := r.Pool().Cmd("TTL", key)
+		seconds, err := resp.Int()
+		if err != nil {
+			cc.Cfg.Logger.Warnf("%s key threw a TTL error: %v", key, err)
+		}
+
+		ttl := time.Duration(seconds) * time.Second
+		processor(key, value, ttl)
+	}
+	if err := scanner.Err(); err != nil {
+		cc.Cfg.Logger.Fatalf("Error iterating through: %v", err)
+	}
+}
+
 // IteratingProcessor(func(_, _ []byte) {})
 
+// V4 -> V3
 func (cc *CacheConverter) MigrateUUIDV4toV3() {
 
 	boltCache := cc.Cachesv4.UUID.(*bolt_cache.BoltCache)
-	cc.boltIterator(boltCache, processUUIDv4(cc.Cfg.Logger, cc.Cachesv3.UUID))
+	cc.boltIterator(boltCache, processUUIDv4(cc.Cfg.Logger, cc.Cachesv3.UUID.Insert))
 
 }
 
+// V4 -> V3
 func (cc *CacheConverter) MigrateUserDataV4toV3() {
 
 	boltCache := cc.Cachesv4.UserData.(*bolt_cache.BoltCache)
-	cc.boltIterator(boltCache, processUserDatev4(cc.Cfg.Logger, cc.Cachesv3.UserData))
+	cc.boltIterator(boltCache, processUserDatav4(cc.Cfg.Logger, cc.Cachesv3.UserData.Insert))
+
+}
+
+// V3 -> V4
+func (cc *CacheConverter) MigrateUUIDV3toV4() {
+
+	redisCache := cc.Cachesv3.UUID.(*radix.RedisCache)
+	cc.radixIterator(redisCache, processUUIDv3(cc.Cfg.Logger, cc.Cachesv4.UUID.InsertTTL))
+
+}
+
+// V3 -> V4
+func (cc *CacheConverter) MigrateUserDataV3toV4() {
+
+	redisCache := cc.Cachesv3.UUID.(*radix.RedisCache)
+	cc.radixIterator(redisCache, processUserDatav3(cc.Cfg.Logger, cc.Cachesv4.UUID.InsertTTL))
 
 }

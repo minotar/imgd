@@ -15,15 +15,20 @@ import (
 type Config struct {
 	cache_converter.Config `yaml:",inline"`
 	printVersion           bool
-	uuidv3tov4             bool
-	userDatav3tov4         bool
+	upgradeV3UUID          bool
+	upgradeV3UserData      bool
+	downgradeV4UUID        bool
+	downgradeV4UserData    bool
 }
 
 func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	f.BoolVar(&c.printVersion, "version", false, "Print this builds version information")
 
-	f.BoolVar(&c.uuidv3tov4, "uuid-v3-to-v4", false, "run the v3 -> v4 UUID conversion")
-	f.BoolVar(&c.userDatav3tov4, "userdata-v3-to-v4", false, "run the v3 -> v4 User Data conversion")
+	f.BoolVar(&c.upgradeV3UUID, "upgrade-v3-uuid", false, "run the v3 -> v4 UUID conversion")
+	f.BoolVar(&c.upgradeV3UserData, "upgrade-v3-userdata", false, "run the v3 -> v4 User Data conversion")
+
+	f.BoolVar(&c.downgradeV4UUID, "downgrade-v4-uuid", false, "run the v4 -> v3 UUID conversion")
+	f.BoolVar(&c.downgradeV4UserData, "downgrade-v4-userdata", false, "run the v4 -> v3 User Data conversion")
 
 	c.Config.RegisterFlags(f)
 }
@@ -56,9 +61,13 @@ func main() {
 	logger.Infof("Starting cacheconv %s", version.Info())
 
 	switch {
-	case config.uuidv3tov4:
+	case config.downgradeV4UUID:
 		cc.MigrateUUIDV4toV3()
-	case config.userDatav3tov4:
+	case config.downgradeV4UserData:
 		cc.MigrateUserDataV4toV3()
+	case config.upgradeV3UUID:
+		cc.MigrateUUIDV3toV4()
+	case config.upgradeV3UserData:
+		cc.MigrateUserDataV3toV4()
 	}
 }
