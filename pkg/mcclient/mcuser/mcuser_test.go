@@ -18,7 +18,7 @@ func testUser() McUser {
 			Username: "LukeHandle",
 			UUID:     "5c115ca73efd41178213a0aff8ef11e0",
 		},
-		Textures: textures{
+		Textures: Textures{
 			SkinPath:      "6f736b4c3e2286cfad9b0d738fd7d9630d9e0a27721b7586e423cebce420da",
 			TexturesMcNet: true,
 		},

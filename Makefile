@@ -5,6 +5,7 @@
 MOD_FLAG=
 
 
+IMAGE_PREFIX ?= minotar
 
 IMAGE_TAG := $(shell ./build/image-tag)
 
@@ -41,6 +42,7 @@ PROTO_GOS := $(patsubst %.proto,%.pb.go,$(PROTO_DEFS))
 
 
 
+all: skind processd imgd cacheconv
 
 
 
@@ -119,3 +121,24 @@ touch-protos:
 
 %.pb.go: $(PROTO_DEFS)
 	protoc --proto_path=./ --go_out=${GOPATH}/src ./$(patsubst %.pb.go,%.proto,$@)
+
+
+#################
+# Docker Images #
+#################
+
+images: skind-image processd-image imgd-image
+
+
+# skind
+skind-image:
+	docker build -t $(IMAGE_PREFIX)/skind:$(IMAGE_TAG) -f cmd/skind/Dockerfile .
+
+# processd
+processd-image:
+	docker build -t $(IMAGE_PREFIX)/processd:$(IMAGE_TAG) -f cmd/processd/Dockerfile .
+
+# imgd
+imgd-image:
+	docker build -t $(IMAGE_PREFIX)/imgd:$(IMAGE_TAG) -f cmd/imgd/Dockerfile .
+
