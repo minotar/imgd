@@ -35,7 +35,9 @@ func (rc *RedisConfig) RegisterFlags(f *flag.FlagSet, cacheID string) {
 }
 
 type Config struct {
-	Logger          log.Logger
+	Logger log.Logger
+	MinTTL time.Duration
+
 	CacheUUIDv4     *cache_config.Config `yaml:"cache_uuid"`
 	CacheUserDatav4 *cache_config.Config `yaml:"cache_userdata"`
 
@@ -44,6 +46,9 @@ type Config struct {
 }
 
 func (c *Config) RegisterFlags(f *flag.FlagSet) {
+
+	f.DurationVar(&c.MinTTL, "cacheconv.min-ttl", 1*time.Hour, "Min TTL to consider converting")
+
 	c.CacheUUIDv4 = &cache_config.Config{}
 	c.CacheUserDatav4 = &cache_config.Config{}
 
@@ -127,10 +132,13 @@ func New(cfg Config) (*CacheConverter, error) {
 
 func (cc *CacheConverter) boltIterator(bc *bolt_cache.BoltCache, processor IteratingProcessor) {
 
+	var count int
+
 	err := bc.DB.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bc.Bucket))
 
 		return b.ForEach(func(k, v []byte) error {
+			count++
 			key := string(k)
 			key = strings.ToLower(key)
 			data := make([]byte, len(v))
@@ -139,8 +147,18 @@ func (cc *CacheConverter) boltIterator(bc *bolt_cache.BoltCache, processor Itera
 			ttl, err := bse.TTL(cc.Now)
 			if err != nil {
 				cc.Cfg.Logger.Warnf("%s key threw a TTL error: %v", key, err)
+				return nil
 			}
+			if ttl < cc.Cfg.MinTTL {
+				cc.Cfg.Logger.Debugf("Skipping %s as TTL %s was less than %s", key, ttl, cc.Cfg.MinTTL)
+				return nil
+			}
+
 			processor(key, bse.Value, ttl)
+
+			if (count % 1000) == 0 {
+				cc.Cfg.Logger.Infof("%d keys have been processed out of ~%d", count, bc.Len())
+			}
 			return nil
 		})
 	})
@@ -162,17 +180,23 @@ func (cc *CacheConverter) radixIterator(r *radix.RedisCache, processor Iterating
 		value, err := r.Retrieve(key)
 		if err != nil {
 			cc.Cfg.Logger.Warnf("%s key threw a retrieve error: %v", key, err)
+			continue
 		}
 		resp := r.Pool().Cmd("TTL", key)
 		seconds, err := resp.Int()
 		if err != nil {
 			cc.Cfg.Logger.Warnf("%s key threw a TTL error: %v", key, err)
+			continue
 		}
 
 		ttl := time.Duration(seconds) * time.Second
+		if ttl < cc.Cfg.MinTTL {
+			cc.Cfg.Logger.Debugf("Skipping %s as TTL %s was less than %s", key, ttl, cc.Cfg.MinTTL)
+			continue
+		}
 		processor(key, value, ttl)
 
-		if (count % 100) == 0 {
+		if (count % 1000) == 0 {
 			cc.Cfg.Logger.Infof("%d keys have been processed out of ~%d", count, r.Len())
 		}
 	}
@@ -211,8 +235,8 @@ func (cc *CacheConverter) MigrateUUIDV3toV4() {
 // V3 -> V4
 func (cc *CacheConverter) MigrateUserDataV3toV4() {
 
-	redisCache := cc.Cachesv3.UUID.(*radix.RedisCache)
+	redisCache := cc.Cachesv3.UserData.(*radix.RedisCache)
 	cc.Cfg.Logger.Infof("Size of Redis is %d keys", redisCache.Len())
-	cc.radixIterator(redisCache, processUserDatav3(cc.Cfg.Logger, cc.Cachesv4.UUID.InsertTTL))
+	cc.radixIterator(redisCache, processUserDatav3(cc.Cfg.Logger, cc.Cachesv4.UserData.InsertTTL))
 
 }

@@ -20,7 +20,7 @@ func processUUIDv3(logger log.Logger, inserter CacheInsertProcessor) IteratingPr
 
 	return IteratingProcessor(func(username string, v []byte, ttl time.Duration) {
 		if !minecraft.RegexUsername.MatchString(username) {
-			logger.Warn("Username did not validate")
+			logger.Warnf("Username did not validate: %s", username)
 			return
 		}
 
@@ -65,7 +65,7 @@ func processUserDatav3(logger log.Logger, inserter CacheInsertProcessor) Iterati
 
 	return IteratingProcessor(func(uuid string, v []byte, ttl time.Duration) {
 		if !minecraft.RegexUUIDPlain.MatchString(uuid) {
-			logger.Warn("UUID did not validate")
+			logger.Warnf("UUID did not validate: %s", uuid)
 			return
 		}
 
@@ -90,7 +90,7 @@ func processUserDatav3(logger log.Logger, inserter CacheInsertProcessor) Iterati
 		default:
 			// v3 was always True
 			mcUser.Textures.TexturesMcNet = true
-			mcUser.Textures.SkinPath = strings.TrimPrefix(legacyUser.Textures.SkinPath, "/textures/")
+			mcUser.Textures.SkinPath = strings.TrimPrefix(legacyUser.Textures.SkinPath, "/texture/")
 
 			if !mcUser.IsValid() {
 				logger.Warnf("Invalid UserData for %s", uuid)
