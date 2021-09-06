@@ -12,6 +12,7 @@ require (
 	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/golang-lru v0.5.4
+	github.com/mediocregopher/radix.v2 v0.0.0-20181115013041-b67df6e626f9 // indirect
 	github.com/minotar/minecraft v0.0.0-20180803122715-72fe240cdd0e
 	github.com/prometheus/client_golang v1.10.0
 	github.com/prometheus/common v0.23.0

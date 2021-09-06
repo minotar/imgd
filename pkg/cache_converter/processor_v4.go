@@ -21,9 +21,7 @@ const (
 
 func processUUIDv4(logger log.Logger, inserter CacheInsertProcessor) IteratingProcessor {
 
-	return IteratingProcessor(func(k, v []byte, ttl time.Duration) {
-		username := string(k)
-
+	return IteratingProcessor(func(username string, v []byte, ttl time.Duration) {
 		if !minecraft.RegexUsername.MatchString(username) {
 			logger.Warn("Username did not validate")
 			return
@@ -36,13 +34,13 @@ func processUUIDv4(logger log.Logger, inserter CacheInsertProcessor) IteratingPr
 		var err error
 		switch uuidEntry.Status {
 		case status.StatusOk:
-			err = inserter.Insert(username, []byte(uuidEntry.UUID), ttl)
+			err = inserter(username, []byte(uuidEntry.UUID), ttl)
 		case status.StatusErrorGeneric:
-			err = inserter.Insert(username, []byte(metaErrorCode), ttl)
+			err = inserter(username, []byte(metaErrorCode), ttl)
 		case status.StatusErrorUnknownUser:
-			err = inserter.Insert(username, []byte(metaUnknownCode), ttl)
+			err = inserter(username, []byte(metaUnknownCode), ttl)
 		case status.StatusErrorRateLimit:
-			err = inserter.Insert(username, []byte(metaRateLimitCode), ttl)
+			err = inserter(username, []byte(metaRateLimitCode), ttl)
 		default:
 			logger.Warnf("Invalid status for UUID Entry for %s is %s with TTL %s: %v", username, uuidEntry, ttl, uuidEntry.Status)
 			return
@@ -55,11 +53,9 @@ func processUUIDv4(logger log.Logger, inserter CacheInsertProcessor) IteratingPr
 	})
 }
 
-func processUserDatev4(logger log.Logger, inserter CacheInsertProcessor) IteratingProcessor {
+func processUserDatav4(logger log.Logger, inserter CacheInsertProcessor) IteratingProcessor {
 
-	return IteratingProcessor(func(k, v []byte, ttl time.Duration) {
-		uuid := string(k)
-
+	return IteratingProcessor(func(uuid string, v []byte, ttl time.Duration) {
 		if !minecraft.RegexUUIDPlain.MatchString(uuid) {
 			logger.Warn("UUID did not validate")
 			return
@@ -98,7 +94,7 @@ func processUserDatev4(logger log.Logger, inserter CacheInsertProcessor) Iterati
 			logger.Warnf("Erroring encoding %s: %v", uuid, err)
 		}
 
-		err = inserter.Insert(uuid, data, ttl)
+		err = inserter(uuid, data, ttl)
 		if err != nil {
 			logger.Warnf("Erroring inserting %s with TTL %s: %v", uuid, ttl, err)
 		}

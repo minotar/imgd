@@ -8,7 +8,7 @@ import (
 
 const TexturesBaseURL = "http://textures.minecraft.net/texture/"
 
-type textures struct {
+type Textures struct {
 	SkinPath string
 	//SkinSlim bool (for "alex" support)
 	//CapePath string
@@ -20,7 +20,7 @@ type textures struct {
 }
 
 // Used to get a fully qualified URL for the Skin
-func (t textures) SkinURL() string {
+func (t Textures) SkinURL() string {
 	if t.TexturesMcNet {
 		return TexturesBaseURL + t.SkinPath
 	}
@@ -28,18 +28,17 @@ func (t textures) SkinURL() string {
 }
 
 //
-func (t textures) Skin(mcClient *minecraft.Minecraft) (skin minecraft.Skin) {
+func (t Textures) Skin(mcClient *minecraft.Minecraft) (skin minecraft.Skin) {
 	skin.URL = t.SkinURL()
 	skin.Mc = mcClient
 	return
 }
 
 // After having made an API call, this can be used to create a textures object
-func NewTexturesFromSessionProfile(sessionProfile minecraft.SessionProfileResponse) (textures, error) {
-	var t textures
+func NewTexturesFromSessionProfile(sessionProfile minecraft.SessionProfileResponse) (t Textures, err error) {
 	profileTextureProperty, err := minecraft.DecodeTextureProperty(sessionProfile)
 	if err != nil {
-		return t, err
+		return
 	}
 
 	// If Skins URL starts with the known URL, set the "Path" to just the last bit
