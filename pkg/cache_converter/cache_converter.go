@@ -25,19 +25,36 @@ type IteratingProcessor func(k string, v []byte, ttl time.Duration)
 
 type CacheInsertProcessor func(string, []byte, time.Duration) error
 
+type RedisConfig radix.RedisConfig
+
+func (rc *RedisConfig) RegisterFlags(f *flag.FlagSet, cacheID string) {
+	flagPath := "cache." + strings.ToLower(cacheID) + "."
+	f.StringVar(&rc.Address, flagPath+"address", "localhost:6379", "Redis host:port")
+	f.StringVar(&rc.Auth, flagPath+"auth", "", "Redis Authentication")
+	f.IntVar(&rc.DB, flagPath+"db", 0, "Redis Database")
+}
+
 type Config struct {
 	Logger          log.Logger
 	CacheUUIDv4     *cache_config.Config `yaml:"cache_uuid"`
 	CacheUserDatav4 *cache_config.Config `yaml:"cache_userdata"`
+
+	CacheUUIDv3     *RedisConfig `yaml:"cachev3_uuid"`
+	CacheUserDatav3 *RedisConfig `yaml:"cachev3_userdata"`
 }
 
 func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	c.CacheUUIDv4 = &cache_config.Config{}
 	c.CacheUserDatav4 = &cache_config.Config{}
 
+	c.CacheUUIDv3 = &RedisConfig{}
+	c.CacheUserDatav3 = &RedisConfig{}
+
 	c.CacheUUIDv4.RegisterFlags(f, "UUID")
 	c.CacheUserDatav4.RegisterFlags(f, "UserData")
 
+	c.CacheUUIDv3.RegisterFlags(f, "Legacy-UUID")
+	c.CacheUserDatav3.RegisterFlags(f, "Legacy-UserData")
 }
 
 type CacheConverter struct {
@@ -58,24 +75,24 @@ func New(cfg Config) (*CacheConverter, error) {
 	// Caches v3
 	cacheUUIDv3, err := radix.New(radix.RedisConfig{
 		Network: "tcp",
-		Address: "localhost:6379",
-		Auth:    "",
-		DB:      0,
+		Address: cfg.CacheUUIDv3.Address,
+		Auth:    cfg.CacheUUIDv3.Auth,
+		DB:      cfg.CacheUUIDv3.DB,
 		Size:    10,
 	})
 	if err != nil {
-		cfg.Logger.Panicf("Unable to create cache UUIDv3: %v", err)
+		cfg.Logger.Errorf("Unable to create cache UUIDv3: %v", err)
 	}
 
 	cacheUserDatav3, err := radix.New(radix.RedisConfig{
 		Network: "tcp",
-		Address: "localhost:6379",
-		Auth:    "",
-		DB:      1,
+		Address: cfg.CacheUserDatav3.Address,
+		Auth:    cfg.CacheUserDatav3.Auth,
+		DB:      cfg.CacheUserDatav3.DB,
 		Size:    10,
 	})
 	if err != nil {
-		cfg.Logger.Panicf("Unable to create cache UserDatav3: %v", err)
+		cfg.Logger.Errorf("Unable to create cache UserDatav3: %v", err)
 	}
 
 	// Caches v4
@@ -108,23 +125,6 @@ func New(cfg Config) (*CacheConverter, error) {
 	return cacheConverter, nil
 }
 
-func (cc *CacheConverter) MigrateV3toV4() {
-
-	// UUIDs
-
-	redisCachePool := cc.Cachesv3.UUID.(*radix.RedisCache).Pool()
-
-	scanner := radix_util.NewScanner(redisCachePool, radix_util.ScanOpts{Command: "SCAN"})
-
-	for scanner.HasNext() {
-		cc.Cfg.Logger.Infof("next: %q", scanner.Next())
-	}
-	if err := scanner.Err(); err != nil {
-		cc.Cfg.Logger.Fatal(err)
-	}
-
-}
-
 func (cc *CacheConverter) boltIterator(bc *bolt_cache.BoltCache, processor IteratingProcessor) {
 
 	err := bc.DB.View(func(tx *bolt.Tx) error {
@@ -153,8 +153,11 @@ func (cc *CacheConverter) radixIterator(r *radix.RedisCache, processor Iterating
 
 	scanner := radix_util.NewScanner(r.Pool(), radix_util.ScanOpts{Command: "SCAN"})
 
+	var count int
+
 	for scanner.HasNext() {
 		key := scanner.Next()
+		count++
 		key = strings.ToLower(key)
 		value, err := r.Retrieve(key)
 		if err != nil {
@@ -168,6 +171,10 @@ func (cc *CacheConverter) radixIterator(r *radix.RedisCache, processor Iterating
 
 		ttl := time.Duration(seconds) * time.Second
 		processor(key, value, ttl)
+
+		if (count % 100) == 0 {
+			cc.Cfg.Logger.Infof("%d keys have been processed out of ~%d", count, r.Len())
+		}
 	}
 	if err := scanner.Err(); err != nil {
 		cc.Cfg.Logger.Fatalf("Error iterating through: %v", err)
@@ -196,6 +203,7 @@ func (cc *CacheConverter) MigrateUserDataV4toV3() {
 func (cc *CacheConverter) MigrateUUIDV3toV4() {
 
 	redisCache := cc.Cachesv3.UUID.(*radix.RedisCache)
+	cc.Cfg.Logger.Infof("Size of Redis is %d keys", redisCache.Len())
 	cc.radixIterator(redisCache, processUUIDv3(cc.Cfg.Logger, cc.Cachesv4.UUID.InsertTTL))
 
 }
@@ -204,6 +212,7 @@ func (cc *CacheConverter) MigrateUUIDV3toV4() {
 func (cc *CacheConverter) MigrateUserDataV3toV4() {
 
 	redisCache := cc.Cachesv3.UUID.(*radix.RedisCache)
+	cc.Cfg.Logger.Infof("Size of Redis is %d keys", redisCache.Len())
 	cc.radixIterator(redisCache, processUserDatav3(cc.Cfg.Logger, cc.Cachesv4.UUID.InsertTTL))
 
 }

@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"os"
 
+	_ "github.com/minotar/imgd/pkg/build"
 	"github.com/minotar/imgd/pkg/cache_converter"
 	"github.com/minotar/imgd/pkg/util/cfg"
 	"github.com/minotar/imgd/pkg/util/log"
+
 	"github.com/prometheus/common/version"
 	"go.uber.org/zap"
 )
@@ -15,6 +17,7 @@ import (
 type Config struct {
 	cache_converter.Config `yaml:",inline"`
 	printVersion           bool
+	prodLogging            bool
 	upgradeV3UUID          bool
 	upgradeV3UserData      bool
 	downgradeV4UUID        bool
@@ -23,6 +26,7 @@ type Config struct {
 
 func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	f.BoolVar(&c.printVersion, "version", false, "Print this builds version information")
+	f.BoolVar(&c.prodLogging, "prod-logging", false, "Use prod level logs")
 
 	f.BoolVar(&c.upgradeV3UUID, "upgrade-v3-uuid", false, "run the v3 -> v4 UUID conversion")
 	f.BoolVar(&c.upgradeV3UserData, "upgrade-v3-userdata", false, "run the v3 -> v4 User Data conversion")
@@ -35,13 +39,28 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 
 func main() {
 
-	mainLogger, _ := zap.NewDevelopment()
-	defer mainLogger.Sync() // flushes buffer, if any
-	logger := log.NewZapLogger(mainLogger)
-
 	var config Config
 	v := cfg.Parse(&config)
 	flaggedVersion := v.GetBool("version")
+
+	var logConfig zap.Config
+	if config.prodLogging {
+		logConfig = zap.NewProductionConfig()
+		logConfig.Encoding = "console"
+		logConfig.EncoderConfig = zap.NewDevelopmentEncoderConfig()
+	} else {
+		logConfig = zap.NewDevelopmentConfig()
+	}
+	mainLogger, err := logConfig.Build()
+	if err != nil {
+		fmt.Printf("Logger failed to init: %+v\n", err)
+		os.Exit(1)
+	}
+
+	logConfig.Build()
+
+	defer mainLogger.Sync() // flushes buffer, if any
+	logger := log.NewZapLogger(mainLogger)
 
 	fmt.Printf("Config: %+v\n", config)
 
