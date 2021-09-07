@@ -37,32 +37,29 @@ func main() {
 	logger := log.NewZapLogger(mainLogger)
 
 	var config Config
-	v := cfg.Parse(&config)
-	flaggedVersion := v.GetBool("version")
-
-	fmt.Printf("Config: %+v\n", config)
+	cfg.Parse(&config, "IMGD")
+	logger.Infof("Config: %+v\n", config)
 
 	config.Logger = logger
-	//config.Config.CorsAllowAll = true
 
 	switch {
-	case flaggedVersion:
-		fmt.Println(version.Print("skind"))
+	case config.printVersion:
+		fmt.Println(version.Print("imgd"))
 		os.Exit(0)
 	}
 
-	// Start skind
+	// Start imgd
 	s, err := imgd.New(config.Config)
 	if err != nil {
-		logger.Errorf("Error initialising skind: %v", err)
+		logger.Errorf("Error initialising imgd: %v", err)
 	}
 
-	logger.Infof("Starting skind %s", version.Info())
+	logger.Infof("Starting imgd %s", version.Info())
 
 	err = s.Run()
 
 	if err != nil {
-		logger.Errorf("Error running skind : %v", err)
+		logger.Errorf("Error running imgd : %v", err)
 		os.Exit(1)
 	}
 }

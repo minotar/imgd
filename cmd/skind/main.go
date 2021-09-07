@@ -37,16 +37,14 @@ func main() {
 	logger := log.NewZapLogger(mainLogger)
 
 	var config Config
-	v := cfg.Parse(&config)
-	flaggedVersion := v.GetBool("version")
-
-	fmt.Printf("Config: %+v\n", config)
+	cfg.Parse(&config, "SKIND")
+	logger.Infof("Config: %+v\n", config)
 
 	config.Logger = logger
 	//config.Config.CorsAllowAll = true
 
 	switch {
-	case flaggedVersion:
+	case config.printVersion:
 		fmt.Println(version.Print("skind"))
 		os.Exit(0)
 	}
