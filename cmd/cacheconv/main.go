@@ -40,8 +40,7 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 func main() {
 
 	var config Config
-	v := cfg.Parse(&config)
-	flaggedVersion := v.GetBool("version")
+	cfg.Parse(&config, "CACHECONV")
 
 	var logConfig zap.Config
 	if config.prodLogging {
@@ -62,12 +61,12 @@ func main() {
 	defer mainLogger.Sync() // flushes buffer, if any
 	logger := log.NewZapLogger(mainLogger)
 
-	fmt.Printf("Config: %+v\n", config)
+	logger.Infof("Config: %+v\n", config)
 
 	config.Logger = logger
 
 	switch {
-	case flaggedVersion:
+	case config.printVersion:
 		fmt.Println(version.Print("processd"))
 		os.Exit(0)
 	}
