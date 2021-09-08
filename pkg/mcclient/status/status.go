@@ -102,6 +102,7 @@ func (s Status) DurationUser() time.Duration {
 }
 
 // Todo: remove the `query` here as it should already be tagged on the logger
+// NOTE: This will record metrics based on the given error
 func NewStatusFromError(logger log.Logger, query string, err error) Status {
 	if err == nil {
 		return StatusOk
@@ -117,6 +118,7 @@ func NewStatusFromError(logger log.Logger, query string, err error) Status {
 		// Previously named "UnknownUsername"
 		// stats.Errored("APIProfileUnknown")
 		//return metaUnknownCode, usernameUnknownTTL
+		apiGetErrors.WithLabelValues("GetAPIProfile", "UnknownUser").Inc()
 		return StatusErrorUnknownUser
 
 	case errMsg == "unable to GetSessionProfile: user not found":
@@ -124,6 +126,7 @@ func NewStatusFromError(logger log.Logger, query string, err error) Status {
 		// Previously named "UnknownUsername"
 		// stats.Errored("SessionProfileUnknown")
 		//return metaUnknownCode, uuidUnknownTTL
+		apiGetErrors.WithLabelValues("GetSessionProfile", "UnknownUser").Inc()
 		return StatusErrorUnknownUser
 
 	case errMsg == "unable to GetAPIProfile: rate limited":
@@ -131,6 +134,7 @@ func NewStatusFromError(logger log.Logger, query string, err error) Status {
 		// Previously named "LookupUUIDRateLimit"
 		// stats.Errored("APIProfileRateLimit")
 		//return metaRateLimitCode, usernameRateLimitTTL
+		apiGetErrors.WithLabelValues("GetAPIProfile", "RateLimit").Inc()
 		return StatusErrorRateLimit
 
 	case errMsg == "unable to GetSessionProfile: rate limited":
@@ -138,6 +142,7 @@ func NewStatusFromError(logger log.Logger, query string, err error) Status {
 		// Previously named "LookupUUIDRateLimit"
 		// stats.Errored("SessionProfileRateLimit")
 		//return metaRateLimitCode, uuidRateLimitTTL
+		apiGetErrors.WithLabelValues("GetSessionProfile", "RateLimit").Inc()
 		return StatusErrorRateLimit
 
 	case strings.HasPrefix(errMsg, "unable to GetAPIProfile"):
@@ -145,6 +150,7 @@ func NewStatusFromError(logger log.Logger, query string, err error) Status {
 		// Previously named "LookupUUID"``
 		// stats.Errored("APIProfileGeneric")
 		//return metaErrorCode, usernameErrorTTL
+		apiGetErrors.WithLabelValues("GetAPIProfile", "Generic").Inc()
 		return StatusErrorGeneric
 
 	case strings.HasPrefix(errMsg, "unable to GetSessionProfile"):
@@ -152,6 +158,7 @@ func NewStatusFromError(logger log.Logger, query string, err error) Status {
 		// Previously named "LookupUUID"
 		// stats.Errored("SessionProfileGeneric")
 		//return metaErrorCode, uuidErrorTTL
+		apiGetErrors.WithLabelValues("GetSessionProfile", "Generic").Inc()
 		return StatusErrorGeneric
 
 	default:
@@ -159,8 +166,13 @@ func NewStatusFromError(logger log.Logger, query string, err error) Status {
 		logger.Errorf("Unknown lookup error occured for \"%s\": %s", query, errMsg)
 		// Stat GenericLookup Error
 		//return metaErrorCode, uuidErrorTTL
+		apiGetErrors.WithLabelValues("Unknown", "Generic").Inc()
 		return StatusErrorGeneric
 
 	}
 
+}
+
+func MetricTextureFetchError() {
+	apiGetErrors.WithLabelValues("TextureFetch", "Generic").Inc()
 }

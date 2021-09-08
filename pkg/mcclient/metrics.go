@@ -17,7 +17,7 @@ var (
 			Namespace: metricsNamespace,
 			Subsystem: "api",
 			Name:      "get_duration_seconds",
-			Help:      "Histogram of the time (in seconds) external API Requests took.",
+			Help:      "Time (in seconds) external API Requests took.",
 			Buckets:   DefBuckets,
 		}, []string{"source"},
 	)
