@@ -11,6 +11,7 @@ import (
 	store_expiry "github.com/minotar/imgd/pkg/cache/util/expiry/store"
 	"github.com/minotar/imgd/pkg/cache/util/test_helpers"
 	"github.com/minotar/imgd/pkg/util/log"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
@@ -19,6 +20,8 @@ const (
 )
 
 func newCache(t *testing.T) *BoltCache {
+	prometheus.DefaultRegisterer = prometheus.NewRegistry()
+
 	logger := &log.DummyLogger{}
 	logger.Named("BoltTest")
 

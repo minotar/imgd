@@ -6,15 +6,15 @@ import (
 )
 
 const (
-	metricsNamespace = "mcclient"
+	metricsNamespace = "imgd"
 )
 
 var (
 	apiGetErrors = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: metricsNamespace,
-			Subsystem: "api",
-			Name:      "get_errors",
+			Subsystem: "mcclient",
+			Name:      "api_get_errors",
 			Help:      "Error events from external API Requests.",
 		}, []string{"source", "event"},
 	)

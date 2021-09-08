@@ -10,7 +10,9 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/minotar/imgd/pkg/cache"
 	store_expiry "github.com/minotar/imgd/pkg/cache/util/expiry/store"
+	cache_metrics "github.com/minotar/imgd/pkg/cache/util/metrics"
 	"github.com/minotar/imgd/pkg/storage/bolt_store"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
@@ -38,6 +40,8 @@ func NewBoltCacheConfig(cacheConfig cache.CacheConfig, path string, bucketName s
 }
 
 type BoltCacheConfig struct {
+	opDuration     prometheus.ObserverVec
+	expiredCounter *prometheus.CounterVec
 	cache.CacheConfig
 	path       string
 	bucketName string
@@ -65,6 +69,10 @@ func NewBoltCache(cfg *BoltCacheConfig) (*BoltCache, error) {
 		return nil, err
 	}
 	bc := &BoltCache{BoltStore: bs, BoltCacheConfig: cfg}
+	bc.opDuration = cache_metrics.NewCacheOperationDuration("BoltCache", bc.Name())
+	bc.expiredCounter = cache_metrics.NewCacheExpiredCounter("BoltCache", bc.Name())
+	cache_metrics.NewCacheSizeGauge("BoltCache", bc.Name(), bc.Size)
+	cache_metrics.NewCacheLenGauge("BoltCache", bc.Name(), bc.Len)
 
 	// Create a StoreExpiry using the BoltCache method
 	se, err := store_expiry.NewStoreExpiry(bc.ExpiryScan, COMPACTION_SCAN_INTERVAL)
@@ -86,6 +94,9 @@ func (bc *BoltCache) Insert(key string, value []byte) error {
 }
 
 func (bc *BoltCache) InsertTTL(key string, value []byte, ttl time.Duration) error {
+	cacheTimer := prometheus.NewTimer(bc.opDuration.WithLabelValues("insert"))
+	defer cacheTimer.ObserveDuration()
+
 	bse := bc.NewStoreEntry(key, value, ttl)
 	keyBytes, valueBytes := bse.Encode()
 	err := bc.DB.Update(func(tx *bolt.Tx) error {
@@ -128,6 +139,9 @@ func (bc *BoltCache) retrieveBSE(key string) (store_expiry.StoreEntry, error) {
 }
 
 func (bc *BoltCache) Retrieve(key string) ([]byte, error) {
+	cacheTimer := prometheus.NewTimer(bc.opDuration.WithLabelValues("retrieve"))
+	defer cacheTimer.ObserveDuration()
+
 	bse, err := bc.retrieveBSE(key)
 	if err != nil {
 		return nil, err
@@ -141,6 +155,9 @@ func (bc *BoltCache) Retrieve(key string) ([]byte, error) {
 // TTL returns an error if the key does not exist, or it has no expiry
 // Otherwise return a TTL (always at least 1 Second per `StoreExpiry`)
 func (bc *BoltCache) TTL(key string) (time.Duration, error) {
+	cacheTimer := prometheus.NewTimer(bc.opDuration.WithLabelValues("ttl"))
+	defer cacheTimer.ObserveDuration()
+
 	bse, err := bc.retrieveBSE(key)
 	if err != nil {
 		return 0, err
@@ -150,6 +167,9 @@ func (bc *BoltCache) TTL(key string) (time.Duration, error) {
 }
 
 func (bc *BoltCache) Remove(key string) error {
+	cacheTimer := prometheus.NewTimer(bc.opDuration.WithLabelValues("remove"))
+	defer cacheTimer.ObserveDuration()
+
 	err := bc.DB.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bc.Bucket))
 		return b.Delete([]byte(key))
@@ -176,7 +196,8 @@ func (bc *BoltCache) expiryScan(reviewTime time.Time, chunkSize int) {
 	logger := bc.Logger.With("dbLength", dbLength)
 	logger.Info("Starting expiryScan")
 
-	// Todo: Metrics start timer
+	cacheTimer := prometheus.NewTimer(bc.opDuration.WithLabelValues("expiryScan"))
+	defer cacheTimer.ObserveDuration()
 
 	// Keep scanning until it's interupted or finishes (via a return)
 	// Crucially, this loop ensures that we aren't holding a Write lock for an extended time
@@ -218,6 +239,7 @@ func (bc *BoltCache) expiryScan(reviewTime time.Time, chunkSize int) {
 						logger.Warnf("expiryScan was unable to delete \"%s\": %s", k, err)
 					}
 					expiredCount++
+					bc.expiredCounter.WithLabelValues().Inc()
 				}
 			}
 
