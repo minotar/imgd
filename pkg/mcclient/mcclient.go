@@ -10,7 +10,8 @@ import (
 	"github.com/minotar/minecraft"
 )
 
-// Todo: metrics / tracing / timing
+// Todo: tracing
+// Todo: Counters also support exemplars! eg. cache error metric + Request ID
 
 // Todo: Could have a base logger which we then apply context to when needed
 type McClient struct {
@@ -20,8 +21,6 @@ type McClient struct {
 		Textures cache.Cache
 	}
 	API *minecraft.Minecraft
-	// Todo: I think unused..?
-	TexturesMcNetBase string
 }
 
 // Todo: I need to be providing logging and request context in here
@@ -62,7 +61,6 @@ func (mc *McClient) GetSkinFromReq(logger log.Logger, userReq UserReq) minecraft
 	return minecraft.Skin{Texture: texture}
 }
 
-// Todo: This should handle all cache / API
 // Todo: Do we want a WaitGroup here?
 // Only real downside is that we can't goroutine to insert into cache?
 // Unless we have 2 locks? 1 here, and then one that blocks reads when writing?
@@ -70,25 +68,31 @@ func (mc *McClient) GetUUIDEntry(logger log.Logger, username string) (uuidEntry 
 	uuidEntry, err = mc.CacheRetrieveUUIDEntry(logger, username)
 	if err != nil {
 		if err == cache.ErrNotFound {
-			// We cache missed (cache.ErrNotFound) so let's request from API
+			// We cache missed (cache.ErrNotFound)
+			uuidCacheStatus.Miss()
+			// Let's request from API
 			uuidEntry = mc.RequestUUIDEntry(logger, username, uuidEntry)
 			// We need to generate a new error though
 			return uuidEntry, uuidEntry.Status.GetError()
 		} else {
 			// Cache experieneed a proper error (already would be logged)
+			uuidCacheStatus.Error()
 			return
 		}
 	}
 
 	// Cache was a hit (though still might be a bad result)
+	uuidCacheStatus.Hit()
 
 	if uuidEntry.IsValid() {
 		if uuidEntry.IsFresh() {
 			// Great success - we have a cached result
+			uuidCacheStatus.Fresh()
 			return
 		}
-		logger.Debugf("Stale UUIDEntry was dated: %v", uuidEntry.Timestamp.Time())
 		// A stale result should be re-requested
+		uuidCacheStatus.Stale()
+		logger.Debugf("Stale UUIDEntry was dated: %v", uuidEntry.Timestamp.Time())
 		return mc.RequestUUIDEntry(logger, username, uuidEntry), nil
 	}
 
@@ -100,25 +104,31 @@ func (mc *McClient) GetMcUser(logger log.Logger, uuid string) (mcUser mcuser.McU
 	mcUser, err = mc.CacheRetrieveMcUser(logger, uuid)
 	if err != nil {
 		if err == cache.ErrNotFound {
-			// We cache missed (cache.ErrNotFound) so let's request from API
+			// We cache missed (cache.ErrNotFound)
+			userdataCacheStatus.Miss()
+			// Let's request from API
 			mcUser = mc.RequestMcUser(logger, uuid, mcUser)
 			// We need to generate a new error though
 			return mcUser, mcUser.Status.GetError()
 		} else {
 			// Cache experieneed a proper error (already would be logged)
+			userdataCacheStatus.Error()
 			return
 		}
 	}
 
 	// Cache was a hit (though still might be a bad result)
+	userdataCacheStatus.Hit()
 
 	if mcUser.IsValid() {
 		if mcUser.IsFresh() {
 			// Known positive result
+			userdataCacheStatus.Fresh()
 			return
 		}
-		logger.Debugf("Stale McUser was dated: %v", mcUser.Timestamp.Time())
 		// A stale result should be re-requested
+		userdataCacheStatus.Stale()
+		logger.Debugf("Stale McUser was dated: %v", mcUser.Timestamp.Time())
 		return mc.RequestMcUser(logger, uuid, mcUser), nil
 	}
 
@@ -126,20 +136,23 @@ func (mc *McClient) GetMcUser(logger log.Logger, uuid string) (mcUser mcuser.McU
 	return mcUser, mcUser.Status.GetError()
 }
 
-// Todo: Counters also support exemplars!
-
 func (mc *McClient) GetTexture(logger log.Logger, textureKey string, textureURL string) (texture minecraft.Texture, err error) {
 	texture, err = mc.CacheRetrieveTexture(logger, textureKey)
 	if err != nil {
 		if err == cache.ErrNotFound {
-			// We cache missed (cache.ErrNotFound) so let's request from API
+			// We cache missed (cache.ErrNotFound)
+			textureCacheStatus.Miss()
+			// Let's request from API
 			return mc.RequestTexture(logger, textureKey, textureURL)
 		} else {
 			// Cache experieneed a proper error (already would be logged)
-			return
+			textureCacheStatus.Error()
+			// Let's re-request anyway - there is no ratelimit
+			return mc.RequestTexture(logger, textureKey, textureURL)
 		}
 	}
 
 	// Cache was a hit (we don't have logic to cache bad textures)
+	textureCacheStatus.Hit()
 	return
 }

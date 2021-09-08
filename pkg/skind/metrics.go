@@ -6,15 +6,15 @@ import (
 )
 
 const (
-	metricsNamespace = "skind"
+	metricsNamespace = "imgd"
 )
 
 var (
 	requestedUserType = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: metricsNamespace,
-			Subsystem: "request",
-			Name:      "user_type",
+			Subsystem: "skind",
+			Name:      "request_user_type",
 			Help:      "Type of skind User requested.",
 		}, []string{"type"},
 	)
