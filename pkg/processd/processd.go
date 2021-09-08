@@ -36,6 +36,7 @@ type Config struct {
 	Logger          log.Logger
 	CorsAllowAll    bool
 	UseETags        bool
+	CacheControlTTL time.Duration
 }
 
 // RegisterFlags registers flag.
@@ -46,6 +47,7 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	f.StringVar(&c.SkindURL, "processd.skind-url", "http://localhost:4643/skin/", "API for skin lookups")
 	f.BoolVar(&c.CorsAllowAll, "processd.cors-allow-all", true, "Permissive CORS policy")
 	f.BoolVar(&c.UseETags, "processd.use-etags", true, "Use etags to skip re-processing")
+	f.DurationVar(&c.CacheControlTTL, "processd.cache-control-ttl", time.Duration(6)*time.Hour, "Cache TTL returned to clients")
 
 	c.Server.RegisterFlags(f)
 }
@@ -141,8 +143,10 @@ func (p *Processd) SkinLookupWrapper(processFunc SkinProcessor) http.Handler {
 				w.WriteHeader(http.StatusNotModified)
 				return
 			}
-			// Need to unset ETag if we later have an issue!
+			// Need to unset ETag/cache if we later have an issue!
 			w.Header().Set("ETag", respETag)
+			w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", int(p.Cfg.CacheControlTTL.Seconds())))
+
 		}
 
 		skin := minecraft.Skin{}
@@ -173,7 +177,12 @@ func (p *Processd) initServer() error {
 		return err
 	}
 
+	serv.HTTP.Use(route_helpers.LoggingMiddleware(p.Cfg.Logger))
+
 	serv.HTTP.Path("/debug/fgprof").Handler(fgprof.Handler())
+	serv.HTTP.Path("/healthcheck").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200)
+	})
 
 	RegisterRoutes(serv.HTTP, p.SkinLookupWrapper, p.ProcessRoutes)
 

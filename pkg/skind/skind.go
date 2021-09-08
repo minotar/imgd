@@ -2,7 +2,9 @@ package skind
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/felixge/fgprof"
 	cache_config "github.com/minotar/imgd/pkg/cache/util/config"
@@ -14,11 +16,12 @@ import (
 )
 
 type Config struct {
-	Server       server.Config   `yaml:"server,omitempty"`
-	McClient     mcclient.Config `yaml:"mcclient,omitempty"`
-	Logger       log.Logger
-	CorsAllowAll bool
-	UseETags     bool
+	Server          server.Config   `yaml:"server,omitempty"`
+	McClient        mcclient.Config `yaml:"mcclient,omitempty"`
+	Logger          log.Logger
+	CorsAllowAll    bool
+	UseETags        bool
+	CacheControlTTL time.Duration
 }
 
 // RegisterFlags registers flag.
@@ -27,6 +30,7 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 
 	f.BoolVar(&c.CorsAllowAll, "skind.cors-allow-all", true, "Permissive CORS policy")
 	f.BoolVar(&c.UseETags, "skind.use-etags", true, "Use etags to skip re-processing")
+	f.DurationVar(&c.CacheControlTTL, "skind.cache-control-ttl", time.Duration(6)*time.Hour, "Cache TTL returned to clients")
 
 	c.Server.RegisterFlags(f)
 	c.McClient.RegisterFlags(f)
@@ -97,14 +101,14 @@ func (s *Skind) SkinPageHandler() http.Handler {
 				w.WriteHeader(http.StatusNotModified)
 				return
 			}
-			// Need to unset ETag if we later have an issue!
+			// Need to unset ETag/cache if we later have an issue!
 			// Todo: do we still want to use Skin Hash
 			w.Header().Set("ETag", skin.Hash)
+			w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", int(s.Cfg.CacheControlTTL.Seconds())))
 		}
 
 		// No more header changes after writing
 		WriteSkin(w, skin)
-		logger.Debug(w.Header())
 	})
 }
 
@@ -129,6 +133,8 @@ func (s *Skind) initServer() error {
 	serv.HTTP.Use(route_helpers.LoggingMiddleware(s.Cfg.Logger))
 
 	serv.HTTP.Path("/debug/fgprof").Handler(fgprof.Handler())
+	serv.HTTP.Path("/healthcheck").Handler(HealthcheckHandler(s.McClient))
+	serv.HTTP.Path("/dbsize").Handler(SizecheckHandler(s.McClient))
 
 	if s.Cfg.CorsAllowAll {
 		serv.HTTP.Use(route_helpers.CorsHandler)

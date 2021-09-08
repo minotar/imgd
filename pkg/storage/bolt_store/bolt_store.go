@@ -2,6 +2,7 @@ package bolt_store
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	bolt "github.com/boltdb/bolt"
@@ -125,7 +126,11 @@ func (bs *BoltStore) Len() uint {
 }
 
 func (bs *BoltStore) Size() uint64 {
-	return 0
+	fileInfo, err := os.Stat(bs.path)
+	if err != nil {
+		return 0
+	}
+	return uint64(fileInfo.Size())
 }
 
 func (bs *BoltStore) Close() {
