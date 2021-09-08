@@ -71,7 +71,7 @@ func LoggingMiddleware(logger log.Logger) func(http.Handler) http.Handler {
 				"host", r.Host,
 				"remote_addr", r.RemoteAddr,
 				"url", r.URL,
-			).Debug("incoming")
+			).Debugf("incoming: %v", r.Header)
 			next.ServeHTTP(w, r)
 		})
 	}

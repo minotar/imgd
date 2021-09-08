@@ -2,7 +2,9 @@ package imgd
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/felixge/fgprof"
 	cache_config "github.com/minotar/imgd/pkg/cache/util/config"
@@ -16,11 +18,12 @@ import (
 )
 
 type Config struct {
-	Server       server.Config   `yaml:"server,omitempty"`
-	McClient     mcclient.Config `yaml:"mcclient,omitempty"`
-	Logger       log.Logger
-	CorsAllowAll bool
-	UseETags     bool
+	Server          server.Config   `yaml:"server,omitempty"`
+	McClient        mcclient.Config `yaml:"mcclient,omitempty"`
+	Logger          log.Logger
+	CorsAllowAll    bool
+	UseETags        bool
+	CacheControlTTL time.Duration
 }
 
 // RegisterFlags registers flag.
@@ -29,6 +32,7 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 
 	f.BoolVar(&c.CorsAllowAll, "imgd.cors-allow-all", true, "Permissive CORS policy")
 	f.BoolVar(&c.UseETags, "imgd.use-etags", true, "Use etags to skip re-processing")
+	f.DurationVar(&c.CacheControlTTL, "imgd.cache-control-ttl", time.Duration(6)*time.Hour, "Cache TTL returned to clients")
 
 	c.Server.RegisterFlags(f)
 	c.McClient.RegisterFlags(f)
@@ -70,17 +74,17 @@ func New(cfg Config) (*Imgd, error) {
 	}
 	cacheTextures.Start()
 
-	skind := &Imgd{
+	imgd := &Imgd{
 		Cfg:           cfg,
 		McClient:      mcclient.NewMcClient(&cfg.McClient),
 		ProcessRoutes: processd.DefaultProcessRoutes,
 	}
 
-	skind.McClient.Caches.UUID = cacheUUID
-	skind.McClient.Caches.UserData = cacheUserData
-	skind.McClient.Caches.Textures = cacheTextures
+	imgd.McClient.Caches.UUID = cacheUUID
+	imgd.McClient.Caches.UserData = cacheUserData
+	imgd.McClient.Caches.Textures = cacheTextures
 
-	return skind, nil
+	return imgd, nil
 }
 
 // Requires "uuid" or "username" vars
@@ -104,11 +108,11 @@ func (i *Imgd) SkinPageHandler() http.Handler {
 			// Need to unset ETag if we later have an issue!
 			// Todo: do we still want to use Skin Hash
 			w.Header().Set("ETag", skin.Hash)
+			w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", int(i.Cfg.CacheControlTTL.Seconds())))
 		}
 
 		// No more header changes after writing
 		skind.WriteSkin(w, skin)
-		logger.Debug(w.Header())
 	})
 }
 
@@ -127,9 +131,10 @@ func (i *Imgd) SkinLookupWrapper(processFunc processd.SkinProcessor) http.Handle
 				w.WriteHeader(http.StatusNotModified)
 				return
 			}
-			// Need to unset ETag if we later have an issue!
+			// Need to unset ETag/cache if we later have an issue!
 			// Todo: do we still want to use Skin Hash
 			w.Header().Set("ETag", skin.Hash)
+			w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", int(i.Cfg.CacheControlTTL.Seconds())))
 		}
 
 		handler := processFunc(skin)
@@ -158,6 +163,8 @@ func (i *Imgd) initServer() error {
 	serv.HTTP.Use(route_helpers.LoggingMiddleware(i.Cfg.Logger))
 
 	serv.HTTP.Path("/debug/fgprof").Handler(fgprof.Handler())
+	serv.HTTP.Path("/healthcheck").Handler(skind.HealthcheckHandler(i.McClient))
+	serv.HTTP.Path("/dbsize").Handler(skind.SizecheckHandler(i.McClient))
 
 	if i.Cfg.CorsAllowAll {
 		serv.HTTP.Use(route_helpers.CorsHandler)
