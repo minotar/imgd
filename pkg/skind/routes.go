@@ -11,23 +11,28 @@ import (
 	"github.com/minotar/imgd/pkg/mcclient"
 	"github.com/minotar/imgd/pkg/util/route_helpers"
 	"github.com/minotar/minecraft"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func RegisterRoutes(m *mux.Router, skinHandler http.Handler) {
 
 	optionalPNG := "{?:(?:\\.png)?}"
+	uuidCounter := requestedUserType.MustCurryWith(prometheus.Labels{"type": "UUID"})
+	dashedCounter := requestedUserType.MustCurryWith(prometheus.Labels{"type": "DashedUUID"})
+	usernameCounter := requestedUserType.MustCurryWith(prometheus.Labels{"type": "Username"})
 
 	skinSR := m.PathPrefix("/skin/").Subrouter()
-	skinSR.Path(route_helpers.UUIDPath + optionalPNG).Handler(skinHandler).Name("skinUUID")
-	skinSR.Path(route_helpers.UsernamePath + optionalPNG).Handler(skinHandler).Name("skinUsername")
-	route_helpers.SubRouteDashedRedirect(skinSR)
+	skinSR.Path(route_helpers.UUIDPath + optionalPNG).Handler(promhttp.InstrumentHandlerCounter(uuidCounter, skinHandler)).Name("skin")
+	skinSR.Path(route_helpers.UsernamePath + optionalPNG).Handler(promhttp.InstrumentHandlerCounter(usernameCounter, skinHandler)).Name("skin")
+	route_helpers.SubRouteDashedRedirect(skinSR, dashedCounter)
 
 	downloadSkinHandler := route_helpers.BrowserDownloadHandler(skinHandler)
 
 	downloadSR := m.PathPrefix("/download/").Subrouter()
-	downloadSR.Path(route_helpers.UUIDPath + optionalPNG).Handler(downloadSkinHandler).Name("downloadUUID")
-	downloadSR.Path(route_helpers.UsernamePath + optionalPNG).Handler(downloadSkinHandler).Name("downloadUsername")
-	route_helpers.SubRouteDashedRedirect(downloadSR)
+	downloadSR.Path(route_helpers.UUIDPath + optionalPNG).Handler(promhttp.InstrumentHandlerCounter(uuidCounter, downloadSkinHandler)).Name("download")
+	downloadSR.Path(route_helpers.UsernamePath + optionalPNG).Handler(promhttp.InstrumentHandlerCounter(usernameCounter, downloadSkinHandler)).Name("download")
+	route_helpers.SubRouteDashedRedirect(downloadSR, dashedCounter)
 }
 
 func WriteSkin(w http.ResponseWriter, skin minecraft.Skin) {

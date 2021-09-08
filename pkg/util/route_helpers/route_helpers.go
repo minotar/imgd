@@ -8,6 +8,8 @@ import (
 	"github.com/minotar/imgd/pkg/mcclient"
 	"github.com/minotar/imgd/pkg/util/log"
 	"github.com/minotar/minecraft"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const (
@@ -46,8 +48,9 @@ func DashedRedirectUUIDHandler() http.Handler {
 	})
 }
 
-func SubRouteDashedRedirect(m *mux.Router) {
-	m.Path(DashPath + "{?:(?:.[a-z]{3})?}").Handler(DashedRedirectUUIDHandler()).Name("dashedRedirect")
+func SubRouteDashedRedirect(m *mux.Router, counter *prometheus.CounterVec) {
+	handler := promhttp.InstrumentHandlerCounter(counter, DashedRedirectUUIDHandler())
+	m.Path(DashPath + "{?:.{0,8}}").Handler(handler).Name("dashedRedirect")
 }
 
 // var "username" or "uuid" _MUST_ be present

@@ -7,6 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/minotar/imgd/pkg/mcclient/mcuser"
+	"github.com/minotar/imgd/pkg/mcclient/status"
 	mc_uuid "github.com/minotar/imgd/pkg/mcclient/uuid"
 )
 
@@ -19,6 +20,7 @@ func (mc *McClient) RequestUUIDEntry(logger log.Logger, username string, uuidEnt
 
 	if !uuidEntryFresh.IsValid() && uuidEntry.IsValid() {
 		// New result errored, but the original/stale Entry was already valid - Don't cache!
+		// Todo: stat this?
 		return uuidEntry
 	}
 
@@ -70,6 +72,7 @@ func (mc *McClient) RequestTexture(logger log.Logger, textureKey string, texture
 	apiTimer.ObserveDuration()
 
 	if err != nil {
+		status.MetricTextureFetchError()
 		return
 	}
 
