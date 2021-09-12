@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	skinTTL = 1 * time.Hour
+	skinTTL = 4 * time.Hour
 )
 
 // Todo: metrics / tracing / timing
