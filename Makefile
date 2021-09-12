@@ -129,17 +129,27 @@ touch-protos:
 #################
 
 images: skind-image processd-image imgd-image
+images-push: skind-image-push processd-image-push imgd-image-push
 
 
 # skind
 skind-image:
 	docker build -t $(IMAGE_PREFIX)/skind:$(IMAGE_TAG) -f cmd/skind/Dockerfile .
 
+skind-image-push:
+	docker push $(IMAGE_PREFIX)/skind:$(IMAGE_TAG)
+
 # processd
 processd-image:
 	docker build -t $(IMAGE_PREFIX)/processd:$(IMAGE_TAG) -f cmd/processd/Dockerfile .
 
+processd-image-push:
+	docker push $(IMAGE_PREFIX)/processd:$(IMAGE_TAG)
+
 # imgd
 imgd-image:
 	docker build -t $(IMAGE_PREFIX)/imgd:$(IMAGE_TAG) -f cmd/imgd/Dockerfile .
+
+imgd-image-push:
+	docker push $(IMAGE_PREFIX)/imgd:$(IMAGE_TAG)
 
