@@ -72,7 +72,7 @@ func NewBoltCache(cfg *BoltCacheConfig) (*BoltCache, error) {
 	bc.opDuration = cache_metrics.NewCacheOperationDuration("BoltCache", bc.Name())
 	bc.expiredCounter = cache_metrics.NewCacheExpiredCounter("BoltCache", bc.Name())
 	cache_metrics.NewCacheSizeGauge("BoltCache", bc.Name(), bc.Size)
-	cache_metrics.NewCacheLenGauge("BoltCache", bc.Name(), bc.Len)
+	//cache_metrics.NewCacheLenGauge("BoltCache", bc.Name(), bc.Len)
 
 	// Create a StoreExpiry using the BoltCache method
 	se, err := store_expiry.NewStoreExpiry(bc.ExpiryScan, COMPACTION_SCAN_INTERVAL)
