@@ -1,12 +1,10 @@
 package mcuser
 
 import (
-	"bytes"
-	"compress/flate"
 	"fmt"
-	"io/ioutil"
 	"time"
 
+	"github.com/4kills/go-libdeflate"
 	"github.com/minotar/imgd/pkg/util/log"
 
 	"github.com/minotar/imgd/pkg/mcclient/status"
@@ -58,8 +56,7 @@ func (u McUser) String() string {
 
 // Decompress a Protobuf McUser
 func DecompressMcUser(flatedBytes []byte) (McUser, error) {
-	zr := flate.NewReader(bytes.NewReader(flatedBytes))
-	protoBytes, err := ioutil.ReadAll(zr)
+	protoBytes, err := libdeflate.Decompress(flatedBytes, nil, libdeflate.ModeDEFLATE)
 	if err != nil {
 		return McUser{}, err
 	}
@@ -109,22 +106,16 @@ func (u McUser) EncodeProtobuf() ([]byte, error) {
 }
 
 func (u McUser) Compress() ([]byte, error) {
-	var b bytes.Buffer
-	zw, err := flate.NewWriter(&b, flate.BestCompression)
-	if err != nil {
-		return nil, err
-	}
-
 	protoBytes, err := u.EncodeProtobuf()
 	if err != nil {
 		return nil, err
 	}
 
-	zw.Write(protoBytes)
-	if err = zw.Close(); err != nil {
+	_, flatedBytes, err := libdeflate.Compress(protoBytes, nil, libdeflate.ModeDEFLATE)
+	if err != nil {
 		return nil, err
 	}
 
-	return b.Bytes(), nil
+	return flatedBytes, nil
 
 }
