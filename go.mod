@@ -3,6 +3,7 @@ module github.com/minotar/imgd
 go 1.16
 
 require (
+	github.com/4kills/go-libdeflate v1.3.1
 	github.com/ajstarks/svgo v0.0.0-20210406150507-75cfd577ce75
 	github.com/boltdb/bolt v1.3.1
 	github.com/dgraph-io/badger/v3 v3.2011.1
