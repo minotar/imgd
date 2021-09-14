@@ -6,6 +6,7 @@ import (
 	"image"
 	"image/draw"
 	"io"
+
 	// If we work with PNGs we need this
 	_ "image/png"
 
@@ -128,10 +129,10 @@ func (t *Texture) FetchWithSessionProfile(sessionProfile SessionProfileResponse,
 
 // FetchWithUsername takes a username and will then request from UsernameAPI as specified in the Minecraft struct
 func (t *Texture) FetchWithUsername(username string, textureType string) error {
-	if textureType == "Skin" && t.Mc.UsernameAPI.SkinURL != "" {
-		t.URL = t.Mc.UsernameAPI.SkinURL + username + ".png"
-	} else if textureType == "Cape" && t.Mc.UsernameAPI.CapeURL != "" {
-		t.URL = t.Mc.UsernameAPI.CapeURL + username + ".png"
+	if textureType == "Skin" && t.Mc.Cfg.UsernameAPIConfig.SkinURL != "" {
+		t.URL = t.Mc.Cfg.UsernameAPIConfig.SkinURL + username + ".png"
+	} else if textureType == "Cape" && t.Mc.Cfg.UsernameAPIConfig.CapeURL != "" {
+		t.URL = t.Mc.Cfg.UsernameAPIConfig.CapeURL + username + ".png"
 	} else {
 		return errors.New("Unkown textureType or missing UsernameAPI lookup URL")
 	}

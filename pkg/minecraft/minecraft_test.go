@@ -20,11 +20,15 @@ func TestMain(m *testing.M) {
 	mux := mockminecraft.ReturnMux()
 	rt, shutdown := mockminecraft.Setup(mux)
 
-	mcTest = NewMinecraft()
+	cfg := &Config{
+		UsernameAPIConfig: UsernameAPIConfig{
+			SkinURL: "http://skins.example.net/skins/",
+			CapeURL: "http://skins.example.net/capes/",
+		},
+	}
+	mcTest = NewMinecraft(cfg)
 	mcTest.Client = &http.Client{Transport: rt}
-	mcTest.UsernameAPI.SkinURL = "http://skins.example.net/skins/"
-	mcTest.UsernameAPI.CapeURL = "http://skins.example.net/capes/"
-	mcProd = NewMinecraft()
+	mcProd = NewDefaultMinecraft()
 
 	code := m.Run()
 	shutdown()
@@ -102,14 +106,14 @@ func TestExtra(t *testing.T) {
 			_, err := mcProd.apiRequest("::")
 
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "unable to create request: parse ::: missing protocol scheme")
+			So(err.Error(), ShouldEqual, "unable to create request: parse \"::\": missing protocol scheme")
 		})
 
 		Convey("apiRequest Bad GET", func() {
 			_, err := mcProd.apiRequest("//dummy_url")
 
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "unable to GET URL: Get //dummy_url: unsupported protocol scheme \"\"")
+			So(err.Error(), ShouldEqual, "unable to GET URL: Get \"//dummy_url\": unsupported protocol scheme \"\"")
 		})
 
 		Convey("t.Fetch Bad GET", func() {
@@ -118,7 +122,7 @@ func TestExtra(t *testing.T) {
 			err := texture.Fetch()
 
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "unable to Fetch Texture: unable to GET URL: Get //dummy_url: unsupported protocol scheme \"\"")
+			So(err.Error(), ShouldEqual, "unable to Fetch Texture: unable to GET URL: Get \"//dummy_url\": unsupported protocol scheme \"\"")
 		})
 
 	})
