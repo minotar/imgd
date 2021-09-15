@@ -86,7 +86,7 @@ type Config struct {
 
 var (
 	// DefaultConfig is used by NewDefaultMinecraft and also serves as the defaults when using the Config.RegisterFlags
-	DefaultConfig *Config = &Config{
+	DefaultConfig Config = Config{
 		Logger:         log.NewStdLogger(),
 		UserAgent:      "minotar/imgd/pkg/minecraft (https://github.com/minotar/imgd) - default",
 		RequestTimeout: 10 * time.Second,
@@ -109,15 +109,16 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 type Minecraft struct {
 	// Client allows the supply of a custom RoundTripper (among other things)
 	Client *http.Client
-	Cfg    *Config
+	Cfg    Config
 }
 
 // NewMinecraft returns a Minecraft structure with default values (HTTP Timeout of 10 seconds and UsernameAPI will be nil)
 func NewDefaultMinecraft() *Minecraft {
-	return NewMinecraft(DefaultConfig)
+	cfg := DefaultConfig
+	return NewMinecraft(cfg)
 }
 
-func NewMinecraft(cfg *Config) *Minecraft {
+func NewMinecraft(cfg Config) *Minecraft {
 	return &Minecraft{
 		Client: &http.Client{
 			Timeout: cfg.RequestTimeout,

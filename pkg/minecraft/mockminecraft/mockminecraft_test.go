@@ -40,7 +40,7 @@ func TestServer(t *testing.T) {
 			_, err := doRequest("::")
 
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "unable to create request: parse ::: missing protocol scheme")
+			So(err.Error(), ShouldEqual, "unable to create request: parse \"::\": missing protocol scheme")
 		})
 
 	})

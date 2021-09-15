@@ -38,7 +38,7 @@ func TestProfiles(t *testing.T) {
 			apiProfile, err := mcProd.GetAPIProfile("bad_string/")
 
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "unable to GetAPIProfile: apiRequest HTTP 404 Not Found")
+			So(err.Error(), ShouldEqual, "unable to GetAPIProfile: minecraft HTTP GET got unexpected: 404 Not Found")
 			So(apiProfile, ShouldResemble, APIProfileResponse{})
 		})
 
@@ -56,10 +56,10 @@ func TestProfiles(t *testing.T) {
 		})
 
 		Convey("bad_string/ should cause an HTTP error", func() {
-			sessionProfile, err := mcProd.GetSessionProfile("bad_string/")
+			sessionProfile, err := mcProd.GetSessionProfile("00000000000000000000000000000000")
 
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "unable to GetSessionProfile: apiRequest HTTP 404 Not Found")
+			So(err.Error(), ShouldEqual, "unable to GetSessionProfile: user not found")
 			So(sessionProfile, ShouldResemble, SessionProfileResponse{})
 		})
 
