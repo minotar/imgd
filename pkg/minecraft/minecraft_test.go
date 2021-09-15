@@ -20,13 +20,9 @@ func TestMain(m *testing.M) {
 	mux := mockminecraft.ReturnMux()
 	rt, shutdown := mockminecraft.Setup(mux)
 
-	cfg := &Config{
-		UsernameAPIConfig: UsernameAPIConfig{
-			SkinURL: "http://skins.example.net/skins/",
-			CapeURL: "http://skins.example.net/capes/",
-		},
-	}
-	mcTest = NewMinecraft(cfg)
+	mcTest = NewDefaultMinecraft()
+	mcTest.Cfg.UsernameAPIConfig.SkinURL = "http://skins.example.net/skins/"
+	mcTest.Cfg.UsernameAPIConfig.CapeURL = "http://skins.example.net/capes/"
 	mcTest.Client = &http.Client{Transport: rt}
 	mcProd = NewDefaultMinecraft()
 

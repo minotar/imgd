@@ -47,7 +47,7 @@ func TestTextures(t *testing.T) {
 				err := texture.Fetch()
 
 				So(err, ShouldNotBeNil)
-				So(err.Error(), ShouldEqual, "unable to Fetch Texture: apiRequest HTTP 404 Not Found")
+				So(err.Error(), ShouldEqual, "unable to Fetch Texture: minecraft HTTP GET got unexpected: 404 Not Found")
 			})
 
 		})
@@ -220,7 +220,7 @@ func TestTextures(t *testing.T) {
 			err2 := cape.FetchWithUsername("clone1018", "Cape")
 
 			So(err2, ShouldNotBeNil)
-			So(err2.Error(), ShouldEqual, "FetchWithUsername failed: unable to Fetch Texture: apiRequest HTTP 404 Not Found")
+			So(err2.Error(), ShouldEqual, "FetchWithUsername failed: unable to Fetch Texture: minecraft HTTP GET got unexpected: 404 Not Found")
 		})
 
 		Convey("Should error about fetching a malformed Skin texture", func() {
@@ -236,7 +236,7 @@ func TestTextures(t *testing.T) {
 			err := skin.FetchWithUsername("404STexture", "Skin")
 
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "FetchWithUsername failed: unable to Fetch Texture: apiRequest HTTP 404 Not Found")
+			So(err.Error(), ShouldEqual, "FetchWithUsername failed: unable to Fetch Texture: minecraft HTTP GET got unexpected: 404 Not Found")
 		})
 
 		Convey("Should error trying to decode an unknown textureType", func() {
@@ -418,7 +418,7 @@ func TestTextures(t *testing.T) {
 			user, skin, cape, err := mcTest.FetchTexturesWithSessionProfile(sessionProfile)
 
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "not able to retrieve skin: FetchWithTextureProperty failed: unable to Fetch Texture: apiRequest HTTP 404 Not Found")
+			So(err.Error(), ShouldEqual, "not able to retrieve skin: FetchWithTextureProperty failed: unable to Fetch Texture: minecraft HTTP GET got unexpected: 404 Not Found")
 			So(user.Username, ShouldEqual, "404STexture")
 			So(skin, ShouldResemble, Skin{Texture{Mc: mcTest, Source: "SessionProfile", URL: "http://textures.minecraft.net/texture/404Texture"}})
 			So(cape, ShouldResemble, Cape{Texture{Mc: mcTest}})
@@ -429,7 +429,7 @@ func TestTextures(t *testing.T) {
 			user, skin, cape, err := mcTest.FetchTexturesWithSessionProfile(sessionProfile)
 
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "not able to retrieve cape: FetchWithTextureProperty failed: unable to Fetch Texture: apiRequest HTTP 404 Not Found")
+			So(err.Error(), ShouldEqual, "not able to retrieve cape: FetchWithTextureProperty failed: unable to Fetch Texture: minecraft HTTP GET got unexpected: 404 Not Found")
 			So(user.Username, ShouldEqual, "404CTexture")
 			So(cape, ShouldResemble, Cape{Texture{Mc: mcTest, Source: "SessionProfile", URL: "http://textures.minecraft.net/texture/404Texture"}})
 			So(skin.Source, ShouldEqual, "SessionProfile")
