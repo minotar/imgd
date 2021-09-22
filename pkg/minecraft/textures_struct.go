@@ -1,6 +1,7 @@
 package minecraft
 
 import (
+	"context"
 	"crypto/md5"
 	"fmt"
 	"image"
@@ -17,16 +18,12 @@ import (
 type Texture struct {
 	// texture image...
 	Image image.Image
-	// md5 hash of the texture image
-	Hash string
-	// Location we grabbed the texture from. Mojang/S3/Char
-	Source string
-	// 4-byte signature of the background matte for the texture
-	AlphaSig [4]uint8
-	// URL of the texture
-	URL string
-	// M is a pointer to the Minecraft struct that is then used for requests against the API
+	// Mc is a pointer to the Minecraft struct that is then used for requests against the API
 	Mc *Minecraft
+	// Hash is the md5 of the image pixels
+	Hash string
+	// AlphaSig is a 4-byte signature of the background matte
+	AlphaSig [4]uint8
 }
 
 // CastToNRGBA takes image bytes and converts to NRGBA format if needed
@@ -53,7 +50,7 @@ func (t *Texture) CastToNRGBA(r io.Reader) error {
 func (t *Texture) Decode(r io.Reader) error {
 	err := t.CastToNRGBA(r)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	// And md5 hash its pixels
@@ -73,74 +70,43 @@ func (t *Texture) Decode(r io.Reader) error {
 	return nil
 }
 
-// Fetch performs the GET for the texture, doing any required conversion and saving our Image property
-func (t *Texture) Fetch() error {
-	apiBody, err := t.Mc.apiRequest(t.URL)
-	if apiBody != nil {
-		defer apiBody.Close()
-	}
+func (t *Texture) loadTextureBody(texBody io.ReadCloser, err error) error {
 	if err != nil {
 		return errors.Wrap(err, "unable to Fetch Texture")
 	}
-
-	err = t.Decode(apiBody)
-	if err != nil {
-		return errors.Wrap(err, "unable to Decode Texture")
-	}
-	return nil
+	defer texBody.Close()
+	return t.Decode(texBody)
 }
 
 // FetchWithTextureProperty takes a already decoded Texture Property and will request either Skin or Cape as instructed
-func (t *Texture) FetchWithTextureProperty(profileTextureProperty SessionProfileTextureProperty, textureType string) error {
-	if textureType == "Skin" {
-		t.URL = profileTextureProperty.Textures.Skin.URL
-	} else if textureType == "Cape" {
-		t.URL = profileTextureProperty.Textures.Cape.URL
-	} else {
-		return errors.New("Unknown textureType")
-	}
-
-	if t.URL == "" {
-		return errors.Errorf("%s URL not present", textureType)
-	}
-	t.Source = "SessionProfile"
-
-	err := t.Fetch()
+func (t *Texture) FetchWithTextureProperty(sptp SessionProfileTextureProperty, texType textureType) error {
+	err := t.loadTextureBody(t.Mc.TextureBodyFromTexturePropertyCtx(context.Background(), sptp, texType))
 	if err != nil {
-		return errors.Wrap(err, "FetchWithTextureProperty failed")
+		return fmt.Errorf("FetchWithTextureProperty failed: %w", err)
 	}
 	return nil
 }
 
 // FetchWithSessionProfile will decode the Texture Property for you and request the Skin or Cape as instructed
 // If requesting both Skin and Cape, this would result in 2 x decoding - use FetchWithTextureProperty instead
-func (t *Texture) FetchWithSessionProfile(sessionProfile SessionProfileResponse, textureType string) error {
-	profileTextureProperty, err := DecodeTextureProperty(sessionProfile)
+func (t *Texture) FetchWithSessionProfile(sessionProfile SessionProfileResponse, texType textureType) error {
+	sptp, err := DecodeTextureProperty(sessionProfile)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	err = t.FetchWithTextureProperty(profileTextureProperty, textureType)
+	err = t.FetchWithTextureProperty(sptp, texType)
 	if err != nil {
-		return errors.Wrap(err, "FetchWithSessionProfile failed")
+		return fmt.Errorf("FetchWithSessionProfile failed: %w", err)
 	}
 	return nil
 }
 
 // FetchWithUsername takes a username and will then request from UsernameAPI as specified in the Minecraft struct
-func (t *Texture) FetchWithUsername(username string, textureType string) error {
-	if textureType == "Skin" && t.Mc.Cfg.UsernameAPIConfig.SkinURL != "" {
-		t.URL = t.Mc.Cfg.UsernameAPIConfig.SkinURL + username + ".png"
-	} else if textureType == "Cape" && t.Mc.Cfg.UsernameAPIConfig.CapeURL != "" {
-		t.URL = t.Mc.Cfg.UsernameAPIConfig.CapeURL + username + ".png"
-	} else {
-		return errors.New("Unkown textureType or missing UsernameAPI lookup URL")
-	}
-	t.Source = "UsernameAPI"
-
-	err := t.Fetch()
+func (t *Texture) FetchWithUsername(username string, texType textureType) error {
+	err := t.loadTextureBody(t.Mc.TextureBodyFromUsernameCtx(context.Background(), username, texType))
 	if err != nil {
-		return errors.Wrap(err, "FetchWithUsername failed")
+		return fmt.Errorf("FetchWithUsername failed: %w", err)
 	}
 	return nil
 }

@@ -7,19 +7,19 @@ type Cape struct {
 }
 
 func (mc *Minecraft) FetchCapeUUID(uuid string) (Cape, error) {
-	cape := &Cape{Texture{Mc: mc}}
+	cape := Cape{Texture{Mc: mc}}
 
 	// Must be careful to not request same profile from session server more than once per ~30 seconds
 	sessionProfile, err := mc.GetSessionProfile(uuid)
 	if err != nil {
-		return *cape, err
+		return cape, err
 	}
 
-	return *cape, cape.FetchWithSessionProfile(sessionProfile, "Cape")
+	return cape, cape.FetchWithSessionProfile(sessionProfile, TextureCape)
 }
 
 func (mc *Minecraft) FetchCapeUsername(username string) (Cape, error) {
-	cape := &Cape{Texture{Mc: mc}}
+	cape := Cape{Texture{Mc: mc}}
 
-	return *cape, cape.FetchWithUsername(username, "Cape")
+	return cape, cape.FetchWithUsername(username, TextureCape)
 }

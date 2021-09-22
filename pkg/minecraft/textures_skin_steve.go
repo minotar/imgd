@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"image"
+
 	// If we work with PNGs we need this
 	_ "image/png"
 
@@ -17,8 +18,6 @@ func (s *Skin) FetchSteve() error {
 	if err != nil {
 		return err
 	}
-
-	s.Source = "Steve"
 
 	err = s.Decode(bytes)
 	if err != nil {
