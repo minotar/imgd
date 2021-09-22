@@ -15,11 +15,11 @@ func (mc *Minecraft) FetchSkinUUID(uuid string) (Skin, error) {
 		return *skin, err
 	}
 
-	return *skin, skin.FetchWithSessionProfile(sessionProfile, "Skin")
+	return *skin, skin.FetchWithSessionProfile(sessionProfile, TextureSkin)
 }
 
 func (mc *Minecraft) FetchSkinUsername(username string) (Skin, error) {
 	skin := &Skin{Texture{Mc: mc}}
 
-	return *skin, skin.FetchWithUsername(username, "Skin")
+	return *skin, skin.FetchWithUsername(username, TextureSkin)
 }

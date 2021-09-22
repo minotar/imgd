@@ -4,56 +4,56 @@ package minecraft
 import (
 	"testing"
 
-	"github.com/minotar/imgd/pkg/minecraft/mockminecraft"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestTextures(t *testing.T) {
 
-	Convey("Test Texture.fetch", t, func() {
+	/*
+		Convey("Test Texture.fetch", t, func() {
 
-		Convey("clone1018 texture should return the correct skin", func() {
-			texture := &Texture{Mc: mcTest, URL: "http://textures.minecraft.net/texture/cd9ca55e9862f003ebfa1872a9244ad5f721d6b9e6883dd1d42f87dae127649"}
+			Convey("clone1018 texture should return the correct skin", func() {
+				texture := &Texture{Mc: mcTest, URL: "http://textures.minecraft.net/texture/cd9ca55e9862f003ebfa1872a9244ad5f721d6b9e6883dd1d42f87dae127649"}
 
-			err := texture.Fetch()
+				err := texture.Fetch()
 
-			So(err, ShouldBeNil)
-			So(texture.Hash, ShouldEqual, "a04a26d10218668a632e419ab073cf57")
+				So(err, ShouldBeNil)
+				So(texture.Hash, ShouldEqual, "a04a26d10218668a632e419ab073cf57")
+			})
+
+			Convey("Bad texture requests should gracefully fail", func() {
+
+				Convey("Bad texture URL (invalid-image)", func() {
+					texture := &Texture{Mc: mcTest, URL: mockminecraft.TestURL + "/texture/MalformedTexture"}
+
+					err := texture.Fetch()
+
+					So(err, ShouldNotBeNil)
+					So(err.Error(), ShouldEqual, "unable to Decode Texture: unable to CastToNRGBA: png: invalid format: not enough pixel data")
+				})
+
+				Convey("Bad texture URL (non-image)", func() {
+					texture := &Texture{Mc: mcTest, URL: mockminecraft.TestURL + "/200"}
+
+					err := texture.Fetch()
+
+					So(err, ShouldNotBeNil)
+					So(err.Error(), ShouldEqual, "unable to Decode Texture: unable to CastToNRGBA: image: unknown format")
+				})
+
+				Convey("Bad texture URL (non-200)", func() {
+					texture := &Texture{Mc: mcTest, URL: mockminecraft.TestURL + "/404"}
+
+					err := texture.Fetch()
+
+					So(err, ShouldNotBeNil)
+					So(err.Error(), ShouldEqual, "unable to Fetch Texture: minecraft HTTP GET got unexpected: 404 Not Found")
+				})
+
+			})
+
 		})
-
-		Convey("Bad texture requests should gracefully fail", func() {
-
-			Convey("Bad texture URL (invalid-image)", func() {
-				texture := &Texture{Mc: mcTest, URL: mockminecraft.TestURL + "/texture/MalformedTexture"}
-
-				err := texture.Fetch()
-
-				So(err, ShouldNotBeNil)
-				So(err.Error(), ShouldEqual, "unable to Decode Texture: unable to CastToNRGBA: png: invalid format: not enough pixel data")
-			})
-
-			Convey("Bad texture URL (non-image)", func() {
-				texture := &Texture{Mc: mcTest, URL: mockminecraft.TestURL + "/200"}
-
-				err := texture.Fetch()
-
-				So(err, ShouldNotBeNil)
-				So(err.Error(), ShouldEqual, "unable to Decode Texture: unable to CastToNRGBA: image: unknown format")
-			})
-
-			Convey("Bad texture URL (non-200)", func() {
-				texture := &Texture{Mc: mcTest, URL: mockminecraft.TestURL + "/404"}
-
-				err := texture.Fetch()
-
-				So(err, ShouldNotBeNil)
-				So(err.Error(), ShouldEqual, "unable to Fetch Texture: minecraft HTTP GET got unexpected: 404 Not Found")
-			})
-
-		})
-
-	})
-
+	*/
 	Convey("Test DecodeTextureProperty + Texture.FetchWithTextureProperty", t, func() {
 
 		Convey("Should correctly decode and fetch Skin and Cape URL", func() {
@@ -65,12 +65,12 @@ func TestTextures(t *testing.T) {
 			So(profileTextureProperty.Textures.Cape.URL, ShouldEqual, "http://textures.minecraft.net/texture/c3af7fb821254664558f28361158ca73303c9a85e96e5251102958d7ed60c4a3")
 
 			skin := &Texture{Mc: mcTest}
-			err2 := skin.FetchWithTextureProperty(profileTextureProperty, "Skin")
+			err2 := skin.FetchWithTextureProperty(profileTextureProperty, TextureSkin)
 			So(err2, ShouldBeNil)
 			So(skin.Hash, ShouldEqual, "c05454f331fa93b3e38866a9ec52c467")
 
 			cape := &Texture{Mc: mcTest}
-			err3 := cape.FetchWithTextureProperty(profileTextureProperty, "Cape")
+			err3 := cape.FetchWithTextureProperty(profileTextureProperty, TextureCape)
 			So(err3, ShouldBeNil)
 			So(cape.Hash, ShouldEqual, "8cbf8786caba2f05383cf887be592ee6")
 
@@ -85,14 +85,14 @@ func TestTextures(t *testing.T) {
 			So(profileTextureProperty.Textures.Cape.URL, ShouldBeBlank)
 
 			skin := &Texture{Mc: mcTest}
-			err2 := skin.FetchWithTextureProperty(profileTextureProperty, "Skin")
+			err2 := skin.FetchWithTextureProperty(profileTextureProperty, TextureSkin)
 			So(err2, ShouldBeNil)
 			So(skin.Hash, ShouldEqual, "a04a26d10218668a632e419ab073cf57")
 
 			cape := &Texture{Mc: mcTest}
-			err3 := cape.FetchWithTextureProperty(profileTextureProperty, "Cape")
+			err3 := cape.FetchWithTextureProperty(profileTextureProperty, TextureCape)
 			So(err3, ShouldNotBeNil)
-			So(err3.Error(), ShouldEqual, "Cape URL not present")
+			So(err3.Error(), ShouldEqual, "FetchWithTextureProperty failed: unable to Fetch Texture: no URL for CAPE")
 		})
 
 		Convey("Should error about fetching a malformed Skin texture", func() {
@@ -104,9 +104,9 @@ func TestTextures(t *testing.T) {
 			So(profileTextureProperty.Textures.Cape.URL, ShouldBeBlank)
 
 			skin := &Texture{Mc: mcTest}
-			err2 := skin.FetchWithTextureProperty(profileTextureProperty, "Skin")
+			err2 := skin.FetchWithTextureProperty(profileTextureProperty, TextureSkin)
 			So(err2, ShouldNotBeNil)
-			So(err2.Error(), ShouldEqual, "FetchWithTextureProperty failed: unable to Decode Texture: unable to CastToNRGBA: png: invalid format: not enough pixel data")
+			So(err2.Error(), ShouldEqual, "FetchWithTextureProperty failed: unable to CastToNRGBA: png: invalid format: not enough pixel data")
 		})
 
 		Convey("Should error about no textures", func() {
@@ -127,16 +127,6 @@ func TestTextures(t *testing.T) {
 			So(profileTextureProperty, ShouldResemble, SessionProfileTextureProperty{})
 		})
 
-		Convey("Should error trying to decode an unknown textureType", func() {
-			sessionProfile, _ := mcTest.GetSessionProfile("5c115ca73efd41178213a0aff8ef11e0")
-			profileTextureProperty, _ := DecodeTextureProperty(sessionProfile)
-
-			skin := &Texture{Mc: mcTest}
-			err := skin.FetchWithTextureProperty(profileTextureProperty, "Bandana")
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "Unknown textureType")
-		})
-
 	})
 
 	Convey("Test FetchWithSessionProfile", t, func() {
@@ -145,13 +135,13 @@ func TestTextures(t *testing.T) {
 			sessionProfile, _ := mcTest.GetSessionProfile("48a0a7e4d5594873a617dc189f76a8a1")
 
 			skin := &Texture{Mc: mcTest}
-			err1 := skin.FetchWithSessionProfile(sessionProfile, "Skin")
+			err1 := skin.FetchWithSessionProfile(sessionProfile, TextureSkin)
 
 			So(err1, ShouldBeNil)
 			So(skin.Hash, ShouldEqual, "c05454f331fa93b3e38866a9ec52c467")
 
 			cape := &Texture{Mc: mcTest}
-			err2 := cape.FetchWithSessionProfile(sessionProfile, "Cape")
+			err2 := cape.FetchWithSessionProfile(sessionProfile, TextureCape)
 
 			So(err2, ShouldBeNil)
 			So(cape.Hash, ShouldEqual, "8cbf8786caba2f05383cf887be592ee6")
@@ -161,22 +151,22 @@ func TestTextures(t *testing.T) {
 			sessionProfile, _ := mcTest.GetSessionProfile("d9135e082f2244c89cb0bee234155292")
 
 			skin := &Texture{Mc: mcTest}
-			err1 := skin.FetchWithSessionProfile(sessionProfile, "Skin")
+			err1 := skin.FetchWithSessionProfile(sessionProfile, TextureSkin)
 
 			So(err1, ShouldBeNil)
 			So(skin.Hash, ShouldEqual, "a04a26d10218668a632e419ab073cf57")
 
 			cape := &Texture{Mc: mcTest}
-			err2 := cape.FetchWithSessionProfile(sessionProfile, "Cape")
+			err2 := cape.FetchWithSessionProfile(sessionProfile, TextureCape)
 
 			So(err2, ShouldNotBeNil)
-			So(err2.Error(), ShouldEqual, "FetchWithSessionProfile failed: Cape URL not present")
+			So(err2.Error(), ShouldEqual, "FetchWithSessionProfile failed: FetchWithTextureProperty failed: unable to Fetch Texture: no URL for CAPE")
 		})
 
 		Convey("Should error about no textures", func() {
 			sessionProfile, _ := mcTest.GetSessionProfile("00000000000000000000000000000004")
 			skin := &Texture{Mc: mcTest}
-			err := skin.FetchWithSessionProfile(sessionProfile, "Skin")
+			err := skin.FetchWithSessionProfile(sessionProfile, TextureSkin)
 
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldEqual, "unable to DecodeTextureProperty: no textures property")
@@ -185,7 +175,7 @@ func TestTextures(t *testing.T) {
 		Convey("Should error trying to decode", func() {
 			sessionProfile, _ := mcTest.GetSessionProfile("00000000000000000000000000000005")
 			skin := &Texture{Mc: mcTest}
-			err := skin.FetchWithSessionProfile(sessionProfile, "Skin")
+			err := skin.FetchWithSessionProfile(sessionProfile, TextureSkin)
 
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldEqual, "unable to DecodeTextureProperty: unexpected EOF")
@@ -197,13 +187,13 @@ func TestTextures(t *testing.T) {
 
 		Convey("Should correctly fetch Skin and Cape URL", func() {
 			skin := &Texture{Mc: mcTest}
-			err1 := skin.FetchWithUsername("citricsquid", "Skin")
+			err1 := skin.FetchWithUsername("citricsquid", TextureSkin)
 
 			So(err1, ShouldBeNil)
 			So(skin.Hash, ShouldEqual, "c05454f331fa93b3e38866a9ec52c467")
 
 			cape := &Texture{Mc: mcTest}
-			err2 := cape.FetchWithUsername("citricsquid", "Cape")
+			err2 := cape.FetchWithUsername("citricsquid", TextureCape)
 
 			So(err2, ShouldBeNil)
 			So(cape.Hash, ShouldEqual, "8cbf8786caba2f05383cf887be592ee6")
@@ -211,13 +201,13 @@ func TestTextures(t *testing.T) {
 
 		Convey("Should only fetch Skin URL", func() {
 			skin := &Texture{Mc: mcTest}
-			err1 := skin.FetchWithUsername("clone1018", "Skin")
+			err1 := skin.FetchWithUsername("clone1018", TextureSkin)
 
 			So(err1, ShouldBeNil)
 			So(skin.Hash, ShouldEqual, "a04a26d10218668a632e419ab073cf57")
 
 			cape := &Texture{Mc: mcTest}
-			err2 := cape.FetchWithUsername("clone1018", "Cape")
+			err2 := cape.FetchWithUsername("clone1018", TextureCape)
 
 			So(err2, ShouldNotBeNil)
 			So(err2.Error(), ShouldEqual, "FetchWithUsername failed: unable to Fetch Texture: minecraft HTTP GET got unexpected: 404 Not Found")
@@ -225,34 +215,26 @@ func TestTextures(t *testing.T) {
 
 		Convey("Should error about fetching a malformed Skin texture", func() {
 			skin := &Texture{Mc: mcTest}
-			err := skin.FetchWithUsername("MalformedTexture", "Skin")
+			err := skin.FetchWithUsername("MalformedTexture", TextureSkin)
 
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "FetchWithUsername failed: unable to Decode Texture: unable to CastToNRGBA: png: invalid format: not enough pixel data")
+			So(err.Error(), ShouldEqual, "FetchWithUsername failed: unable to CastToNRGBA: png: invalid format: not enough pixel data")
 		})
 
 		Convey("Should error trying to fetch the 404 skin", func() {
 			skin := &Texture{Mc: mcTest}
-			err := skin.FetchWithUsername("404STexture", "Skin")
+			err := skin.FetchWithUsername("404STexture", TextureSkin)
 
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldEqual, "FetchWithUsername failed: unable to Fetch Texture: minecraft HTTP GET got unexpected: 404 Not Found")
 		})
 
-		Convey("Should error trying to decode an unknown textureType", func() {
-			skin := &Texture{Mc: mcTest}
-			err := skin.FetchWithUsername("LukeHandle", "Bandana")
-
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "Unkown textureType or missing UsernameAPI lookup URL")
-		})
-
 		Convey("Should error with no UsernameAPI", func() {
 			skin := &Texture{Mc: mcProd} // mcProd does not have the UsernameAPI set on it
-			err := skin.FetchWithUsername("LukeHandle", "Skin")
+			err := skin.FetchWithUsername("LukeHandle", TextureSkin)
 
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "Unkown textureType or missing UsernameAPI lookup URL")
+			So(err.Error(), ShouldEqual, "FetchWithUsername failed: unable to Fetch Texture: no UsernameAPI URL for SKIN")
 		})
 
 	})
@@ -327,7 +309,7 @@ func TestTextures(t *testing.T) {
 			cape, err := mcTest.FetchCapeUUID("2f3665cc5e29439bbd14cb6d3a6313a7")
 
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "FetchWithSessionProfile failed: Cape URL not present")
+			So(err.Error(), ShouldEqual, "FetchWithSessionProfile failed: FetchWithTextureProperty failed: unable to Fetch Texture: no URL for CAPE")
 			So(cape, ShouldResemble, Cape{Texture{Mc: mcTest}})
 			So(cape.Hash, ShouldBeBlank)
 		})
@@ -350,7 +332,7 @@ func TestTextures(t *testing.T) {
 			user, skin, cape, err := mcTest.FetchTexturesWithSessionProfile(sessionProfile)
 
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "not able to retrieve cape: Cape URL not present")
+			So(err.Error(), ShouldEqual, "unable to retrieve cape: FetchWithTextureProperty failed: unable to Fetch Texture: no URL for CAPE")
 			So(user.Username, ShouldEqual, "clone1018")
 			So(user.UUID, ShouldEqual, "d9135e082f2244c89cb0bee234155292")
 			So(cape, ShouldResemble, Cape{Texture{Mc: mcTest}})
@@ -395,9 +377,9 @@ func TestTextures(t *testing.T) {
 			user, skin, cape, err := mcTest.FetchTexturesWithSessionProfile(sessionProfile)
 
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "not able to retrieve skin: FetchWithTextureProperty failed: unable to Decode Texture: unable to CastToNRGBA: png: invalid format: not enough pixel data")
+			So(err.Error(), ShouldEqual, "unable to retrieve skin: FetchWithTextureProperty failed: unable to CastToNRGBA: png: invalid format: not enough pixel data")
 			So(user.Username, ShouldEqual, "MalformedSTex")
-			So(skin, ShouldResemble, Skin{Texture{Mc: mcTest, Source: "SessionProfile", URL: "http://textures.minecraft.net/texture/MalformedTexture"}})
+			So(skin, ShouldResemble, Skin{Texture{Mc: mcTest}})
 			So(cape, ShouldResemble, Cape{Texture{Mc: mcTest}})
 		})
 
@@ -406,11 +388,10 @@ func TestTextures(t *testing.T) {
 			user, skin, cape, err := mcTest.FetchTexturesWithSessionProfile(sessionProfile)
 
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "not able to retrieve cape: FetchWithTextureProperty failed: unable to Decode Texture: unable to CastToNRGBA: png: invalid format: not enough pixel data")
+			So(err.Error(), ShouldEqual, "unable to retrieve cape: FetchWithTextureProperty failed: unable to CastToNRGBA: png: invalid format: not enough pixel data")
 			So(user.Username, ShouldEqual, "MalformedCTex")
-			So(skin.Source, ShouldEqual, "SessionProfile")
 			So(skin.Hash, ShouldEqual, "a04a26d10218668a632e419ab073cf57")
-			So(cape, ShouldResemble, Cape{Texture{Mc: mcTest, Source: "SessionProfile", URL: "http://textures.minecraft.net/texture/MalformedTexture"}})
+			So(cape, ShouldResemble, Cape{Texture{Mc: mcTest}})
 		})
 
 		Convey("404STexture", func() {
@@ -418,9 +399,9 @@ func TestTextures(t *testing.T) {
 			user, skin, cape, err := mcTest.FetchTexturesWithSessionProfile(sessionProfile)
 
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "not able to retrieve skin: FetchWithTextureProperty failed: unable to Fetch Texture: minecraft HTTP GET got unexpected: 404 Not Found")
+			So(err.Error(), ShouldEqual, "unable to retrieve skin: FetchWithTextureProperty failed: unable to Fetch Texture: minecraft HTTP GET got unexpected: 404 Not Found")
 			So(user.Username, ShouldEqual, "404STexture")
-			So(skin, ShouldResemble, Skin{Texture{Mc: mcTest, Source: "SessionProfile", URL: "http://textures.minecraft.net/texture/404Texture"}})
+			So(skin, ShouldResemble, Skin{Texture{Mc: mcTest}})
 			So(cape, ShouldResemble, Cape{Texture{Mc: mcTest}})
 		})
 
@@ -429,10 +410,9 @@ func TestTextures(t *testing.T) {
 			user, skin, cape, err := mcTest.FetchTexturesWithSessionProfile(sessionProfile)
 
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "not able to retrieve cape: FetchWithTextureProperty failed: unable to Fetch Texture: minecraft HTTP GET got unexpected: 404 Not Found")
+			So(err.Error(), ShouldEqual, "unable to retrieve cape: FetchWithTextureProperty failed: unable to Fetch Texture: minecraft HTTP GET got unexpected: 404 Not Found")
 			So(user.Username, ShouldEqual, "404CTexture")
-			So(cape, ShouldResemble, Cape{Texture{Mc: mcTest, Source: "SessionProfile", URL: "http://textures.minecraft.net/texture/404Texture"}})
-			So(skin.Source, ShouldEqual, "SessionProfile")
+			So(cape, ShouldResemble, Cape{Texture{Mc: mcTest}})
 			So(skin.Hash, ShouldEqual, "a04a26d10218668a632e419ab073cf57")
 		})
 

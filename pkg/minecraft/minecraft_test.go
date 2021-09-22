@@ -112,15 +112,6 @@ func TestExtra(t *testing.T) {
 			So(err.Error(), ShouldEqual, "unable to GET URL: Get \"//dummy_url\": unsupported protocol scheme \"\"")
 		})
 
-		Convey("t.Fetch Bad GET", func() {
-			texture := &Texture{URL: "//dummy_url", Mc: mcProd}
-
-			err := texture.Fetch()
-
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "unable to Fetch Texture: unable to GET URL: Get \"//dummy_url\": unsupported protocol scheme \"\"")
-		})
-
 	})
 
 }

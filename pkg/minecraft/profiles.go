@@ -35,6 +35,7 @@ func (mc *Minecraft) GetAPIProfileCtx(ctx context.Context, username string) (API
 	if err != nil {
 		return APIProfileResponse{}, fmt.Errorf("unable to GetAPIProfile: %w", err)
 	}
+	defer apiBody.Close()
 
 	apiProfile := APIProfileResponse{}
 	err = json.NewDecoder(apiBody).Decode(&apiProfile)
@@ -77,6 +78,7 @@ func (mc *Minecraft) GetSessionProfileCtx(ctx context.Context, uuid string) (Ses
 	if err != nil {
 		return SessionProfileResponse{}, fmt.Errorf("unable to GetSessionProfile: %w", err)
 	}
+	defer apiBody.Close()
 
 	sessionProfile := SessionProfileResponse{}
 	err = json.NewDecoder(apiBody).Decode(&sessionProfile)

@@ -77,11 +77,11 @@ type UsernameAPIConfig struct {
 }
 
 type Config struct {
-	Logger         log.Logger
-	UserAgent      string
-	RequestTimeout time.Duration
+	Logger log.Logger
 	UUIDAPIConfig
 	UsernameAPIConfig
+	UserAgent      string
+	RequestTimeout time.Duration
 }
 
 var (
