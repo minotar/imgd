@@ -15,6 +15,7 @@ import (
 )
 
 // Texture is our structure for the Cape/Skin structs and the functions for dealing with it
+// Decoding the bytes into an image.Image is costly (as is re-encoding it back to a PNG)
 type Texture struct {
 	// texture image...
 	Image image.Image

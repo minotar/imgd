@@ -88,7 +88,7 @@ func (mc *Minecraft) TextureBodyFromTexturePropertyCtx(ctx context.Context, sptp
 	if url == "" {
 		return nil, fmt.Errorf("no URL for %s", TextureType_name[texType])
 	}
-	return mc.apiRequestCtx(ctx, url)
+	return mc.ApiRequestCtx(ctx, url)
 }
 
 func (mc *Minecraft) TextureBodyFromUsernameCtx(ctx context.Context, username string, texType textureType) (io.ReadCloser, error) {
@@ -102,7 +102,7 @@ func (mc *Minecraft) TextureBodyFromUsernameCtx(ctx context.Context, username st
 	if baseURL == "" {
 		return nil, fmt.Errorf("no UsernameAPI URL for %s", TextureType_name[texType])
 	}
-	return mc.apiRequestCtx(ctx, baseURL+username+".png")
+	return mc.ApiRequestCtx(ctx, baseURL+username+".png")
 }
 
 func (mc *Minecraft) FetchTexturesWithSessionProfile(sessionProfile SessionProfileResponse) (User, Skin, Cape, error) {

@@ -99,14 +99,14 @@ func TestExtra(t *testing.T) {
 	Convey("Test bad GET requests", t, func() {
 
 		Convey("apiRequest Bad Request", func() {
-			_, err := mcProd.apiRequest("::")
+			_, err := mcProd.ApiRequest("::")
 
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldEqual, "unable to create request: parse \"::\": missing protocol scheme")
 		})
 
 		Convey("apiRequest Bad GET", func() {
-			_, err := mcProd.apiRequest("//dummy_url")
+			_, err := mcProd.ApiRequest("//dummy_url")
 
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldEqual, "unable to GET URL: Get \"//dummy_url\": unsupported protocol scheme \"\"")
