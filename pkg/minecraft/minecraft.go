@@ -77,6 +77,7 @@ type UsernameAPIConfig struct {
 }
 
 type Config struct {
+	// Todo: Make use of Logger
 	Logger log.Logger
 	UUIDAPIConfig
 	UsernameAPIConfig
@@ -168,10 +169,10 @@ func processGetReq(r *http.Response, err error) (io.ReadCloser, error) {
 
 // Mojang APIs have fairly standard responses and this makes those requests and
 // catches the errors. Remember to close the response if there is no error present!
-func (mc *Minecraft) apiRequestCtx(ctx context.Context, url string) (io.ReadCloser, error) {
+func (mc *Minecraft) ApiRequestCtx(ctx context.Context, url string) (io.ReadCloser, error) {
 	return processGetReq(mc.get(ctx, url))
 }
 
-func (mc *Minecraft) apiRequest(url string) (io.ReadCloser, error) {
-	return mc.apiRequestCtx(context.Background(), url)
+func (mc *Minecraft) ApiRequest(url string) (io.ReadCloser, error) {
+	return mc.ApiRequestCtx(context.Background(), url)
 }

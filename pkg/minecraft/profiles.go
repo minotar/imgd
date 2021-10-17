@@ -31,7 +31,7 @@ type SessionProfileProperty struct {
 
 // GetAPIProfileCtx is the same as GetAPIProfile, but with Context on the Request
 func (mc *Minecraft) GetAPIProfileCtx(ctx context.Context, username string) (APIProfileResponse, error) {
-	apiBody, err := mc.apiRequestCtx(ctx, mc.Cfg.ProfileURL+username)
+	apiBody, err := mc.ApiRequestCtx(ctx, mc.Cfg.ProfileURL+username)
 	if err != nil {
 		return APIProfileResponse{}, fmt.Errorf("unable to GetAPIProfile: %w", err)
 	}
@@ -74,7 +74,7 @@ func (mc *Minecraft) NormalizePlayerForUUID(player string) (string, error) {
 
 // GetSessionProfileCtx is the same as GetSessionProfile, but with Context on the Request
 func (mc *Minecraft) GetSessionProfileCtx(ctx context.Context, uuid string) (SessionProfileResponse, error) {
-	apiBody, err := mc.apiRequestCtx(ctx, mc.Cfg.SessionServerURL+uuid)
+	apiBody, err := mc.ApiRequestCtx(ctx, mc.Cfg.SessionServerURL+uuid)
 	if err != nil {
 		return SessionProfileResponse{}, fmt.Errorf("unable to GetSessionProfile: %w", err)
 	}
