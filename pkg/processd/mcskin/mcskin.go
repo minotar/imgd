@@ -17,7 +17,7 @@ import (
 	"github.com/disintegration/gift"
 	"github.com/disintegration/imaging"
 	"github.com/gorilla/mux"
-	"github.com/minotar/minecraft"
+	"github.com/minotar/imgd/pkg/minecraft"
 )
 
 const (

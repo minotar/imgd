@@ -16,7 +16,7 @@ require (
 	github.com/kamaln7/envy v1.0.1-0.20200811133559-2c7680e4c27d
 	github.com/levenlabs/golib v0.0.0-20180911183212-0f8974794783 // indirect
 	github.com/mediocregopher/radix.v2 v0.0.0-20181115013041-b67df6e626f9
-	github.com/minotar/minecraft v0.0.0-20180803122715-72fe240cdd0e
+	github.com/minotar/imgd/pkg/minecraft v0.0.0-00010101000000-000000000000
 	github.com/oschwald/geoip2-golang v1.5.0 // indirect
 	github.com/prometheus/client_golang v1.10.0
 	github.com/prometheus/common v0.23.0
@@ -33,3 +33,5 @@ require (
 	google.golang.org/genproto v0.0.0-20191108220845-16a3f7862a1a // indirect
 	google.golang.org/protobuf v1.23.0
 )
+
+replace github.com/minotar/imgd/pkg/minecraft => ./pkg/minecraft

@@ -6,7 +6,7 @@ package mcskin
 import (
 	"net/http"
 
-	"github.com/minotar/minecraft"
+	"github.com/minotar/imgd/pkg/minecraft"
 )
 
 // Will deliver an avatar Head when ServeHTTP  is called

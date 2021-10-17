@@ -8,10 +8,10 @@ import (
 
 	"github.com/felixge/fgprof"
 	"github.com/gorilla/mux"
+	"github.com/minotar/imgd/pkg/minecraft"
 	"github.com/minotar/imgd/pkg/processd/mcskin"
 	"github.com/minotar/imgd/pkg/util/log"
 	"github.com/minotar/imgd/pkg/util/route_helpers"
-	"github.com/minotar/minecraft"
 
 	"github.com/weaveworks/common/server"
 )

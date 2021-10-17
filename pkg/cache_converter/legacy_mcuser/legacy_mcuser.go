@@ -5,7 +5,7 @@ import (
 	"encoding/gob"
 	"time"
 
-	"github.com/minotar/minecraft"
+	"github.com/minotar/imgd/pkg/minecraft"
 )
 
 type textures struct {
