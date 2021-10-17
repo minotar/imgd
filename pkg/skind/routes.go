@@ -9,8 +9,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/minotar/imgd/pkg/cache"
 	"github.com/minotar/imgd/pkg/mcclient"
+	"github.com/minotar/imgd/pkg/minecraft"
 	"github.com/minotar/imgd/pkg/util/route_helpers"
-	"github.com/minotar/minecraft"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )

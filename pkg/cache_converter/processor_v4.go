@@ -7,8 +7,8 @@ import (
 	"github.com/minotar/imgd/pkg/mcclient/mcuser"
 	"github.com/minotar/imgd/pkg/mcclient/status"
 	"github.com/minotar/imgd/pkg/mcclient/uuid"
+	"github.com/minotar/imgd/pkg/minecraft"
 	"github.com/minotar/imgd/pkg/util/log"
-	"github.com/minotar/minecraft"
 )
 
 const (
