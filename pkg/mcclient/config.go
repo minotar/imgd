@@ -2,11 +2,10 @@ package mcclient
 
 import (
 	"flag"
-	"net/http"
 	"time"
 
 	"github.com/minotar/imgd/pkg/cache/util/config"
-	"github.com/minotar/minecraft"
+	"github.com/minotar/imgd/pkg/minecraft"
 )
 
 type Config struct {
@@ -37,18 +36,17 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 }
 
 func NewMcClient(cfg *Config) *McClient {
-	httpClient := &http.Client{
-		Timeout: cfg.UpstreamTimeout,
-	}
-	minecraftClient := &minecraft.Minecraft{
-		Client:    httpClient,
-		UserAgent: cfg.UserAgent,
-		UUIDAPI: minecraft.UUIDAPI{
+
+	minecraftCfg := minecraft.Config{
+		UUIDAPIConfig: minecraft.UUIDAPIConfig{
 			SessionServerURL: cfg.SessionServerURL,
 			ProfileURL:       cfg.ProfileURL,
 		},
+		UserAgent:      cfg.UserAgent,
+		RequestTimeout: cfg.UpstreamTimeout,
 	}
+
 	return &McClient{
-		API: minecraftClient,
+		API: minecraft.NewMinecraft(minecraftCfg),
 	}
 }

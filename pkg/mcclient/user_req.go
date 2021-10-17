@@ -3,8 +3,8 @@ package mcclient
 import (
 	"errors"
 
+	"github.com/minotar/imgd/pkg/minecraft"
 	"github.com/minotar/imgd/pkg/util/log"
-	"github.com/minotar/minecraft"
 )
 
 type UserReq minecraft.User

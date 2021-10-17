@@ -2,8 +2,11 @@
 package mcclient
 
 import (
+	"bytes"
+	"context"
+	"io"
+
 	"github.com/minotar/imgd/pkg/util/log"
-	"github.com/minotar/minecraft"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/minotar/imgd/pkg/mcclient/mcuser"
@@ -60,22 +63,31 @@ func (mc *McClient) RequestMcUser(logger log.Logger, uuid string, mcUser mcuser.
 	return mcUserFresh
 }
 
-func (mc *McClient) RequestTexture(logger log.Logger, textureKey string, textureURL string) (texture minecraft.Texture, err error) {
+// Remember to close the mcuser.TextureIO.ReadCloser if error is nil
+func (mc *McClient) RequestTexture(logger log.Logger, textureKey string, textureURL string) (textureIO mcuser.TextureIO, err error) {
 	// Use our API object for the request
-	texture.Mc = mc.API
-	texture.URL = textureURL
+	textureIO.TextureID = textureKey
 
-	// Retry logic?
+	// Todo: Retry logic?
 
 	apiTimer := prometheus.NewTimer(apiGetDuration.WithLabelValues("TextureFetch"))
-	err = texture.Fetch()
+	respBody, err := mc.API.ApiRequestCtx(context.Background(), textureURL)
 	apiTimer.ObserveDuration()
 
 	if err != nil {
 		status.MetricTextureFetchError()
 		return
 	}
+	// The respBody is used here - we create a new ReadCloser for the mcuser.TextureIO
+	defer respBody.Close()
 
-	mc.CacheInsertTexture(logger, textureKey, texture)
+	// Todo: verify this isn't super inefficient..!
+
+	// Read the bytes so we can then send to cache
+	textureBytes, err := io.ReadAll(respBody)
+	mc.CacheInsertTexture(logger, textureKey, textureBytes)
+
+	// Put the bytes back into a ReadCloser so we can use them later
+	textureIO.ReadCloser = io.NopCloser(bytes.NewReader(textureBytes))
 	return
 }

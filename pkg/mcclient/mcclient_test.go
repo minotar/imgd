@@ -1,14 +1,15 @@
 package mcclient
 
 import (
+	"io"
 	"net/http"
 	"testing"
 
 	"github.com/minotar/imgd/pkg/cache"
 	"github.com/minotar/imgd/pkg/cache/lru_cache"
+	"github.com/minotar/imgd/pkg/minecraft"
+	"github.com/minotar/imgd/pkg/minecraft/mockminecraft"
 	"github.com/minotar/imgd/pkg/util/log"
-	"github.com/minotar/minecraft"
-	"github.com/minotar/minecraft/mockminecraft"
 )
 
 type testReporter interface {
@@ -35,9 +36,11 @@ func newMcClient(t testReporter, size int) (*McClient, func()) {
 		Client: &http.Client{
 			Transport: rt,
 		},
-		UUIDAPI: minecraft.UUIDAPI{
-			SessionServerURL: "http://example.com/session/minecraft/profile/",
-			ProfileURL:       "http://example.com/users/profiles/minecraft/",
+		Cfg: minecraft.Config{
+			UUIDAPIConfig: minecraft.UUIDAPIConfig{
+				SessionServerURL: "http://example.com/session/minecraft/profile/",
+				ProfileURL:       "http://example.com/users/profiles/minecraft/",
+			},
 		},
 	}
 
@@ -94,6 +97,46 @@ func BenchmarkSkinCacheMiss(b *testing.B) {
 		skin := mcClient.GetSkinFromReq(logger, userReq)
 		if skin.Hash != "a04a26d10218668a632e419ab073cf57" {
 			b.Fatalf("Skin hash was not as expected: %v", skin)
+		}
+	}
+}
+
+func BenchmarkSkinBufCacheHit(b *testing.B) {
+	logger := &log.DummyLogger{}
+	mcClient, shutdown := newMcClient(b, 5)
+	defer shutdown()
+	mcClient.GetSkinFromReq(logger, UserReq{Username: "clone1018"})
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		userReq := UserReq{Username: "clone1018"}
+		_, textureIO := mcClient.GetSkinBufferFromReq(logger, userReq)
+		bytes, err := io.ReadAll(textureIO)
+		if err != nil {
+			b.Fatalf("oops")
+		}
+		if len(bytes) != 1544 {
+			b.Fatal("Bytes were too short")
+		}
+	}
+}
+
+func BenchmarkSkinBufCacheMiss(b *testing.B) {
+	logger := &log.DummyLogger{}
+	// Cache size of 1 means we'll be constantly inserting/evicting
+	mcClient, shutdown := newMcClient(b, 1)
+	defer shutdown()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		userReq := UserReq{Username: "clone1018"}
+		_, textureIO := mcClient.GetSkinBufferFromReq(logger, userReq)
+		bytes, err := io.ReadAll(textureIO)
+		if err != nil {
+			b.Fatalf("oops")
+		}
+		if len(bytes) != 1544 {
+			b.Fatal("Bytes were too short")
 		}
 	}
 }

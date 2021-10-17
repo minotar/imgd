@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/minotar/imgd/pkg/mcclient/status"
+	"github.com/minotar/imgd/pkg/minecraft"
 	"github.com/minotar/imgd/pkg/util/log"
 	"github.com/minotar/imgd/pkg/util/tinytime"
-	"github.com/minotar/minecraft"
 )
 
 // Todo: No inherit???

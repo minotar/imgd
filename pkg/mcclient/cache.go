@@ -3,7 +3,7 @@ package mcclient
 import (
 	"bytes"
 	"fmt"
-	"image/png"
+	"io"
 	"strings"
 	"time"
 
@@ -11,7 +11,6 @@ import (
 	"github.com/minotar/imgd/pkg/mcclient/mcuser"
 	"github.com/minotar/imgd/pkg/mcclient/uuid"
 	"github.com/minotar/imgd/pkg/util/log"
-	"github.com/minotar/minecraft"
 )
 
 const (
@@ -129,11 +128,11 @@ func (mc *McClient) CacheInsertMcUser(logger log.Logger, uuid string, user mcuse
 	return
 }
 
-//
-
-func (mc *McClient) CacheRetrieveTexture(logger log.Logger, textureKey string) (texture minecraft.Texture, err error) {
+// Remember to close the mcuser.TextureIO.ReadCloser if error is nil
+func (mc *McClient) CacheRetrieveTexture(logger log.Logger, textureKey string) (textureIO mcuser.TextureIO, err error) {
+	// We intentionally leave the case of the texture URL untouched (though it appears to always be lowercase anyway)
 	// logger should already be With() the skinPath/texturePath (and UUID and Username)
-	textureKey = strings.ToLower(textureKey)
+
 	// Metrics timer / tracing
 	// Though - is this useless when using a TieredCache which is inherentantly varied?
 	textureBytes, err := mc.Caches.Textures.Retrieve(textureKey)
@@ -151,39 +150,27 @@ func (mc *McClient) CacheRetrieveTexture(logger log.Logger, textureKey string) (
 		}
 	}
 
-	textureReader := bytes.NewReader(textureBytes)
+	textureIO.ReadCloser = io.NopCloser(bytes.NewReader(textureBytes))
+	textureIO.TextureID = textureKey
 
-	err = texture.Decode(textureReader)
-	if err != nil {
-		logger.Errorf("Failed to decode texture from %s: %v", mc.Caches.Textures.Name(), err)
-		// Metrics stats Cache Decode Error
-		return
-	}
 	// Metrics stat Hit
 	logger.Debugf("Found texture in %s", mc.Caches.Textures.Name())
 	return
 }
 
-func (mc *McClient) CacheInsertTexture(logger log.Logger, textureKey string, texture minecraft.Texture) (err error) {
+func (mc *McClient) CacheInsertTexture(logger log.Logger, textureKey string, textureBytes []byte) (err error) {
+	// We intentionally leave the case of the texture URL untouched (though it appears to always be lowercase anyway)
 	// logger should already be With() the skinPath/texturePath (and UUID and Username)
-	textureKey = strings.ToLower(textureKey)
 
-	textureBuf := new(bytes.Buffer)
-	// Todo: research better lossless encoding - or just try the png.Encoder with higher compression
-	// bimg/vips ? Maybe cache as a different format if more efficient
-	err = png.Encode(textureBuf, texture.Image)
-	if err != nil {
-		// stats.CacheUser("pack_error")
-		logger.Errorf("Failed to PNG encode texture for cache: %v", err)
-	}
+	//textureBytes, err := io.ReadAll(textureIO.ReadCloser)
 
 	// Metrics timer / tracing
 	// Though - is this useless when using a TieredCache which is inherentantly varied?
-	err = mc.Caches.Textures.InsertTTL(textureKey, textureBuf.Bytes(), skinTTL)
+	err = mc.Caches.Textures.InsertTTL(textureKey, textureBytes, skinTTL)
 	// Observe Cache insert
 	if err != nil {
 		// stats.CacheUser("insert_error")
-		logger.Errorf("Failed Insert texture PNG into cache %s: %v", mc.Caches.Textures.Name(), err)
+		logger.Errorf("Failed Insert texture bytes into cache %s: %v", mc.Caches.Textures.Name(), err)
 	}
 	return
 }

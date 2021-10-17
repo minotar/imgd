@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/minotar/imgd/pkg/minecraft"
 	"github.com/minotar/imgd/pkg/util/tinytime"
-	"github.com/minotar/minecraft"
 )
 
 func testUser() McUser {
