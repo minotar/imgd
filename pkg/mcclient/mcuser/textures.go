@@ -1,19 +1,51 @@
 package mcuser
 
 import (
+	"io"
 	"strings"
 
-	"github.com/minotar/minecraft"
+	"github.com/minotar/imgd/pkg/minecraft"
 )
 
 const TexturesBaseURL = "http://textures.minecraft.net/texture/"
 
+type TextureIO struct {
+	io.ReadCloser
+	TextureID string
+}
+
+// DecodeTexture reads and closes the ReadCloser, returning a minecraft.Texture (and optional error)
+func (tio TextureIO) DecodeTexture() (texture minecraft.Texture, err error) {
+	defer tio.ReadCloser.Close()
+	err = texture.Decode(tio.ReadCloser)
+
+	//if err != nil {
+	//	logger.Errorf("Failed to decode texture from %s: %v", mc.Caches.Textures.Name(), err)
+	//	// Metrics stats Cache Decode Error
+	//	return
+	//}
+	return
+}
+
+func GetSteveTextureIO() TextureIO {
+	// Todo: Can we optmize the Steve delivery - keep the bytes in memory and re-use?
+	// is there a more efficient way to reuse the Steve bytes between requests (vs. a new buffer)?
+	steve, _ := minecraft.GetSteveBytes()
+	return TextureIO{
+		ReadCloser: io.NopCloser(steve),
+		TextureID:  minecraft.SteveHash,
+	}
+
+}
+
 type Textures struct {
+	// SkinPath changes based on whether the Texture's URL was prefixed by the TexturesBaseURL.
+	// It will either be just the "hash" (part after the TexturesBaseURL) or a full URL
 	SkinPath string
 	//SkinSlim bool (for "alex" support)
 	//CapePath string
 
-	// If TexturesMcNet is true, the SkinPath is just the part after the TexturesBaseURL
+	// TexturesMcNet is true when the SkinPath is just the part after the TexturesBaseURL
 	// the Protobuf expresses this as an enum to support other values
 	// This code does not need to support multiple values - unless new hosts are used
 	TexturesMcNet bool
@@ -25,13 +57,6 @@ func (t Textures) SkinURL() string {
 		return TexturesBaseURL + t.SkinPath
 	}
 	return t.SkinPath
-}
-
-//
-func (t Textures) Skin(mcClient *minecraft.Minecraft) (skin minecraft.Skin) {
-	skin.URL = t.SkinURL()
-	skin.Mc = mcClient
-	return
 }
 
 // After having made an API call, this can be used to create a textures object

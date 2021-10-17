@@ -7,7 +7,7 @@ import (
 
 	"github.com/minotar/imgd/pkg/mcclient/mcuser"
 	mc_uuid "github.com/minotar/imgd/pkg/mcclient/uuid"
-	"github.com/minotar/minecraft"
+	"github.com/minotar/imgd/pkg/minecraft"
 )
 
 // Todo: tracing
@@ -24,33 +24,11 @@ type McClient struct {
 }
 
 // Todo: I need to be providing logging and request context in here
+// This Method will decode the buffer into a Texture (fine for processing, but avoid if you are serving the plain skin)
 func (mc *McClient) GetSkinFromReq(logger log.Logger, userReq UserReq) minecraft.Skin {
-	logger, uuid, err := userReq.GetUUID(logger, mc)
-	if err != nil {
-		logger.Debugf("Falling back to Steve: %v", err)
-		skin, _ := minecraft.FetchSkinForSteve()
-		return skin
-	}
 
-	logger = logger.With("uuid", uuid)
-	mcUser, err := mc.GetMcUser(logger, uuid)
-	if err != nil {
-		logger.Debugf("Falling back to Steve: %v", err)
-		skin, _ := minecraft.FetchSkinForSteve()
-		return skin
-	}
-
-	// Re-add username (fixes any capitalisation issues as well)
-	logger = logger.With(
-		"username", mcUser.Username,
-		"skinPath", mcUser.Textures.SkinPath,
-	)
-
-	// We use the SkinPath (which is either just the hash, or a full URL id the base URL changes)
-	textureKey := mcUser.Textures.SkinPath
-	textureURL := mcUser.Textures.SkinURL()
-
-	texture, err := mc.GetTexture(logger, textureKey, textureURL)
+	logger, textureIO := mc.GetSkinBufferFromReq(logger, userReq)
+	texture, err := textureIO.DecodeTexture()
 	if err != nil {
 		logger.Debugf("Falling back to Steve: %v", err)
 		skin, _ := minecraft.FetchSkinForSteve()
@@ -59,6 +37,48 @@ func (mc *McClient) GetSkinFromReq(logger log.Logger, userReq UserReq) minecraft
 
 	// Return our Texture in the Skin struct
 	return minecraft.Skin{Texture: texture}
+}
+
+// Remember to close the mcuser.TextureIO.ReadCloser!
+func (mc *McClient) GetSkinBufferFromReq(logger log.Logger, userReq UserReq) (log.Logger, mcuser.TextureIO) {
+	logger, mcUser, err := mc.GetMcUserFromReq(logger, userReq)
+	if err != nil {
+		logger.Debugf("Falling back to Steve: %v", err)
+		return logger, mcuser.GetSteveTextureIO()
+	}
+
+	// We use the SkinPath (which is either just the hash, or a full URL if the base URL changes)
+	textureKey := mcUser.Textures.SkinPath
+	textureURL := mcUser.Textures.SkinURL()
+
+	textureIO, err := mc.GetTexture(logger, textureKey, textureURL)
+
+	if err != nil {
+		logger.Debugf("Falling back to Steve: %v", err)
+		return logger, mcuser.GetSteveTextureIO()
+	}
+
+	return logger, textureIO
+}
+
+func (mc *McClient) GetMcUserFromReq(logger log.Logger, userReq UserReq) (log.Logger, mcuser.McUser, error) {
+	logger, uuid, err := userReq.GetUUID(logger, mc)
+	if err != nil {
+		return logger, mcuser.McUser{}, err
+	}
+
+	logger = logger.With("uuid", uuid)
+	mcUser, err := mc.GetMcUser(logger, uuid)
+	if err != nil {
+		return logger, mcuser.McUser{}, err
+	}
+
+	// Re-add username (fixes any capitalisation issues as well)
+	logger = logger.With(
+		"username", mcUser.Username,
+		"skinPath", mcUser.Textures.SkinPath,
+	)
+	return logger, mcUser, nil
 }
 
 // Todo: Do we want a WaitGroup here?
@@ -136,8 +156,8 @@ func (mc *McClient) GetMcUser(logger log.Logger, uuid string) (mcUser mcuser.McU
 	return mcUser, mcUser.Status.GetError()
 }
 
-func (mc *McClient) GetTexture(logger log.Logger, textureKey string, textureURL string) (texture minecraft.Texture, err error) {
-	texture, err = mc.CacheRetrieveTexture(logger, textureKey)
+func (mc *McClient) GetTexture(logger log.Logger, textureKey string, textureURL string) (textureIO mcuser.TextureIO, err error) {
+	textureIO, err = mc.CacheRetrieveTexture(logger, textureKey)
 	if err != nil {
 		if err == cache.ErrNotFound {
 			// We cache missed (cache.ErrNotFound)
