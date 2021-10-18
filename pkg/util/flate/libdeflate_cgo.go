@@ -1,6 +1,9 @@
 //go:build cgo
 // +build cgo
 
+// When cgo is enabled, we can use the slightly more efficient libdeflate
+// Todo: Further optimization would be possible via the libdeflate.NewCompressor
+
 package flate
 
 import "github.com/4kills/go-libdeflate"

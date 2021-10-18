@@ -5,20 +5,32 @@ package flate
 
 import (
 	"bytes"
-	"compress/flate"
-	"io/ioutil"
+	"io"
+	"sync"
+
+	"github.com/klauspost/compress/flate"
 )
+
+var writerPool = sync.Pool{
+	New: func() interface{} {
+		zw, err := flate.NewWriter(io.Discard, flate.BestCompression)
+		if err != nil {
+			panic(err)
+		}
+		return zw
+	},
+}
 
 func Compress(in []byte) ([]byte, error) {
 	var b bytes.Buffer
 
-	zw, err := flate.NewWriter(&b, flate.BestCompression)
-	if err != nil {
-		return nil, err
-	}
+	zw := writerPool.Get().(*flate.Writer)
+	defer writerPool.Put(zw)
 
+	zw.Reset(&b)
 	zw.Write(in)
-	if err = zw.Close(); err != nil {
+
+	if err := zw.Close(); err != nil {
 		return nil, err
 	}
 
@@ -27,5 +39,5 @@ func Compress(in []byte) ([]byte, error) {
 
 func Decompress(in []byte) ([]byte, error) {
 	zr := flate.NewReader(bytes.NewReader(in))
-	return ioutil.ReadAll(zr)
+	return io.ReadAll(zr)
 }
