@@ -26,6 +26,7 @@ APP_GO_FILES := $(shell find . $(DONT_FIND) -name .y.go -prune -o -name .pb.go -
 
 # Build flags
 VPREFIX := github.com/minotar/imgd/pkg/build
+GO_CGO       ?= 1
 GO_LDFLAGS   := -X $(VPREFIX).Branch=$(GIT_BRANCH) -X $(VPREFIX).Version=$(IMAGE_TAG) -X $(VPREFIX).Revision=$(GIT_REVISION) -X $(VPREFIX).BuildUser=$(shell whoami)@$(shell hostname) -X $(VPREFIX).BuildDate=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 GO_FLAGS     := -ldflags "-extldflags \"-static\" -s -w $(GO_LDFLAGS)" -tags netgo $(MOD_FLAG)
 DYN_GO_FLAGS := -ldflags "-s -w $(GO_LDFLAGS)" -tags netgo $(MOD_FLAG)
@@ -50,11 +51,11 @@ skind: protos cmd/skind/skind
 skind-debug: protos cmd/skind/skind-debug
 
 cmd/skind/skind: $(APP_GO_FILES) cmd/skind/main.go
-	CGO_ENABLED=0 go build $(GO_FLAGS) -o $@ ./$(@D)
+	CGO_ENABLED=$(GO_CGO) go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
 cmd/skind/skind-debug: $(APP_GO_FILES) cmd/skind/main.go
-	CGO_ENABLED=0 go build $(DEBUG_GO_FLAGS) -o $@ ./$(@D)
+	CGO_ENABLED=$(GO_CGO) go build $(DEBUG_GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
 
@@ -63,11 +64,11 @@ processd: cmd/processd/processd
 processd-debug: cmd/processd/processd-debug
 
 cmd/processd/processd: $(APP_GO_FILES) cmd/processd/main.go
-	CGO_ENABLED=0 go build $(GO_FLAGS) -o $@ ./$(@D)
+	CGO_ENABLED=$(GO_CGO) go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
 cmd/processd/processd-debug: $(APP_GO_FILES) cmd/processd/main.go
-	CGO_ENABLED=0 go build $(DEBUG_GO_FLAGS) -o $@ ./$(@D)
+	CGO_ENABLED=$(GO_CGO) go build $(DEBUG_GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
 
@@ -76,11 +77,11 @@ imgd: cmd/imgd/imgd
 imgd-debug: cmd/imgd/imgd-debug
 
 cmd/imgd/imgd: $(APP_GO_FILES) cmd/imgd/main.go
-	CGO_ENABLED=0 go build $(GO_FLAGS) -o $@ ./$(@D)
+	CGO_ENABLED=$(GO_CGO) go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
 cmd/imgd/imgd-debug: $(APP_GO_FILES) cmd/imgd/main.go
-	CGO_ENABLED=0 go build $(DEBUG_GO_FLAGS) -o $@ ./$(@D)
+	CGO_ENABLED=$(GO_CGO) go build $(DEBUG_GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
 
@@ -89,11 +90,11 @@ cacheconv: cmd/cacheconv/cacheconv
 cacheconv-debug: cmd/cacheconv/cacheconv-debug
 
 cmd/cacheconv/cacheconv: $(APP_GO_FILES) cmd/cacheconv/main.go
-	CGO_ENABLED=0 go build $(GO_FLAGS) -o $@ ./$(@D)
+	CGO_ENABLED=$(GO_CGO) go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
 cmd/cacheconv/cacheconv-debug: $(APP_GO_FILES) cmd/cacheconv/main.go
-	CGO_ENABLED=0 go build $(DEBUG_GO_FLAGS) -o $@ ./$(@D)
+	CGO_ENABLED=$(GO_CGO) go build $(DEBUG_GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
 
