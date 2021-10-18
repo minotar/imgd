@@ -22,7 +22,6 @@ require (
 	github.com/prometheus/common v0.23.0
 	github.com/spf13/pflag v1.0.5
 	github.com/weaveworks/common v0.0.0-20210506120931-f2676019da11
-	github.com/xujiajun/nutsdb v0.6.0
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.18.1
