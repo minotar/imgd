@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/4kills/go-libdeflate"
 	"github.com/minotar/imgd/pkg/util/log"
 
 	"github.com/minotar/imgd/pkg/mcclient/status"
 	"github.com/minotar/imgd/pkg/minecraft"
+	"github.com/minotar/imgd/pkg/util/flate"
 	"github.com/minotar/imgd/pkg/util/tinytime"
 	"google.golang.org/protobuf/proto"
 )
@@ -56,7 +56,7 @@ func (u McUser) String() string {
 
 // Decompress a Protobuf McUser
 func DecompressMcUser(flatedBytes []byte) (McUser, error) {
-	protoBytes, err := libdeflate.Decompress(flatedBytes, nil, libdeflate.ModeDEFLATE)
+	protoBytes, err := flate.Decompress(flatedBytes)
 	if err != nil {
 		return McUser{}, err
 	}
@@ -111,7 +111,7 @@ func (u McUser) Compress() ([]byte, error) {
 		return nil, err
 	}
 
-	_, flatedBytes, err := libdeflate.Compress(protoBytes, nil, libdeflate.ModeDEFLATE)
+	flatedBytes, err := flate.Compress(protoBytes)
 	if err != nil {
 		return nil, err
 	}
