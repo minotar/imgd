@@ -14,6 +14,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/kamaln7/envy v1.0.1-0.20200811133559-2c7680e4c27d
+	github.com/klauspost/compress v1.13.6
 	github.com/levenlabs/golib v0.0.0-20180911183212-0f8974794783 // indirect
 	github.com/mediocregopher/radix.v2 v0.0.0-20181115013041-b67df6e626f9
 	github.com/minotar/imgd/pkg/minecraft v0.0.0-00010101000000-000000000000
