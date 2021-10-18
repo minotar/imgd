@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/minotar/imgd/pkg/minecraft"
+	"github.com/minotar/imgd/pkg/util/log"
 )
 
 const TexturesBaseURL = "http://textures.minecraft.net/texture/"
@@ -24,6 +25,18 @@ func (tio TextureIO) DecodeTexture() (texture minecraft.Texture, err error) {
 	//	// Metrics stats Cache Decode Error
 	//	return
 	//}
+	return
+}
+
+// MustDecodeSkin reads and closes the ReadCloser, returning a minecraft.Skin
+func (tio TextureIO) MustDecodeSkin(logger log.Logger) (skin minecraft.Skin) {
+	texture, err := tio.DecodeTexture()
+	if err != nil {
+		logger.Debugf("Falling back to Steve: %v", err)
+		skin, _ = minecraft.FetchSkinForSteve()
+		return
+	}
+	skin.Texture = texture
 	return
 }
 

@@ -26,17 +26,10 @@ type McClient struct {
 // Todo: I need to be providing logging and request context in here
 // This Method will decode the buffer into a Texture (fine for processing, but avoid if you are serving the plain skin)
 func (mc *McClient) GetSkinFromReq(logger log.Logger, userReq UserReq) minecraft.Skin {
-
 	logger, textureIO := mc.GetSkinBufferFromReq(logger, userReq)
-	texture, err := textureIO.DecodeTexture()
-	if err != nil {
-		logger.Debugf("Falling back to Steve: %v", err)
-		skin, _ := minecraft.FetchSkinForSteve()
-		return skin
-	}
 
-	// Return our Texture in the Skin struct
-	return minecraft.Skin{Texture: texture}
+	// Return decoded skin (or Steve)
+	return textureIO.MustDecodeSkin(logger)
 }
 
 // Remember to close the mcuser.TextureIO.ReadCloser!
