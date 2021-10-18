@@ -3,6 +3,7 @@ package skind
 import (
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -89,26 +90,27 @@ func (s *Skind) SkinPageHandler() http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userReq := route_helpers.MuxToUserReq(r)
-		skin := s.McClient.GetSkinFromReq(logger, userReq)
+		logger, skinIO := s.McClient.GetSkinBufferFromReq(logger, userReq)
+		defer skinIO.Close()
 
-		logger.Infof("User hash is: %s", skin.Hash)
+		logger.Infof("Texture ID is: %s", skinIO.TextureID)
 
 		reqETag := r.Header.Get("If-None-Match")
 		if s.Cfg.UseETags {
 			// If the response was a StatusNotModified (it should be as we already sent the If-None-Match!)
 			// If the ETag matches from request to response, then no need to process
-			if reqETag == skin.Hash {
+			if reqETag == skinIO.TextureID {
 				w.WriteHeader(http.StatusNotModified)
 				return
 			}
 			// Need to unset ETag/cache if we later have an issue!
-			// Todo: do we still want to use Skin Hash
-			w.Header().Set("ETag", skin.Hash)
+			w.Header().Set("ETag", skinIO.TextureID)
 			w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", int(s.Cfg.CacheControlTTL.Seconds())))
 		}
 
+		w.Header().Add("Content-Type", "image/png")
 		// No more header changes after writing
-		WriteSkin(w, skin)
+		io.Copy(w, skinIO)
 	})
 }
 

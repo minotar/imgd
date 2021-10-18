@@ -3,6 +3,7 @@ package imgd
 import (
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -93,26 +94,27 @@ func (i *Imgd) SkinPageHandler() http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userReq := route_helpers.MuxToUserReq(r)
-		skin := i.McClient.GetSkinFromReq(logger, userReq)
+		logger, skinIO := i.McClient.GetSkinBufferFromReq(logger, userReq)
+		defer skinIO.Close()
 
-		logger.Infof("User hash is: %s", skin.Hash)
+		logger.Infof("Texture ID is: %s", skinIO.TextureID)
 
 		reqETag := r.Header.Get("If-None-Match")
 		if i.Cfg.UseETags {
 			// If the response was a StatusNotModified (it should be as we already sent the If-None-Match!)
 			// If the ETag matches from request to response, then no need to process
-			if reqETag == skin.Hash {
+			if reqETag == skinIO.TextureID {
 				w.WriteHeader(http.StatusNotModified)
 				return
 			}
 			// Need to unset ETag if we later have an issue!
-			// Todo: do we still want to use Skin Hash
-			w.Header().Set("ETag", skin.Hash)
+			w.Header().Set("ETag", skinIO.TextureID)
 			w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", int(i.Cfg.CacheControlTTL.Seconds())))
 		}
 
+		w.Header().Add("Content-Type", "image/png")
 		// No more header changes after writing
-		skind.WriteSkin(w, skin)
+		io.Copy(w, skinIO)
 	})
 }
 
@@ -121,23 +123,23 @@ func (i *Imgd) SkinLookupWrapper(processFunc processd.SkinProcessor) http.Handle
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userReq := route_helpers.MuxToUserReq(r)
-		skin := i.McClient.GetSkinFromReq(logger, userReq)
+		logger, skinIO := i.McClient.GetSkinBufferFromReq(logger, userReq)
+		defer skinIO.Close()
 
 		reqETag := r.Header.Get("If-None-Match")
 		if i.Cfg.UseETags {
 			// If the response was a StatusNotModified (it should be as we already sent the If-None-Match!)
 			// If the ETag matches from request to response, then no need to process
-			if reqETag == skin.Hash {
+			if reqETag == skinIO.TextureID {
 				w.WriteHeader(http.StatusNotModified)
 				return
 			}
 			// Need to unset ETag/cache if we later have an issue!
-			// Todo: do we still want to use Skin Hash
-			w.Header().Set("ETag", skin.Hash)
+			w.Header().Set("ETag", skinIO.TextureID)
 			w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", int(i.Cfg.CacheControlTTL.Seconds())))
 		}
 
-		handler := processFunc(skin)
+		handler := processFunc(skinIO.MustDecodeSkin(logger))
 		handler.ServeHTTP(w, r)
 	})
 }
