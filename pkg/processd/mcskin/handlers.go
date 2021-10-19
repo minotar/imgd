@@ -6,63 +6,64 @@ package mcskin
 import (
 	"net/http"
 
-	"github.com/minotar/imgd/pkg/minecraft"
+	"github.com/minotar/imgd/pkg/mcclient/mcuser"
+	"github.com/minotar/imgd/pkg/util/log"
 )
 
 // Will deliver an avatar Head when ServeHTTP  is called
-func HandlerHead(skin minecraft.Skin) http.Handler {
-	mcSkin := &McSkin{Skin: skin}
+func HandlerHead(logger log.Logger, skinIO mcuser.TextureIO) http.HandlerFunc {
+	mcSkin := &McSkin{Skin: skinIO.MustDecodeSkin(logger)}
 	mcSkin.Processor = mcSkin.GetHead
-	return mcSkin
+	return mcSkin.ServeHTTP
 }
 
 // Will deliver a head with Helm when ServeHTTP  is called
-func HandlerHelm(skin minecraft.Skin) http.Handler {
-	mcSkin := &McSkin{Skin: skin}
+func HandlerHelm(logger log.Logger, skinIO mcuser.TextureIO) http.HandlerFunc {
+	mcSkin := &McSkin{Skin: skinIO.MustDecodeSkin(logger)}
 	mcSkin.Processor = mcSkin.GetHelm
-	return mcSkin
+	return mcSkin.ServeHTTP
 }
 
 // Will deliver an isometric "Cube" avatar when ServeHTTP  is called
-func HandlerCube(skin minecraft.Skin) http.Handler {
-	mcSkin := &McSkin{Skin: skin}
+func HandlerCube(logger log.Logger, skinIO mcuser.TextureIO) http.HandlerFunc {
+	mcSkin := &McSkin{Skin: skinIO.MustDecodeSkin(logger)}
 	mcSkin.Processor = mcSkin.GetCube
-	return mcSkin
+	return mcSkin.ServeHTTP
 }
 
 // Will deliver an isometric "Cube" with Helm when ServeHTTP  is called
-func HandlerCubeHelm(skin minecraft.Skin) http.Handler {
-	mcSkin := &McSkin{Skin: skin}
+func HandlerCubeHelm(logger log.Logger, skinIO mcuser.TextureIO) http.HandlerFunc {
+	mcSkin := &McSkin{Skin: skinIO.MustDecodeSkin(logger)}
 	mcSkin.Processor = mcSkin.GetCubeHelm
-	return mcSkin
+	return mcSkin.ServeHTTP
 }
 
 // Will deliver a Bust when ServeHTTP  is called
-func HandlerBust(skin minecraft.Skin) http.Handler {
-	mcSkin := &McSkin{Skin: skin}
+func HandlerBust(logger log.Logger, skinIO mcuser.TextureIO) http.HandlerFunc {
+	mcSkin := &McSkin{Skin: skinIO.MustDecodeSkin(logger)}
 	mcSkin.Processor = mcSkin.GetBust
-	return mcSkin
+	return mcSkin.ServeHTTP
 }
 
 // Will deliver a Bust with Armor when ServeHTTP  is called
-func HandlerArmorBust(skin minecraft.Skin) http.Handler {
-	mcSkin := &McSkin{Skin: skin}
+func HandlerArmorBust(logger log.Logger, skinIO mcuser.TextureIO) http.HandlerFunc {
+	mcSkin := &McSkin{Skin: skinIO.MustDecodeSkin(logger)}
 	mcSkin.Processor = mcSkin.GetArmorBust
-	return mcSkin
+	return mcSkin.ServeHTTP
 }
 
 // Will deliver a Body when ServeHTTP  is called
-func HandlerBody(skin minecraft.Skin) http.Handler {
-	mcSkin := &McSkin{Skin: skin}
+func HandlerBody(logger log.Logger, skinIO mcuser.TextureIO) http.HandlerFunc {
+	mcSkin := &McSkin{Skin: skinIO.MustDecodeSkin(logger)}
 	mcSkin.Processor = mcSkin.GetBody
-	return mcSkin
+	return mcSkin.ServeHTTP
 }
 
 // Will deliver a Body with Armor when ServeHTTP  is called
-func HandlerArmorBody(skin minecraft.Skin) http.Handler {
-	mcSkin := &McSkin{Skin: skin}
+func HandlerArmorBody(logger log.Logger, skinIO mcuser.TextureIO) http.HandlerFunc {
+	mcSkin := &McSkin{Skin: skinIO.MustDecodeSkin(logger)}
 	mcSkin.Processor = mcSkin.GetArmorBody
-	return mcSkin
+	return mcSkin.ServeHTTP
 }
 
 // The

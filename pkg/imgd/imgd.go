@@ -2,12 +2,8 @@ package imgd
 
 import (
 	"flag"
-	"fmt"
-	"io"
-	"net/http"
 	"time"
 
-	"github.com/felixge/fgprof"
 	cache_config "github.com/minotar/imgd/pkg/cache/util/config"
 	"github.com/minotar/imgd/pkg/mcclient"
 	"github.com/minotar/imgd/pkg/processd"
@@ -45,7 +41,7 @@ type Imgd struct {
 
 	Server        *server.Server
 	McClient      *mcclient.McClient
-	ProcessRoutes map[string]processd.SkinProcessor
+	ProcessRoutes map[string]skind.SkinProcessor
 }
 
 func New(cfg Config) (*Imgd, error) {
@@ -88,62 +84,6 @@ func New(cfg Config) (*Imgd, error) {
 	return imgd, nil
 }
 
-// Requires "uuid" or "username" vars
-func (i *Imgd) SkinPageHandler() http.Handler {
-	logger := i.Cfg.Logger
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userReq := route_helpers.MuxToUserReq(r)
-		logger, skinIO := i.McClient.GetSkinBufferFromReq(logger, userReq)
-		defer skinIO.Close()
-
-		logger.Infof("Texture ID is: %s", skinIO.TextureID)
-
-		reqETag := r.Header.Get("If-None-Match")
-		if i.Cfg.UseETags {
-			// If the response was a StatusNotModified (it should be as we already sent the If-None-Match!)
-			// If the ETag matches from request to response, then no need to process
-			if reqETag == skinIO.TextureID {
-				w.WriteHeader(http.StatusNotModified)
-				return
-			}
-			// Need to unset ETag if we later have an issue!
-			w.Header().Set("ETag", skinIO.TextureID)
-			w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", int(i.Cfg.CacheControlTTL.Seconds())))
-		}
-
-		w.Header().Add("Content-Type", "image/png")
-		// No more header changes after writing
-		io.Copy(w, skinIO)
-	})
-}
-
-func (i *Imgd) SkinLookupWrapper(processFunc processd.SkinProcessor) http.Handler {
-	logger := i.Cfg.Logger
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userReq := route_helpers.MuxToUserReq(r)
-		logger, skinIO := i.McClient.GetSkinBufferFromReq(logger, userReq)
-		defer skinIO.Close()
-
-		reqETag := r.Header.Get("If-None-Match")
-		if i.Cfg.UseETags {
-			// If the response was a StatusNotModified (it should be as we already sent the If-None-Match!)
-			// If the ETag matches from request to response, then no need to process
-			if reqETag == skinIO.TextureID {
-				w.WriteHeader(http.StatusNotModified)
-				return
-			}
-			// Need to unset ETag/cache if we later have an issue!
-			w.Header().Set("ETag", skinIO.TextureID)
-			w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", int(i.Cfg.CacheControlTTL.Seconds())))
-		}
-
-		handler := processFunc(skinIO.MustDecodeSkin(logger))
-		handler.ServeHTTP(w, r)
-	})
-}
-
 func (i *Imgd) Run() error {
 	//t.Server.HTTP.Handle("/services", http.HandlerFunc(t.servicesHandler))
 	if err := i.initServer(); err != nil {
@@ -164,18 +104,12 @@ func (i *Imgd) initServer() error {
 
 	serv.HTTP.Use(route_helpers.LoggingMiddleware(i.Cfg.Logger))
 
-	serv.HTTP.Path("/debug/fgprof").Handler(fgprof.Handler())
-	serv.HTTP.Path("/healthcheck").Handler(skind.HealthcheckHandler(i.McClient))
-	serv.HTTP.Path("/dbsize").Handler(skind.SizecheckHandler(i.McClient))
-
 	if i.Cfg.CorsAllowAll {
 		serv.HTTP.Use(route_helpers.CorsHandler)
 	}
 
-	skind.RegisterRoutes(serv.HTTP, i.SkinPageHandler())
-	processd.RegisterRoutes(serv.HTTP, i.SkinLookupWrapper, i.ProcessRoutes)
-
 	i.Server = serv
+	i.routes()
 	return nil
 
 }

@@ -2,12 +2,8 @@ package skind
 
 import (
 	"flag"
-	"fmt"
-	"io"
-	"net/http"
 	"time"
 
-	"github.com/felixge/fgprof"
 	cache_config "github.com/minotar/imgd/pkg/cache/util/config"
 	"github.com/minotar/imgd/pkg/mcclient"
 	"github.com/minotar/imgd/pkg/util/log"
@@ -84,36 +80,6 @@ func New(cfg Config) (*Skind, error) {
 	return skind, nil
 }
 
-// Requires "uuid" or "username" vars
-func (s *Skind) SkinPageHandler() http.Handler {
-	logger := s.Cfg.Logger
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userReq := route_helpers.MuxToUserReq(r)
-		logger, skinIO := s.McClient.GetSkinBufferFromReq(logger, userReq)
-		defer skinIO.Close()
-
-		logger.Infof("Texture ID is: %s", skinIO.TextureID)
-
-		reqETag := r.Header.Get("If-None-Match")
-		if s.Cfg.UseETags {
-			// If the response was a StatusNotModified (it should be as we already sent the If-None-Match!)
-			// If the ETag matches from request to response, then no need to process
-			if reqETag == skinIO.TextureID {
-				w.WriteHeader(http.StatusNotModified)
-				return
-			}
-			// Need to unset ETag/cache if we later have an issue!
-			w.Header().Set("ETag", skinIO.TextureID)
-			w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", int(s.Cfg.CacheControlTTL.Seconds())))
-		}
-
-		w.Header().Add("Content-Type", "image/png")
-		// No more header changes after writing
-		io.Copy(w, skinIO)
-	})
-}
-
 func (s *Skind) Run() error {
 	//t.Server.HTTP.Handle("/services", http.HandlerFunc(t.servicesHandler))
 	if err := s.initServer(); err != nil {
@@ -134,17 +100,12 @@ func (s *Skind) initServer() error {
 
 	serv.HTTP.Use(route_helpers.LoggingMiddleware(s.Cfg.Logger))
 
-	serv.HTTP.Path("/debug/fgprof").Handler(fgprof.Handler())
-	serv.HTTP.Path("/healthcheck").Handler(HealthcheckHandler(s.McClient))
-	serv.HTTP.Path("/dbsize").Handler(SizecheckHandler(s.McClient))
-
 	if s.Cfg.CorsAllowAll {
 		serv.HTTP.Use(route_helpers.CorsHandler)
 	}
 
-	RegisterRoutes(serv.HTTP, s.SkinPageHandler())
-
 	s.Server = serv
+	s.routes()
 	return nil
 
 }

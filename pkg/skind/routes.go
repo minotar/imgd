@@ -2,32 +2,43 @@ package skind
 
 import (
 	"fmt"
-	"image/png"
 	"net/http"
 	"time"
 
+	"github.com/felixge/fgprof"
 	"github.com/gorilla/mux"
 	"github.com/minotar/imgd/pkg/cache"
 	"github.com/minotar/imgd/pkg/mcclient"
-	"github.com/minotar/imgd/pkg/minecraft"
 	"github.com/minotar/imgd/pkg/util/route_helpers"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func RegisterRoutes(m *mux.Router, skinHandler http.Handler) {
+// routes registers all the routes
+func (s *Skind) routes() {
+	s.Server.HTTP.Path("/debug/fgprof").Handler(fgprof.Handler())
+	s.Server.HTTP.Path("/healthcheck").Handler(HealthcheckHandler(s.McClient))
+	s.Server.HTTP.Path("/dbsize").Handler(SizecheckHandler(s.McClient))
+
+	skinWrapper := NewSkinWrapper(s.Cfg.Logger, s.McClient, s.Cfg.UseETags, s.Cfg.CacheControlTTL)
+	RegisterSkinRoutes(s.Server.HTTP, skinWrapper)
+}
+
+func RegisterSkinRoutes(m *mux.Router, skinWrapper SkinWrapper) {
 
 	optionalPNG := "{?:(?:\\.png)?}"
 	uuidCounter := requestedUserType.MustCurryWith(prometheus.Labels{"type": "UUID"})
 	dashedCounter := requestedUserType.MustCurryWith(prometheus.Labels{"type": "DashedUUID"})
 	usernameCounter := requestedUserType.MustCurryWith(prometheus.Labels{"type": "Username"})
 
+	skinPageHandler := skinWrapper(SkinPageProcessor)
+
 	skinSR := m.PathPrefix("/skin/").Subrouter()
-	skinSR.Path(route_helpers.UUIDPath + optionalPNG).Handler(promhttp.InstrumentHandlerCounter(uuidCounter, skinHandler)).Name("skin")
-	skinSR.Path(route_helpers.UsernamePath + optionalPNG).Handler(promhttp.InstrumentHandlerCounter(usernameCounter, skinHandler)).Name("skin")
+	skinSR.Path(route_helpers.UUIDPath + optionalPNG).Handler(promhttp.InstrumentHandlerCounter(uuidCounter, skinPageHandler)).Name("skin")
+	skinSR.Path(route_helpers.UsernamePath + optionalPNG).Handler(promhttp.InstrumentHandlerCounter(usernameCounter, skinPageHandler)).Name("skin")
 	route_helpers.SubRouteDashedRedirect(skinSR, dashedCounter)
 
-	downloadSkinHandler := route_helpers.BrowserDownloadHandler(skinHandler)
+	downloadSkinHandler := skinWrapper(SkinDownloadProcessor)
 
 	downloadSR := m.PathPrefix("/download/").Subrouter()
 	downloadSR.Path(route_helpers.UUIDPath + optionalPNG).Handler(promhttp.InstrumentHandlerCounter(uuidCounter, downloadSkinHandler)).Name("download")
@@ -35,21 +46,16 @@ func RegisterRoutes(m *mux.Router, skinHandler http.Handler) {
 	route_helpers.SubRouteDashedRedirect(downloadSR, dashedCounter)
 }
 
-func WriteSkin(w http.ResponseWriter, skin minecraft.Skin) {
-	w.Header().Add("Content-Type", "image/png")
-	png.Encode(w, skin.Image)
-}
-
-func SizecheckHandler(mc *mcclient.McClient) http.Handler {
+func SizecheckHandler(mc *mcclient.McClient) http.HandlerFunc {
 	caches := mc.Caches
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		uuidSize := caches.UUID.Size()
 		userdataSize := caches.UserData.Size()
 		texturesSize := caches.Textures.Size()
 
 		w.WriteHeader(200)
 		fmt.Fprintf(w, "UUID: %d\nUserdata: %d\nTextures: %d\n", uuidSize, userdataSize, texturesSize)
-	})
+	}
 }
 
 func checkCache(c cache.Cache) (string, error) {
@@ -66,9 +72,9 @@ func checkCache(c cache.Cache) (string, error) {
 	return fmt.Sprintf("%s is OK", c.Name()), nil
 }
 
-func HealthcheckHandler(mc *mcclient.McClient) http.Handler {
+func HealthcheckHandler(mc *mcclient.McClient) http.HandlerFunc {
 	caches := mc.Caches
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		var message string
 		msg, err1 := checkCache(caches.UUID)
 		message += msg + "\n"
@@ -85,5 +91,5 @@ func HealthcheckHandler(mc *mcclient.McClient) http.Handler {
 			w.WriteHeader(200)
 		}
 		fmt.Fprint(w, message)
-	})
+	}
 }

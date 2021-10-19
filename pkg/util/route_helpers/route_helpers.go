@@ -31,15 +31,6 @@ func CorsHandler(next http.Handler) http.Handler {
 	})
 }
 
-func BrowserDownloadHandler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Todo: pretty download name would be nice...
-		// Maybe via a Context????
-		w.Header().Add("Content-Disposition", "attachment; filename=\"skin.png\"")
-		next.ServeHTTP(w, r)
-	})
-}
-
 func DashedRedirectUUIDHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Todo: log stat
