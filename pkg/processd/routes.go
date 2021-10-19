@@ -4,19 +4,25 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/felixge/fgprof"
 	"github.com/gorilla/mux"
-	"github.com/minotar/imgd/pkg/minecraft"
+	"github.com/minotar/imgd/pkg/skind"
 	"github.com/minotar/imgd/pkg/util/route_helpers"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-type SkinProcessor func(minecraft.Skin) http.Handler
+// routes registers all the routes
+func (p *Processd) routes() {
+	p.Server.HTTP.Path("/debug/fgprof").Handler(fgprof.Handler())
+	p.Server.HTTP.Path("/healthcheck").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200)
+	})
 
-type SkinWrapper func(SkinProcessor) http.Handler
+	RegisterProcessingRoutes(p.Server.HTTP, p.SkinLookupWrapper, p.ProcessRoutes)
+}
 
-// skinWrapper would eg. be SkinLookupWrapper
-func RegisterRoutes(m *mux.Router, skinWrapper SkinWrapper, processRoutes map[string]SkinProcessor) {
+func RegisterProcessingRoutes(m *mux.Router, skinWrapper skind.SkinWrapper, processRoutes map[string]skind.SkinProcessor) {
 	uuidCounter := requestedUserType.MustCurryWith(prometheus.Labels{"type": "UUID"})
 	dashedCounter := requestedUserType.MustCurryWith(prometheus.Labels{"type": "DashedUUID"})
 	usernameCounter := requestedUserType.MustCurryWith(prometheus.Labels{"type": "Username"})

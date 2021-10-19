@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/felixge/fgprof"
 	"github.com/gorilla/mux"
-	"github.com/minotar/imgd/pkg/minecraft"
+	"github.com/minotar/imgd/pkg/mcclient/mcuser"
 	"github.com/minotar/imgd/pkg/processd/mcskin"
+	"github.com/minotar/imgd/pkg/skind"
 	"github.com/minotar/imgd/pkg/util/log"
 	"github.com/minotar/imgd/pkg/util/route_helpers"
 
@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	DefaultProcessRoutes = map[string]SkinProcessor{
+	DefaultProcessRoutes = map[string]skind.SkinProcessor{
 		"Avatar":                 mcskin.HandlerHead,
 		"Helm":                   mcskin.HandlerHelm,
 		"Cube":                   mcskin.HandlerCube,
@@ -59,7 +59,7 @@ type Processd struct {
 	Client        *http.Client
 	UserAgent     string
 	SkindURL      string
-	ProcessRoutes map[string]SkinProcessor
+	ProcessRoutes map[string]skind.SkinProcessor
 }
 
 func New(cfg Config) (*Processd, error) {
@@ -83,17 +83,17 @@ func New(cfg Config) (*Processd, error) {
 
 // need some skin lookup wrapper
 
-func handleSkinLookupError(w http.ResponseWriter, r *http.Request, processFunc SkinProcessor) {
-	skin, _ := minecraft.FetchSkinForSteve()
+func handleSkinLookupError(w http.ResponseWriter, r *http.Request, logger log.Logger, processFunc skind.SkinProcessor) {
+	skinIO := mcuser.GetSteveTextureIO()
 
-	handler := processFunc(skin)
+	handler := processFunc(logger, skinIO)
 	handler.ServeHTTP(w, r)
 }
 
-func (p *Processd) SkinLookupWrapper(processFunc SkinProcessor) http.Handler {
+func (p *Processd) SkinLookupWrapper(processFunc skind.SkinProcessor) http.HandlerFunc {
 	logger := p.Cfg.Logger
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 
 		userReq := route_helpers.MuxToUserReq(r)
 		var userLookup string
@@ -104,7 +104,7 @@ func (p *Processd) SkinLookupWrapper(processFunc SkinProcessor) http.Handler {
 			userLookup = userReq.Username
 		} else {
 			logger.Errorf("Request came through without Username/UUID: %v", mux.Vars(r))
-			handleSkinLookupError(w, r, processFunc)
+			handleSkinLookupError(w, r, logger, processFunc)
 			return
 		}
 
@@ -113,7 +113,7 @@ func (p *Processd) SkinLookupWrapper(processFunc SkinProcessor) http.Handler {
 			//return nil, fmt.Errorf("unable to create request: %v", err)
 			//Use Steve and call original process logic?
 			logger.Errorf("It broken: %v", err)
-			handleSkinLookupError(w, r, processFunc)
+			handleSkinLookupError(w, r, logger, processFunc)
 			return
 		}
 
@@ -130,33 +130,35 @@ func (p *Processd) SkinLookupWrapper(processFunc SkinProcessor) http.Handler {
 			//return nil, fmt.Errorf("unable to GET URL: %v", err)
 			//Use Steve and call original process logic?
 			logger.Errorf("It broken: %v", err)
-			handleSkinLookupError(w, r, processFunc)
+			handleSkinLookupError(w, r, logger, processFunc)
 			return
 		}
-		defer resp.Body.Close()
+		// The processFunc *MUST* close the resp.Body via the TextureIO object
+		//defer resp.Body.Close()
+
+		w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", int(p.Cfg.CacheControlTTL.Seconds())))
 
 		if p.Cfg.UseETags {
 			respETag := resp.Header.Get("ETag")
+			// ETag is always included (even for 304 responses)
+			w.Header().Set("ETag", respETag)
+
 			// If the response was a StatusNotModified (it should be as we already sent the If-None-Match!)
 			// If the ETag matches from request to response, then no need to process
 			if resp.StatusCode == http.StatusNotModified || reqETag == respETag {
 				w.WriteHeader(http.StatusNotModified)
 				return
 			}
-			// Need to unset ETag/cache if we later have an issue!
-			w.Header().Set("ETag", respETag)
-			w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", int(p.Cfg.CacheControlTTL.Seconds())))
-
 		}
 
-		skin := minecraft.Skin{}
-		skin.Decode(resp.Body)
+		skinIO := mcuser.TextureIO{
+			ReadCloser: resp.Body,
+		}
 
 		// Up to this point, the processing could be metric'd "generically" and the type of processing was irrelevant
-
-		handler := processFunc(skin)
+		handler := processFunc(logger, skinIO)
 		handler.ServeHTTP(w, r)
-	})
+	}
 }
 
 func (p *Processd) Run() error {
@@ -179,17 +181,11 @@ func (p *Processd) initServer() error {
 
 	serv.HTTP.Use(route_helpers.LoggingMiddleware(p.Cfg.Logger))
 
-	serv.HTTP.Path("/debug/fgprof").Handler(fgprof.Handler())
-	serv.HTTP.Path("/healthcheck").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(200)
-	})
-
-	RegisterRoutes(serv.HTTP, p.SkinLookupWrapper, p.ProcessRoutes)
-
 	if p.Cfg.CorsAllowAll {
 		serv.HTTP.Use(route_helpers.CorsHandler)
 	}
 
 	p.Server = serv
+	p.routes()
 	return nil
 }
