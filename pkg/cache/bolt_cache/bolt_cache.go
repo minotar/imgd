@@ -98,15 +98,9 @@ func (bc *BoltCache) InsertTTL(key string, value []byte, ttl time.Duration) erro
 	defer cacheTimer.ObserveDuration()
 
 	bse := bc.NewStoreEntry(key, value, ttl)
-	keyBytes, valueBytes := bse.Encode()
-	err := bc.DB.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(bc.Bucket))
-		return b.Put(keyBytes, valueBytes)
-	})
-	if err != nil {
-		return fmt.Errorf("Inserting \"%s\" into \"%s\": %s", key, bc.Bucket, err)
-	}
-	return nil
+	_, valueBytes := bse.Encode()
+
+	return bc.BoltStore.InsertBatch(key, valueBytes)
 }
 
 func (bc *BoltCache) InsertBatch(key string, value []byte) error {
