@@ -68,6 +68,8 @@ func NewBoltCache(cfg *BoltCacheConfig) (*BoltCache, error) {
 	if err != nil {
 		return nil, err
 	}
+	bs.DB.MaxBatchDelay = 20 * time.Millisecond
+
 	bc := &BoltCache{BoltStore: bs, BoltCacheConfig: cfg}
 	bc.opDuration = cache_metrics.NewCacheOperationDuration("BoltCache", bc.Name())
 	bc.expiredCounter = cache_metrics.NewCacheExpiredCounter("BoltCache", bc.Name())

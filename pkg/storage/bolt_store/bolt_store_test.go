@@ -3,6 +3,7 @@ package bolt_store
 import (
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/minotar/imgd/pkg/storage"
 	"github.com/minotar/imgd/pkg/storage/util/test_helpers"
@@ -129,12 +130,33 @@ func BenchmarkInsertNoSync(b *testing.B) {
 	largeBucket.FillStore(store.Insert, b.N)
 }
 
+func BenchmarkInsertParallel(b *testing.B) {
+	store := freshStore()
+	defer store.Close()
+
+	largeBucket.MinSize(b.N)
+
+	insertQueue := make(chan int, b.N)
+	for count := 0; count < b.N; count++ {
+		insertQueue <- count
+	}
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			i := <-insertQueue
+			store.Insert(largeBucket.Keys[i], []byte(strconv.Itoa(i)))
+		}
+	})
+}
+
 func BenchmarkBatchInsertParallel(b *testing.B) {
 	store := freshStore()
 	defer store.Close()
 
 	largeBucket.MinSize(b.N)
 
+	store.DB.MaxBatchDelay = 20 * time.Millisecond
 	insertQueue := make(chan int, b.N)
 	for count := 0; count < b.N; count++ {
 		insertQueue <- count
@@ -156,6 +178,8 @@ func BenchmarkBatchInsertParallelNoSync(b *testing.B) {
 	largeBucket.MinSize(b.N)
 
 	store.DB.NoSync = true
+	store.DB.MaxBatchSize = 3000
+	store.DB.MaxBatchDelay = 5 * time.Millisecond
 	insertQueue := make(chan int, b.N)
 	for count := 0; count < b.N; count++ {
 		insertQueue <- count
