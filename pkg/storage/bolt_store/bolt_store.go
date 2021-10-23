@@ -54,7 +54,7 @@ func (bs *BoltStore) Insert(key string, value []byte) error {
 
 // InsertBatch seems like it's not worth it...
 func (bs *BoltStore) InsertBatch(key string, value []byte) error {
-	err := bs.DB.Update(func(tx *bolt.Tx) error {
+	err := bs.DB.Batch(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bs.Bucket))
 		return b.Put([]byte(key), value)
 	})
