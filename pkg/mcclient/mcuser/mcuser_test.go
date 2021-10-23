@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/minotar/imgd/pkg/mcclient/status"
 	"github.com/minotar/imgd/pkg/minecraft"
 	"github.com/minotar/imgd/pkg/util/tinytime"
 )
@@ -89,6 +90,30 @@ func TestPackUnPackMcUser(t *testing.T) {
 		t.Fatalf("Flated Protobuf Encode failed with: %s", err)
 	}
 	fmt.Printf("The Flated Protobuf output was length %d: %+v\n", len(packedBytes), packedBytes)
+
+	packedUser, err := DecompressMcUser(packedBytes)
+	if err != nil {
+		t.Fatalf("Flated Protobuf Decode failed with: %s", err)
+	}
+
+	if user.Username != packedUser.Username {
+		t.Errorf("Original Username \"%s\" vs. Fkated/Protobuf Username \"%s\"", user.Username, packedUser.Username)
+	}
+}
+
+func TestPackUnPackInvalidMcUser(t *testing.T) {
+	user := McUser{
+		Timestamp: tinytime.NewTinyTime(time.Now()),
+		User:      minecraft.User{},
+		Textures:  Textures{},
+		Status:    status.StatusErrorUnknownUser,
+	}
+
+	packedBytes, err := user.Compress()
+	fmt.Printf("The Flated Protobuf output was length %d: %+v\n", len(packedBytes), packedBytes)
+	if err != nil {
+		t.Fatalf("Flated Protobuf Encode failed with: %s", err)
+	}
 
 	packedUser, err := DecompressMcUser(packedBytes)
 	if err != nil {

@@ -115,6 +115,7 @@ func (mc *McClient) CacheInsertMcUser(logger log.Logger, uuid string, user mcuse
 	if err != nil {
 		// stats.CacheUser("pack_error")
 		logger.Errorf("Failed to pack UUID:user ready to cache: %v", err)
+		return
 	}
 
 	// Metrics timer / tracing
