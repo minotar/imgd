@@ -179,7 +179,7 @@ func (p *Processd) initServer() error {
 		return err
 	}
 
-	serv.HTTP.Use(route_helpers.LoggingMiddleware(p.Cfg.Logger))
+	//serv.HTTP.Use(route_helpers.LoggingMiddleware(p.Cfg.Logger))
 
 	if p.Cfg.CorsAllowAll {
 		serv.HTTP.Use(route_helpers.CorsHandler)

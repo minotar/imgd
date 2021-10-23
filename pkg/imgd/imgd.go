@@ -102,7 +102,7 @@ func (i *Imgd) initServer() error {
 		return err
 	}
 
-	serv.HTTP.Use(route_helpers.LoggingMiddleware(i.Cfg.Logger))
+	//serv.HTTP.Use(route_helpers.LoggingMiddleware(i.Cfg.Logger))
 
 	if i.Cfg.CorsAllowAll {
 		serv.HTTP.Use(route_helpers.CorsHandler)

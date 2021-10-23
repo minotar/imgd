@@ -202,9 +202,10 @@ func (bc *BoltCache) expiryScan(reviewTime time.Time, chunkSize int) {
 	// Keep scanning until it's interupted or finishes (via a return)
 	// Crucially, this loop ensures that we aren't holding a Write lock for an extended time
 	for {
-		if keyMarker != "" {
-			logger.Debugf("keyMarker starts as %s", keyMarker)
-		}
+		// Todo: remove debug
+		//if keyMarker != "" {
+		//	logger.Debugf("keyMarker starts as %s", keyMarker)
+		//}
 		// Start a transaction for processing a chunk of keys
 		// Technically, keys might be added/removed between transactions
 		_ = bc.DB.Update(func(tx *bolt.Tx) error {
@@ -233,7 +234,8 @@ func (bc *BoltCache) expiryScan(reviewTime time.Time, chunkSize int) {
 				//bc.Logger.Debugf("Scanned %s", k)
 
 				if store_expiry.HasBytesExpired(v[:4], reviewTime) {
-					logger.Debugf("expiryScan is deleting %s", k)
+					// Todo: remove debug
+					//logger.Debugf("expiryScan is deleting %s", k)
 					err := c.Delete()
 					if err != nil {
 						logger.Warnf("expiryScan was unable to delete \"%s\": %s", k, err)
@@ -247,9 +249,10 @@ func (bc *BoltCache) expiryScan(reviewTime time.Time, chunkSize int) {
 			// The for loop above would have assigned k to the next key, but not scanned it
 			// We now use that assignment to set the Marker for the next iteration
 			keyMarker = string(k)
-			logger.Debugf("keyMarker starts as %s", keyMarker)
+			// Todo: remove debug
+			//logger.Debugf("keyMarker starts as %s", keyMarker)
 			if k == nil {
-				logger.Debug("expiryScan compaction loop has finished")
+				//logger.Debug("expiryScan compaction loop has finished")
 				scanErr = ErrCompactionFinished
 				return nil
 			}
