@@ -26,7 +26,7 @@ func NewSkinWrapper(logger log.Logger, mc *mcclient.McClient, useEtags bool, cac
 			logger, skinIO := mc.GetSkinBufferFromReq(logger, userReq)
 			defer skinIO.Close()
 
-			logger.Infof("Texture ID is: %s", skinIO.TextureID)
+			//logger.Infof("Texture ID is: %s", skinIO.TextureID)
 
 			w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", int(cacheControlTTL.Seconds())))
 

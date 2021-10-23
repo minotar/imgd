@@ -98,7 +98,7 @@ func (s *Skind) initServer() error {
 		return err
 	}
 
-	serv.HTTP.Use(route_helpers.LoggingMiddleware(s.Cfg.Logger))
+	//serv.HTTP.Use(route_helpers.LoggingMiddleware(s.Cfg.Logger))
 
 	if s.Cfg.CorsAllowAll {
 		serv.HTTP.Use(route_helpers.CorsHandler)
