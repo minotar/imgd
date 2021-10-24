@@ -2,10 +2,12 @@ package mcclient
 
 import (
 	"flag"
+	"net/http"
 	"time"
 
 	"github.com/minotar/imgd/pkg/cache/util/config"
 	"github.com/minotar/imgd/pkg/minecraft"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Config struct {
@@ -46,7 +48,17 @@ func NewMcClient(cfg *Config) *McClient {
 		RequestTimeout: cfg.UpstreamTimeout,
 	}
 
+	mc := &minecraft.Minecraft{
+		Client: &http.Client{
+			Timeout: minecraftCfg.RequestTimeout,
+		},
+		Cfg: minecraftCfg,
+	}
+	// Todo: implement custom function to label the source
+	//mc.Client.Transport = promhttp.InstrumentRoundTripperDuration(apiClientDuration, http.DefaultTransport)
+	mc.Client.Transport = promhttp.InstrumentRoundTripperInFlight(apiClientInflight, http.DefaultTransport)
+
 	return &McClient{
-		API: minecraft.NewMinecraft(minecraftCfg),
+		API: mc,
 	}
 }

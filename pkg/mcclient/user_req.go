@@ -21,7 +21,7 @@ func (ur UserReq) GetUUID(logger log.Logger, mc *McClient) (newLogger log.Logger
 
 	// With given Username, get the UUID
 	newLogger = logger.With("username", ur.Username)
-	uuidEntry, err := mc.GetUUIDEntry(logger, ur.Username)
+	uuidEntry, err := mc.GetUUIDEntry(newLogger, ur.Username)
 	if err != nil {
 		return
 	}
