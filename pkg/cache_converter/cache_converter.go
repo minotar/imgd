@@ -223,13 +223,25 @@ func (cc *CacheConverter) MigrateUserDataV4toV3() {
 
 }
 
+func (cc *CacheConverter) boltSync(bc *bolt_cache.BoltCache) {
+	start := time.Now()
+	err := bc.DB.Sync()
+	dur := time.Now().Sub(start)
+	cc.Cfg.Logger.Infof("BoltCache fsync took %s", dur)
+	if err != nil {
+		cc.Cfg.Logger.Errorf("BoltCache fsync failed: %v", err)
+	}
+}
+
 // V3 -> V4
 func (cc *CacheConverter) MigrateUUIDV3toV4() {
 
 	redisCache := cc.Cachesv3.UUID.(*radix.RedisCache)
 	cc.Cfg.Logger.Infof("Size of Redis is %d keys", redisCache.Len())
+	boltCache := cc.Cachesv4.UUID.(*bolt_cache.BoltCache)
+	boltCache.DB.NoSync = true
 	cc.radixIterator(redisCache, processUUIDv3(cc.Cfg.Logger, cc.Cachesv4.UUID.InsertTTL))
-
+	cc.boltSync(boltCache)
 }
 
 // V3 -> V4
@@ -237,6 +249,8 @@ func (cc *CacheConverter) MigrateUserDataV3toV4() {
 
 	redisCache := cc.Cachesv3.UserData.(*radix.RedisCache)
 	cc.Cfg.Logger.Infof("Size of Redis is %d keys", redisCache.Len())
+	boltCache := cc.Cachesv4.UUID.(*bolt_cache.BoltCache)
+	boltCache.DB.NoSync = true
 	cc.radixIterator(redisCache, processUserDatav3(cc.Cfg.Logger, cc.Cachesv4.UserData.InsertTTL))
-
+	cc.boltSync(boltCache)
 }
