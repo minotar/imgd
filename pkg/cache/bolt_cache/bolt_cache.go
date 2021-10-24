@@ -68,7 +68,8 @@ func NewBoltCache(cfg *BoltCacheConfig) (*BoltCache, error) {
 	if err != nil {
 		return nil, err
 	}
-	bs.DB.MaxBatchDelay = 20 * time.Millisecond
+	//bs.DB.MaxBatchDelay = 20 * time.Millisecond
+	bs.DB.NoSync = true
 
 	bc := &BoltCache{BoltStore: bs, BoltCacheConfig: cfg}
 	bc.opDuration = cache_metrics.NewCacheOperationDuration("BoltCache", bc.Name())
@@ -278,6 +279,13 @@ func (bc *BoltCache) expiryScan(reviewTime time.Time, chunkSize int) {
 // Ran on interval by the StoreExpiry
 func (bc *BoltCache) ExpiryScan() {
 	bc.expiryScan(bc.StoreExpiry.Clock.Now(), COMPACTION_MAX_SCAN)
+	start := time.Now()
+	err := bc.DB.Sync()
+	dur := time.Now().Sub(start)
+	bc.Logger.Infof("BoltCache fsync took %s", dur)
+	if err != nil {
+		bc.Logger.Errorf("BoltCache fsync failed: %v", err)
+	}
 }
 
 /*

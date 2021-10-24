@@ -128,6 +128,7 @@ func BenchmarkInsertNoSync(b *testing.B) {
 	b.ResetTimer()
 
 	largeBucket.FillStore(store.Insert, b.N)
+	store.DB.Sync()
 }
 
 func BenchmarkInsertParallel(b *testing.B) {
