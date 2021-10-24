@@ -88,6 +88,7 @@ func (mc *Minecraft) TextureBodyFromTexturePropertyCtx(ctx context.Context, sptp
 	if url == "" {
 		return nil, fmt.Errorf("no URL for %s", TextureType_name[texType])
 	}
+	ctx = CtxWithSource(ctx, "TextureFetch")
 	return mc.ApiRequestCtx(ctx, url)
 }
 
@@ -102,6 +103,7 @@ func (mc *Minecraft) TextureBodyFromUsernameCtx(ctx context.Context, username st
 	if baseURL == "" {
 		return nil, fmt.Errorf("no UsernameAPI URL for %s", TextureType_name[texType])
 	}
+	ctx = CtxWithSource(ctx, "TextureFetch")
 	return mc.ApiRequestCtx(ctx, baseURL+username+".png")
 }
 

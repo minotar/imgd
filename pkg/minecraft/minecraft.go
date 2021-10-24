@@ -167,6 +167,25 @@ func processGetReq(r *http.Response, err error) (io.ReadCloser, error) {
 	}
 }
 
+type ctxKey uint8
+
+const (
+	ctxKeySource ctxKey = 0
+)
+
+func CtxWithSource(ctx context.Context, source string) context.Context {
+	return context.WithValue(ctx, ctxKeySource, source)
+}
+
+func CtxGetSource(ctx context.Context) string {
+	source, ok := ctx.Value(ctxKeySource).(string)
+	if !ok {
+		// Probably defaults to "" anyway...
+		return ""
+	}
+	return source
+}
+
 // Mojang APIs have fairly standard responses and this makes those requests and
 // catches the errors. Remember to close the response if there is no error present!
 func (mc *Minecraft) ApiRequestCtx(ctx context.Context, url string) (io.ReadCloser, error) {
