@@ -7,7 +7,8 @@ import (
 
 	"github.com/minotar/imgd/pkg/cache/util/config"
 	"github.com/minotar/imgd/pkg/minecraft"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/minotar/imgd/pkg/minecraft/minecraft_trace"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type Config struct {
@@ -54,9 +55,20 @@ func NewMcClient(cfg *Config) *McClient {
 		},
 		Cfg: minecraftCfg,
 	}
-	// Todo: implement custom function to label the source
-	//mc.Client.Transport = promhttp.InstrumentRoundTripperDuration(apiClientDuration, http.DefaultTransport)
-	mc.Client.Transport = promhttp.InstrumentRoundTripperInFlight(apiClientInflight, http.DefaultTransport)
+
+	// Todo: put extra traces behind feature flag?
+
+	trace := &minecraft_trace.InstrumentTrace{
+		ConnectStart:         apiClientTraceDuration.MustCurryWith(prometheus.Labels{"event": "connectStart"}),
+		ConnectDone:          apiClientTraceDuration.MustCurryWith(prometheus.Labels{"event": "connectDone"}),
+		GotFirstResponseByte: apiClientTraceDuration.MustCurryWith(prometheus.Labels{"event": "timeToFirstByte"}),
+	}
+
+	mc.Client.Transport = minecraft_trace.InstrumentRoundTripperInFlight(apiClientInflight,
+		minecraft_trace.InstrumentRoundTripperTrace(trace,
+			minecraft_trace.InstrumentRoundTripperDuration(apiClientDuration, http.DefaultTransport),
+		),
+	)
 
 	return &McClient{
 		API: mc,

@@ -6,8 +6,8 @@ import (
 	"context"
 	"io"
 
+	"github.com/minotar/imgd/pkg/minecraft"
 	"github.com/minotar/imgd/pkg/util/log"
-	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/minotar/imgd/pkg/mcclient/mcuser"
 	"github.com/minotar/imgd/pkg/mcclient/status"
@@ -16,9 +16,7 @@ import (
 
 func (mc *McClient) RequestUUIDEntry(logger log.Logger, username string, uuidEntry mc_uuid.UUIDEntry) mc_uuid.UUIDEntry {
 	// GetUUID uses the GetAPIProfile which would also pull the Username (not wanted)
-	apiTimer := prometheus.NewTimer(apiGetDuration.WithLabelValues("GetAPIProfile"))
 	uuidFresh, err := mc.API.GetUUID(username)
-	apiTimer.ObserveDuration()
 	uuidEntryFresh := mc_uuid.NewUUIDEntry(logger, username, uuidFresh, err)
 
 	if !uuidEntryFresh.IsValid() && uuidEntry.IsValid() {
@@ -34,9 +32,7 @@ func (mc *McClient) RequestUUIDEntry(logger log.Logger, username string, uuidEnt
 }
 
 func (mc *McClient) RequestMcUser(logger log.Logger, uuid string, mcUser mcuser.McUser) mcuser.McUser {
-	apiTimer := prometheus.NewTimer(apiGetDuration.WithLabelValues("GetSessionProfile"))
 	sessionProfile, err := mc.API.GetSessionProfile(uuid)
-	apiTimer.ObserveDuration()
 
 	mcUserFresh := mcuser.NewMcUser(logger, uuid, sessionProfile, err)
 
@@ -70,9 +66,9 @@ func (mc *McClient) RequestTexture(logger log.Logger, textureKey string, texture
 
 	// Todo: Retry logic?
 
-	apiTimer := prometheus.NewTimer(apiGetDuration.WithLabelValues("TextureFetch"))
-	respBody, err := mc.API.ApiRequestCtx(context.Background(), textureURL)
-	apiTimer.ObserveDuration()
+	// Set Ctx Source for metrics
+	ctx := minecraft.CtxWithSource(context.Background(), "TextureFetch")
+	respBody, err := mc.API.ApiRequestCtx(ctx, textureURL)
 
 	if err != nil {
 		status.MetricTextureFetchError()

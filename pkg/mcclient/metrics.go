@@ -12,23 +12,33 @@ const (
 var DefBuckets = []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10}
 
 var (
-	apiGetDuration = promauto.NewHistogramVec(
+	apiClientDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: metricsNamespace,
-			Subsystem: "mcclient",
-			Name:      "api_get_duration_seconds",
-			Help:      "Time (in seconds) external API Requests took.",
+			Subsystem: "mcclient_api",
+			Name:      "duration_seconds",
+			Help:      "Time (in seconds) API requests took.",
 			Buckets:   DefBuckets,
-		}, []string{"source"},
+		}, []string{"source", "code"},
 	)
 
-	apiClientInflight = promauto.NewGauge(
+	apiClientInflight = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: metricsNamespace,
 			Subsystem: "mcclient_api",
 			Name:      "inflight_requests",
 			Help:      "Current number of inflight API requests.",
-		},
+		}, []string{"source"},
+	)
+
+	apiClientTraceDuration = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: metricsNamespace,
+			Subsystem: "mcclient_api",
+			Name:      "trace_duration_seconds",
+			Help:      "Time (in seconds) since start of API request for events to occur.",
+			Buckets:   DefBuckets,
+		}, []string{"source", "event"},
 	)
 
 	cacheStatus = promauto.NewCounterVec(
