@@ -22,6 +22,15 @@ var (
 		}, []string{"source"},
 	)
 
+	apiClientInflight = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: metricsNamespace,
+			Subsystem: "mcclient_api",
+			Name:      "inflight_requests",
+			Help:      "Current number of inflight API requests.",
+		},
+	)
+
 	cacheStatus = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: metricsNamespace,
