@@ -1,14 +1,20 @@
-FROM golang:1.16.7 as build
+FROM golang:1.17.2 as build
 
-COPY . /src/processd
-WORKDIR /src/processd
+WORKDIR /src/minotar
+
+COPY go.mod .
+COPY go.sum .
+COPY pkg/minecraft/go.mod pkg/minecraft/go.mod
+RUN go mod download -x
+
+COPY . /src/minotar
 RUN make clean && make processd
 
 FROM alpine:3.14
 
 RUN apk add --no-cache ca-certificates
 
-COPY --from=build /src/processd/cmd/processd/processd /usr/bin/processd
+COPY --from=build /src/minotar/cmd/processd/processd /usr/bin/processd
 
 RUN addgroup -g 10001 -S processd && \
     adduser -u 10001 -S processd -G processd

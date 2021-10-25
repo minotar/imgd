@@ -1,14 +1,20 @@
-FROM golang:1.16.7 as build
+FROM golang:1.17.2 as build
 
-COPY . /src/skind
-WORKDIR /src/skind
+WORKDIR /src/minotar
+
+COPY go.mod .
+COPY go.sum .
+COPY pkg/minecraft/go.mod pkg/minecraft/go.mod
+RUN go mod download -x
+
+COPY . /src/minotar
 RUN make clean && make skind
 
 FROM alpine:3.14
 
 RUN apk add --no-cache ca-certificates
 
-COPY --from=build /src/skind/cmd/skind/skind /usr/bin/skind
+COPY --from=build /src/minotar/cmd/skind/skind /usr/bin/skind
 
 RUN addgroup -g 10001 -S skind && \
     adduser -u 10001 -S skind -G skind
