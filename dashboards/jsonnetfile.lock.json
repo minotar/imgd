@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "dependencies": [
+    {
+      "source": {
+        "git": {
+          "remote": "https://github.com/grafana/grafonnet-lib.git",
+          "subdir": "grafonnet"
+        }
+      },
+      "version": "3626fc4dc2326931c530861ac5bebe39444f6cbf",
+      "sum": "gF8foHByYcB25jcUOBqP6jxk0OPifQMjPvKY0HaCk6w="
+    },
+    {
+      "source": {
+        "git": {
+          "remote": "https://github.com/grafana/jsonnet-libs.git",
+          "subdir": "go-runtime-mixin"
+        }
+      },
+      "version": "17eca514f990530c411c2e9411af5213dd4bd224",
+      "sum": "R8MhspMywkQN2eMdYoBn8fgYVSCLmrs1sRjW+mhTHUA="
+    }
+  ],
+  "legacyImports": false
+}
