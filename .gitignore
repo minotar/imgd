@@ -16,4 +16,10 @@
 /cmd/cacheconv/cacheconv.exe
 
 /src
-/config.gcfg
+
+# Grafana / jsonnet dashboard
+dashboards/vendor
+dashboards/out
+
+# IDE
+.vscode/

@@ -153,3 +153,12 @@ imgd-image:
 imgd-image-push:
 	docker push $(IMAGE_PREFIX)/imgd:$(IMAGE_TAG)
 
+
+
+###
+
+DASHBOARDS_DIR=dashboards
+
+dashboards/out/skind.json: $(DASHBOARDS_DIR)/config.libsonnet $(DASHBOARDS_DIR)/skind.jsonnet $(DASHBOARDS_DIR)/skind.libsonnet
+	@mkdir -p $(DASHBOARDS_DIR)/out
+	jsonnet -J $(DASHBOARDS_DIR)/vendor -m $(DASHBOARDS_DIR)/out $(DASHBOARDS_DIR)/skind.jsonnet
