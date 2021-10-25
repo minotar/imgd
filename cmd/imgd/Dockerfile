@@ -1,14 +1,20 @@
-FROM golang:1.16.7 as build
+FROM golang:1.17.2 as build
 
-COPY . /src/imgd
-WORKDIR /src/imgd
+WORKDIR /src/minotar
+
+COPY go.mod .
+COPY go.sum .
+COPY pkg/minecraft/go.mod pkg/minecraft/go.mod
+RUN go mod download -x
+
+COPY . /src/minotar
 RUN make clean && make imgd
 
 FROM alpine:3.14
 
 RUN apk add --no-cache ca-certificates
 
-COPY --from=build /src/imgd/cmd/imgd/imgd /usr/bin/imgd
+COPY --from=build /src/minotar/cmd/imgd/imgd /usr/bin/imgd
 
 RUN addgroup -g 10001 -S imgd && \
     adduser -u 10001 -S imgd -G imgd
