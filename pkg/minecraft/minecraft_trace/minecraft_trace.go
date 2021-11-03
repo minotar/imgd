@@ -50,7 +50,7 @@ func InstrumentRoundTripperInFlight(gaugeVec *prometheus.GaugeVec, next http.Rou
 	})
 }
 
-// prometheus.ObserverVec *MUST* have a "source"
+// prometheus.ObserverVec *MUST* have a "source". Optional "code" and "method" (though method will always be GET)
 func InstrumentRoundTripperDuration(obs prometheus.ObserverVec, next http.RoundTripper) promhttp.RoundTripperFunc {
 	return promhttp.RoundTripperFunc(func(r *http.Request) (*http.Response, error) {
 		observerVec := obs.MustCurryWith(ctxLabels(r.Context()))

@@ -43,7 +43,7 @@ type Config struct {
 func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	//c.Server.ExcludeRequestInLog = true
 
-	f.DurationVar(&c.UpstreamTimeout, "processd.upstream-timeout", 10*time.Second, "Timeout for Skin lookup")
+	f.DurationVar(&c.UpstreamTimeout, "processd.upstream-timeout", 15*time.Second, "Timeout for Skin lookup")
 	f.StringVar(&c.SkindURL, "processd.skind-url", "http://localhost:4643/skin/", "API for skin lookups")
 	f.BoolVar(&c.CorsAllowAll, "processd.cors-allow-all", true, "Permissive CORS policy")
 	f.BoolVar(&c.UseETags, "processd.use-etags", true, "Use etags to skip re-processing")

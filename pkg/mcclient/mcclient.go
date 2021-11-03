@@ -151,18 +151,18 @@ func (mc *McClient) GetMcUser(logger log.Logger, uuid string) (mcUser mcuser.McU
 
 func (mc *McClient) GetTexture(logger log.Logger, textureKey string, textureURL string) (textureIO mcuser.TextureIO, err error) {
 	textureIO, err = mc.CacheRetrieveTexture(logger, textureKey)
-	if err != nil {
-		if err == cache.ErrNotFound {
-			// We cache missed (cache.ErrNotFound)
-			textureCacheStatus.Miss()
-			// Let's request from API
-			return mc.RequestTexture(logger, textureKey, textureURL)
-		} else {
-			// Cache experieneed a proper error (already would be logged)
-			textureCacheStatus.Error()
-			// Let's re-request anyway - there is no ratelimit
-			return mc.RequestTexture(logger, textureKey, textureURL)
-		}
+	if err == ErrCacheDisabled {
+		return mc.RequestTexture(logger, textureKey, textureURL)
+	} else if err == cache.ErrNotFound {
+		// We cache missed (cache.ErrNotFound)
+		textureCacheStatus.Miss()
+		// Let's request from API
+		return mc.RequestTexture(logger, textureKey, textureURL)
+	} else if err != nil {
+		// Cache experieneed a proper error (already would be logged)
+		textureCacheStatus.Error()
+		// Let's re-request anyway - there is no ratelimit
+		return mc.RequestTexture(logger, textureKey, textureURL)
 	}
 
 	// Cache was a hit (we don't have logic to cache bad textures)

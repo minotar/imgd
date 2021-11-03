@@ -2,6 +2,7 @@ package mcclient
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -15,6 +16,10 @@ import (
 
 const (
 	skinTTL = 4 * time.Hour
+)
+
+var (
+	ErrCacheDisabled = errors.New("Cache is disabled")
 )
 
 // Todo: metrics / tracing / timing
@@ -131,6 +136,10 @@ func (mc *McClient) CacheInsertMcUser(logger log.Logger, uuid string, user mcuse
 
 // Remember to close the mcuser.TextureIO.ReadCloser if error is nil
 func (mc *McClient) CacheRetrieveTexture(logger log.Logger, textureKey string) (textureIO mcuser.TextureIO, err error) {
+	if mc.Caches.Textures == nil {
+		// Cache is disabled
+		return textureIO, ErrCacheDisabled
+	}
 	// We intentionally leave the case of the texture URL untouched (though it appears to always be lowercase anyway)
 	// logger should already be With() the skinPath/texturePath (and UUID and Username)
 
@@ -160,6 +169,10 @@ func (mc *McClient) CacheRetrieveTexture(logger log.Logger, textureKey string) (
 }
 
 func (mc *McClient) CacheInsertTexture(logger log.Logger, textureKey string, textureBytes []byte) (err error) {
+	if mc.Caches.Textures == nil {
+		// Cache is disabled
+		return nil
+	}
 	// We intentionally leave the case of the texture URL untouched (though it appears to always be lowercase anyway)
 	// logger should already be With() the skinPath/texturePath (and UUID and Username)
 
