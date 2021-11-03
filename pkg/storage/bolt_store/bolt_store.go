@@ -47,7 +47,7 @@ func (bs *BoltStore) Insert(key string, value []byte) error {
 		return b.Put([]byte(key), value)
 	})
 	if err != nil {
-		return fmt.Errorf("Inserting \"%s\" into \"%s\": %s", key, bs.Bucket, err)
+		return fmt.Errorf("inserting \"%s\" into \"%s\": %s", key, bs.Bucket, err)
 	}
 	return nil
 }
@@ -59,7 +59,7 @@ func (bs *BoltStore) InsertBatch(key string, value []byte) error {
 		return b.Put([]byte(key), value)
 	})
 	if err != nil {
-		return fmt.Errorf("Inserting \"%s\" into \"%s\": %s", key, bs.Bucket, err)
+		return fmt.Errorf("inserting \"%s\" into \"%s\": %s", key, bs.Bucket, err)
 	}
 	return nil
 }
@@ -81,7 +81,7 @@ func (bs *BoltStore) Retrieve(key string) ([]byte, error) {
 	if err == storage.ErrNotFound {
 		return nil, storage.ErrNotFound
 	} else if err != nil {
-		return nil, fmt.Errorf("Retrieving \"%s\" from \"%s\": %s", key, bs.Bucket, err)
+		return nil, fmt.Errorf("retrieving \"%s\" from \"%s\": %s", key, bs.Bucket, err)
 	}
 
 	return data, nil
@@ -93,7 +93,7 @@ func (bs *BoltStore) Remove(key string) error {
 		return b.Delete([]byte(key))
 	})
 	if err != nil {
-		return fmt.Errorf("Removing \"%s\" from \"%s\": %s", key, bs.Bucket, err)
+		return fmt.Errorf("removing \"%s\" from \"%s\": %s", key, bs.Bucket, err)
 	}
 	return nil
 }
@@ -107,7 +107,7 @@ func (bs *BoltStore) Flush() error {
 		return err
 	})
 	if err != nil {
-		return fmt.Errorf("Flushing \"%s\": %s", bs.Bucket, err)
+		return fmt.Errorf("flushing \"%s\": %s", bs.Bucket, err)
 	}
 	return nil
 }

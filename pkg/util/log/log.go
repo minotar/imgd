@@ -30,6 +30,28 @@ type Logger interface {
 	With(args ...interface{}) Logger
 }
 
+type LoggerWithWarning interface {
+	Logger
+
+	Warning(args ...interface{})
+	Warningf(template string, args ...interface{})
+}
+
+type ShimLoggerWarning struct {
+	Logger
+}
+
+func (sl *ShimLoggerWarning) Warning(args ...interface{}) {
+	sl.Warn(args...)
+}
+func (sl *ShimLoggerWarning) Warningf(template string, args ...interface{}) {
+	sl.Warnf(template, args...)
+}
+
+func NewShimLoggerWarning(logger Logger) LoggerWithWarning {
+	return &ShimLoggerWarning{Logger: logger}
+}
+
 // BuiltinLogger is a super basic wrapper around the std_log.Logger and implementes the Logger interface
 
 var _ Logger = new(BuiltinLogger)
