@@ -10,7 +10,7 @@ import (
 )
 
 func newBackendCache(t *testing.T, clock *test_helpers.MockClock, name string, size int) *lru_cache.LruCache {
-	logger := &log.DummyLogger{}
+	logger := log.NewBuiltinLogger(1)
 	logger.Named(name)
 	cache, err := lru_cache.NewLruCache(lru_cache.NewLruCacheConfig(size,
 		cache.CacheConfig{
@@ -33,7 +33,7 @@ func newCacheTester(t *testing.T, size int) test_helpers.CacheTester {
 	c1 := newBackendCache(t, clock, "cache0", size/2)
 	c2 := newBackendCache(t, clock, "cache1", size)
 
-	logger := &log.DummyLogger{}
+	logger := log.NewBuiltinLogger(1)
 	logger.Named("TieredCacheTest")
 
 	cache, err := NewTieredCache(&TieredCacheConfig{
