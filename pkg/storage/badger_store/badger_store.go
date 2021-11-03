@@ -5,24 +5,29 @@ import (
 
 	badger "github.com/dgraph-io/badger/v3"
 	"github.com/minotar/imgd/pkg/storage"
+	"github.com/minotar/imgd/pkg/util/log"
 )
 
+// BadgerStore does not handle any GC (eg. BadgerStore.DB.RunValueLogGC())
 type BadgerStore struct {
-	db   *badger.DB
+	DB   *badger.DB
 	path string
 }
 
 // ensure that the storage.Storage interface is implemented
 var _ storage.Storage = new(BadgerStore)
 
-func NewBadgerStore(path string) (*BadgerStore, error) {
-	db, err := badger.Open(badger.DefaultOptions(path))
+func NewBadgerStore(path string, logger log.Logger) (*BadgerStore, error) {
+	loggerWithWarning := log.NewShimLoggerWarning(logger)
+	opts := badger.DefaultOptions(path)
+	opts = opts.WithLogger(loggerWithWarning)
+	db, err := badger.Open(opts)
 	if err != nil {
 		return nil, err
 	}
 
 	bs := &BadgerStore{
-		db:   db,
+		DB:   db,
 		path: path,
 	}
 
@@ -30,11 +35,11 @@ func NewBadgerStore(path string) (*BadgerStore, error) {
 }
 
 func (bs *BadgerStore) Insert(key string, value []byte) error {
-	err := bs.db.Update(func(txn *badger.Txn) error {
+	err := bs.DB.Update(func(txn *badger.Txn) error {
 		return txn.Set([]byte(key), value)
 	})
 	if err != nil {
-		return fmt.Errorf("Inserting \"%s\": %s", key, err)
+		return fmt.Errorf("inserting \"%s\": %s", key, err)
 	}
 	return nil
 }
@@ -42,7 +47,7 @@ func (bs *BadgerStore) Insert(key string, value []byte) error {
 func (bs *BadgerStore) Retrieve(key string) ([]byte, error) {
 	var data []byte
 
-	err := bs.db.View(func(txn *badger.Txn) error {
+	err := bs.DB.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(key))
 		if err != nil {
 			return err
@@ -54,39 +59,56 @@ func (bs *BadgerStore) Retrieve(key string) ([]byte, error) {
 	if err == badger.ErrKeyNotFound {
 		return nil, storage.ErrNotFound
 	} else if err != nil {
-		return nil, fmt.Errorf("Retrieving \"%s\": %s", key, err)
+		return nil, fmt.Errorf("retrieving \"%s\": %s", key, err)
 	}
 
 	return data, nil
 }
 
 func (bs *BadgerStore) Remove(key string) error {
-	err := bs.db.Update(func(txn *badger.Txn) error {
+	err := bs.DB.Update(func(txn *badger.Txn) error {
 		return txn.Delete([]byte(key))
 	})
 	if err != nil {
-		return fmt.Errorf("Removing \"%s\": %s", key, err)
+		return fmt.Errorf("removing \"%s\": %s", key, err)
 	}
 
 	return nil
 }
 
 func (bs *BadgerStore) Flush() error {
-	err := bs.db.DropAll()
+	err := bs.DB.DropAll()
 	if err != nil {
-		return fmt.Errorf("Flushing: %s", err)
+		return fmt.Errorf("flushing: %s", err)
 	}
 	return nil
 }
 
 func (bs *BadgerStore) Len() uint {
-	return 0
+	iterOpts := badger.DefaultIteratorOptions
+	iterOpts.PrefetchValues = false
+
+	var len uint
+	err := bs.DB.View(func(txn *badger.Txn) error {
+		it := txn.NewIterator(iterOpts)
+		defer it.Close()
+		for it.Rewind(); it.Valid(); it.Next() {
+			len++
+		}
+		return nil
+	})
+	if err != nil {
+		bs.DB.Opts().Logger.Errorf("Encountered an error counting keys: %v", err)
+		return 0
+	}
+	return len
 }
 
 func (bs *BadgerStore) Size() uint64 {
-	return 0
+	lsm, vlog := bs.DB.Size()
+	return uint64(lsm + vlog)
 }
 
 func (bs *BadgerStore) Close() {
-	bs.db.Close()
+	bs.DB.Close()
 }
