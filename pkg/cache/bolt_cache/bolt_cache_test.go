@@ -22,7 +22,7 @@ const (
 func newCache(t *testing.T) *BoltCache {
 	prometheus.DefaultRegisterer = prometheus.NewRegistry()
 
-	logger := &log.DummyLogger{}
+	logger := log.NewBuiltinLogger(1)
 	logger.Named("BoltTest")
 
 	cacheConfig := cache.CacheConfig{

@@ -2,6 +2,7 @@ package log
 
 import (
 	"fmt"
+	std_log "log"
 
 	"go.uber.org/zap"
 )
@@ -29,70 +30,55 @@ type Logger interface {
 	With(args ...interface{}) Logger
 }
 
-// DummyLogger is a super basic fmt.Println based and implementes the Logger interface
+// BuiltinLogger is a super basic wrapper around the std_log.Logger and implementes the Logger interface
 
-var _ Logger = new(DummyLogger)
+var _ Logger = new(BuiltinLogger)
 
-type DummyLogger struct {
-	name  string
-	Lines []string
+type BuiltinLogger struct {
+	*std_log.Logger
+	Level int
+	Null  bool
 }
 
-func (l *DummyLogger) saveLine(level string, message string) {
-	line := fmt.Sprint(level, l.name, message)
-	l.Lines = append(l.Lines, line)
+func NewBuiltinLogger(level int) *BuiltinLogger {
+	return &BuiltinLogger{Logger: std_log.Default(), Level: level}
 }
 
-func (l *DummyLogger) log(level string, message string) {
-	l.saveLine(level, message)
-	fmt.Println(level, l.name, message)
+func (bl *BuiltinLogger) log(level int, tag string, args ...interface{}) {
+	if level < bl.Level {
+		return
+	}
+	bl.Print(tag, fmt.Sprint(args...))
 }
 
-func (l *DummyLogger) Named(name string) {
-	l.name = l.name + name
+func (bl *BuiltinLogger) Named(name string) {
+	bl.SetPrefix(name)
 }
 
-// Debug just saves the line
-func (l *DummyLogger) Debug(args ...interface{}) { l.log("DEBUG ", fmt.Sprint(args...)) }
-
-func (l *DummyLogger) Info(args ...interface{}) { l.log("INFO ", fmt.Sprint(args...)) }
-
-func (l *DummyLogger) Warn(args ...interface{}) { l.log("WARN ", fmt.Sprint(args...)) }
-
-func (l *DummyLogger) Error(args ...interface{}) { l.log("ERROR ", fmt.Sprint(args...)) }
-
-func (l *DummyLogger) Panic(args ...interface{}) { l.log("PANIC ", fmt.Sprint(args...)) }
-
-func (l *DummyLogger) Fatal(args ...interface{}) { l.log("FATAL ", fmt.Sprint(args...)) }
-
-func (l *DummyLogger) Debugf(template string, args ...interface{}) {
-	l.Debug(fmt.Sprintf(template, args...))
-}
-
-func (l *DummyLogger) Infof(template string, args ...interface{}) {
-	l.Info(fmt.Sprintf(template, args...))
-}
-
-func (l *DummyLogger) Warnf(template string, args ...interface{}) {
-	l.Warn(fmt.Sprintf(template, args...))
-}
-
-func (l *DummyLogger) Errorf(template string, args ...interface{}) {
-	l.Error(fmt.Sprintf(template, args...))
-}
-
-func (l *DummyLogger) Panicf(template string, args ...interface{}) {
-	l.Panic(fmt.Sprintf(template, args...))
-}
-
-func (l *DummyLogger) Fatalf(template string, args ...interface{}) {
-	l.Fatal(fmt.Sprintf(template, args...))
-}
-
-func (l *DummyLogger) With(args ...interface{}) Logger {
-	newLogger := &DummyLogger{}
+func (bl *BuiltinLogger) With(args ...interface{}) Logger {
+	newLogger := NewBuiltinLogger(bl.Level)
 	newLogger.Named(fmt.Sprintf("%s=%s", args[0], args[1]))
 	return newLogger
+}
+
+func (bl *BuiltinLogger) Debug(args ...interface{}) { bl.log(0, "DEBUG ", args...) }
+func (bl *BuiltinLogger) Debugf(template string, args ...interface{}) {
+	bl.Debug(fmt.Sprintf(template, args...))
+}
+
+func (bl *BuiltinLogger) Info(args ...interface{}) { bl.log(1, "INFO ", args...) }
+func (bl *BuiltinLogger) Infof(template string, args ...interface{}) {
+	bl.Info(fmt.Sprintf(template, args...))
+}
+
+func (bl *BuiltinLogger) Warn(args ...interface{}) { bl.log(2, "WARN ", args...) }
+func (bl *BuiltinLogger) Warnf(template string, args ...interface{}) {
+	bl.Warn(fmt.Sprintf(template, args...))
+}
+
+func (bl *BuiltinLogger) Error(args ...interface{}) { bl.log(3, "ERROR ", args...) }
+func (bl *BuiltinLogger) Errorf(template string, args ...interface{}) {
+	bl.Error(fmt.Sprintf(template, args...))
 }
 
 var _ Logger = new(ZapLogger)

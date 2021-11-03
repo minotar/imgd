@@ -9,7 +9,7 @@ import (
 )
 
 func newCacheTester(t *testing.T, size int) test_helpers.CacheTester {
-	logger := &log.DummyLogger{}
+	logger := log.NewBuiltinLogger(1)
 	logger.Named("LruTest")
 	cache, err := NewLruCache(NewLruCacheConfig(size,
 		cache.CacheConfig{
