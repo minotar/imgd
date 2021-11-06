@@ -220,7 +220,7 @@ func (mc *MigrateCache) Migrate() {
 func (mc *MigrateCache) Start() {
 	mc.Logger.Info("starting MigrateCache")
 	mc.NewCache.Start()
-	mc.Migrate()
+	go mc.Migrate()
 }
 
 func (mc *MigrateCache) Stop() {
