@@ -34,6 +34,7 @@ func (c *Config) RegisterFlags(f *flag.FlagSet, cacheID string) {
 
 	c.BoltCacheConfig.RegisterFlags(f, cacheID)
 	c.BadgerCacheConfig.RegisterFlags(f, cacheID)
+	c.MigrateCacheConfig.RegisterFlags(f, cacheID)
 }
 
 func NewCache(cfg *Config) (cache.Cache, error) {
