@@ -25,12 +25,6 @@ const (
 var ErrCompactionInterupted = errors.New("compaction was interupted")
 var ErrCompactionFinished = errors.New("compaction has finished")
 
-type BoltCache struct {
-	*bolt_store.BoltStore
-	*store_expiry.StoreExpiry
-	*BoltCacheConfig
-}
-
 func NewBoltCacheConfig(cacheConfig cache.CacheConfig, path string, bucketName string) *BoltCacheConfig {
 	return &BoltCacheConfig{
 		CacheConfig: cacheConfig,
@@ -48,10 +42,15 @@ type BoltCacheConfig struct {
 }
 
 func (c *BoltCacheConfig) RegisterFlags(f *flag.FlagSet, cacheID string) {
-	c.CacheConfig.RegisterFlags(f, cacheID)
 	defaultPath := strings.ToLower("/tmp/bolt_cache_" + cacheID + ".db")
-	f.StringVar(&c.path, strings.ToLower("cache."+cacheID+".bolt-path"), defaultPath, "Path for Bolt data file (cannot be used by other caches)")
-	f.StringVar(&c.bucketName, strings.ToLower("cache."+cacheID+".bolt-bucketname"), cacheID, "Name of bucket within Bolt data file")
+	f.StringVar(&c.path, strings.ToLower("cache."+cacheID+".bolt-path"), defaultPath, "Bolt data file (cannot be used by other caches)")
+	f.StringVar(&c.bucketName, strings.ToLower("cache."+cacheID+".bolt-bucketname"), cacheID, "Name of bucket within data file")
+}
+
+type BoltCache struct {
+	*bolt_store.BoltStore
+	*store_expiry.StoreExpiry
+	*BoltCacheConfig
 }
 
 // ensure that the cache.Cache interface is implemented
@@ -281,7 +280,7 @@ func (bc *BoltCache) ExpiryScan() {
 	bc.expiryScan(bc.StoreExpiry.Clock.Now(), COMPACTION_MAX_SCAN)
 	start := time.Now()
 	err := bc.DB.Sync()
-	dur := time.Now().Sub(start)
+	dur := time.Since(start)
 	bc.Logger.Infof("BoltCache fsync took %s", dur)
 	if err != nil {
 		bc.Logger.Errorf("BoltCache fsync failed: %v", err)

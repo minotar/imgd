@@ -241,7 +241,7 @@ func InsertTTLAndTTLCheck(cacheTester CacheTester) {
 		for i, key := range sorted[:chunkSize] {
 			ttl, err := cacheTester.Cache.TTL(key)
 			if err != cache.ErrNotFound {
-				cacheTester.Tester.Errorf("Key %s (%d) TTL after expiry should have been a cache.ErrNotFound. Error was: %s", key, i, err)
+				cacheTester.Tester.Errorf("Key %s (%d) TTL after expiry should have been a cache.ErrNotFound. Error was: %v", key, i, err)
 			}
 			if ttl != time.Duration(0) {
 				cacheTester.Tester.Errorf("Key %s (%d) TTL was %v", key, i, ttl)
