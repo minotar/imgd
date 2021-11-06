@@ -79,7 +79,7 @@ func (bl *BuiltinLogger) Named(name string) {
 
 func (bl *BuiltinLogger) With(args ...interface{}) Logger {
 	newLogger := NewBuiltinLogger(bl.Level)
-	newLogger.Named(fmt.Sprintf("%s=%s", args[0], args[1]))
+	newLogger.Named(fmt.Sprintf("%s=%s ", args[0], args[1]))
 	return newLogger
 }
 
