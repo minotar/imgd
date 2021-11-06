@@ -2,7 +2,9 @@
 package migrate_cache
 
 import (
+	"flag"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/boltdb/bolt"
@@ -20,6 +22,12 @@ type MigrateCacheConfig struct {
 	badger_cache.BadgerCacheConfig
 	OldCache *bolt_cache.BoltCache
 	NewCache *badger_cache.BadgerCache
+
+	performMigration bool
+}
+
+func (c *MigrateCacheConfig) RegisterFlags(f *flag.FlagSet, cacheID string) {
+	f.BoolVar(&c.performMigration, strings.ToLower("cache."+cacheID+".migrate"), false, "Peform Bolt -> Badger migration")
 }
 
 type MigrateCache struct {
@@ -82,6 +90,14 @@ func (mc *MigrateCache) Retrieve(key string) ([]byte, error) {
 			mc.Logger.Errorf("Error retrieving key \"%s\" from cache %d (%s): %s", key, i, c.Name(), err)
 			errors = append(errors, err)
 			continue
+		}
+		if i == 1 {
+			// OldCache had the value, update new cache
+			ttl, err := mc.OldCache.TTL(key)
+			if err == nil {
+				mc.Logger.Debugf("Adding \"%s\" to NewCache", key)
+				go mc.NewCache.InsertTTL(key, value, ttl)
+			}
 		}
 
 		return value, nil
@@ -220,7 +236,10 @@ func (mc *MigrateCache) Migrate() {
 func (mc *MigrateCache) Start() {
 	mc.Logger.Info("starting MigrateCache")
 	mc.NewCache.Start()
-	go mc.Migrate()
+	if mc.performMigration {
+		mc.Logger.Info("Migration is enabled - starting")
+		go mc.Migrate()
+	}
 }
 
 func (mc *MigrateCache) Stop() {
