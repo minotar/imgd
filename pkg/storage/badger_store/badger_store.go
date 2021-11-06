@@ -65,6 +65,24 @@ func (bs *BadgerStore) Retrieve(key string) ([]byte, error) {
 	return data, nil
 }
 
+func (bs *BadgerStore) Key(key string) (bool, error) {
+	err := bs.DB.View(func(txn *badger.Txn) error {
+		_, err := txn.Get([]byte(key))
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if err == badger.ErrKeyNotFound {
+		return false, storage.ErrNotFound
+	} else if err != nil {
+		return false, fmt.Errorf("retrieving \"%s\": %s", key, err)
+	}
+	// Key is present
+	return true, nil
+}
+
 func (bs *BadgerStore) Remove(key string) error {
 	err := bs.DB.Update(func(txn *badger.Txn) error {
 		return txn.Delete([]byte(key))
