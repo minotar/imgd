@@ -20,6 +20,14 @@ var _ storage.Storage = new(BadgerStore)
 func NewBadgerStore(path string, logger log.Logger) (*BadgerStore, error) {
 	loggerWithWarning := log.NewShimLoggerWarning(logger)
 	opts := badger.DefaultOptions(path)
+
+	// Tuning ideas from https://github.com/dgraph-io/badger/issues/1304#issuecomment-630078745
+	// Default 5
+	opts = opts.WithNumMemtables(2)
+	// Default 5
+	opts = opts.WithNumLevelZeroTables(3)
+	// Default 10
+	opts = opts.WithNumLevelZeroTablesStall(6)
 	opts = opts.WithLogger(loggerWithWarning)
 	db, err := badger.Open(opts)
 	if err != nil {
