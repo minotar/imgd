@@ -2,6 +2,7 @@
 package migrate_cache
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"strings"
@@ -195,7 +196,68 @@ func (mc *MigrateCache) Size() uint64 {
 	return maxSize
 }
 
+const (
+	MIGRATION_FINISHED     = "it has finished"
+	MIGRATION_NOT_FINISHED = "not finished"
+)
+
+func (mc *MigrateCache) SetMigrationStatus(finished bool, keyMarker string) error {
+	bool_value := MIGRATION_NOT_FINISHED
+	if finished {
+		bool_value = MIGRATION_FINISHED
+	}
+
+	err := mc.InsertTTL("MINOTAR_MIGRATION_BOOL", []byte(bool_value), time.Minute*time.Duration(10080))
+	if err != nil {
+		return err
+	}
+
+	err = mc.InsertTTL("MINOTAR_MIGRATION_MARKER", []byte(keyMarker), time.Minute*time.Duration(10080))
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+
+func (mc *MigrateCache) GetMigrationStatus() (finished bool, keyMarker string) {
+	bool_value, err := mc.Retrieve("MINOTAR_MIGRATION_BOOL")
+	if err != nil {
+		mc.Logger.Infof("Failure to get migration status: %v", err)
+		return
+	}
+	if string(bool_value) == MIGRATION_FINISHED {
+		return true, ""
+	}
+
+	keyMarkerBytes, err := mc.Retrieve("MINOTAR_MIGRATION_MARKER")
+	if err != nil {
+		mc.Logger.Infof("Failure to get migration marker: %v", err)
+		return
+	}
+
+	return false, string(keyMarkerBytes)
+}
+
+func firstOrSeek(c *bolt.Cursor, keyMarker string) (k, v []byte) {
+	if keyMarker == "" {
+		return c.First()
+	} else {
+		return c.Seek([]byte(keyMarker))
+	}
+}
+
+var ErrCompactionFinished = errors.New("compaction has finished")
+
 func (mc *MigrateCache) Migrate() {
+
+	// keymarker can be an empty string
+	migrateCompleted, keyMarker := mc.GetMigrationStatus()
+	if migrateCompleted {
+		mc.Logger.Info("Migration reports it has already completed")
+		return
+	}
+
 	var scannedCount, errorCount int
 
 	dbLength := int(mc.OldCache.Len())
@@ -203,12 +265,18 @@ func (mc *MigrateCache) Migrate() {
 	logger.Info("Starting migration from Bolt -> Badger")
 	start := time.Now()
 
-	mc.OldCache.DB.View(func(tx *bolt.Tx) error {
+	err := mc.OldCache.DB.View(func(tx *bolt.Tx) error {
 		c := tx.Bucket([]byte(mc.OldCache.Bucket)).Cursor()
 
-		for k, v := c.First(); k != nil; k, v = c.Next() {
+		var k []byte
+		for k, v := firstOrSeek(c, keyMarker); k != nil; k, v = c.Next() {
 			scannedCount++
 			key := string(k)
+
+			if scannedCount%1000 == 0 {
+				logger.Infof("Marking current keyMarker %s", key)
+				mc.SetMigrationStatus(false, key)
+			}
 
 			present, _ := mc.NewCache.Key(key)
 			if !present {
@@ -221,8 +289,17 @@ func (mc *MigrateCache) Migrate() {
 			}
 		}
 
+		if k == nil {
+			return ErrCompactionFinished
+		}
+
 		return nil
 	})
+
+	if err == ErrCompactionFinished {
+		logger.Info("Marking migration completion")
+		mc.SetMigrationStatus(true, "")
+	}
 
 	dur := time.Since(start)
 	logger = logger.With(
