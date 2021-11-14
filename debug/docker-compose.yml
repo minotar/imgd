@@ -9,6 +9,14 @@ services:
     build:
       context: ../
       dockerfile: cmd/skind/Dockerfile
+    command:
+      - "--server.http-listen-port=4643"
+      - "--cache.uuid.backend=badger"
+      - "--cache.uuid.badger-path=/skind/badger_cache_uuid/"
+      - "--cache.userdata.backend=badger"
+      - "--cache.userdata.badger-path=/skind/badger_cache_usertdata/"
+      - "--cache.textures.backend=bolt"
+      - "--cache.textures.bolt-path=/skind/badger_cache_textures.db"
     ports:
       - "4643:4643"
     networks:
@@ -19,6 +27,9 @@ services:
     build:
       context: ../
       dockerfile: cmd/processd/Dockerfile
+    command:
+      - "--server.http-listen-port=8080"
+      - "--processd.skind-url=http://skind:4643/skin/"
 
     ports:
       - "8080:8080"
