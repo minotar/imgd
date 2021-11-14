@@ -120,7 +120,7 @@ func (p *Processd) SkinLookupWrapper(processFunc skind.SkinProcessor) http.Handl
 		reqETag := r.Header.Get("If-None-Match")
 
 		skinReq.Header.Set("User-Agent", p.UserAgent)
-		if p.Cfg.UseETags {
+		if p.Cfg.UseETags && reqETag != "" {
 			skinReq.Header.Set("If-None-Match", reqETag)
 		}
 		//req.Header.Set("X-Request-ID", "magic-to-use-existing-or-add-new")
@@ -136,16 +136,20 @@ func (p *Processd) SkinLookupWrapper(processFunc skind.SkinProcessor) http.Handl
 		// The processFunc *MUST* close the resp.Body via the TextureIO object
 		//defer resp.Body.Close()
 
+		// Todo: Add handling for non-200/304 response codes, add handing for skind errors (API error vs. non-username)
+
 		w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", int(p.Cfg.CacheControlTTL.Seconds())))
 
 		if p.Cfg.UseETags {
 			respETag := resp.Header.Get("ETag")
-			// ETag is always included (even for 304 responses)
-			w.Header().Set("ETag", respETag)
+			if respETag != "" {
+				// ETag is always included (even for 304 responses)
+				w.Header().Set("ETag", respETag)
+			}
 
 			// If the response was a StatusNotModified (it should be as we already sent the If-None-Match!)
 			// If the ETag matches from request to response, then no need to process
-			if resp.StatusCode == http.StatusNotModified || reqETag == respETag {
+			if resp.StatusCode == http.StatusNotModified || (respETag != "" && reqETag == respETag) {
 				w.WriteHeader(http.StatusNotModified)
 				return
 			}
