@@ -17,9 +17,9 @@ import (
 
 const (
 	// Minimum Duration between full bucket scans looking for expired keys
-	COMPACTION_SCAN_INTERVAL = 5 * time.Minute
+	COMPACTION_SCAN_INTERVAL = 15 * time.Minute
 	// Max number of keys to scan in a single DB Transaction
-	COMPACTION_MAX_SCAN = 50000
+	COMPACTION_MAX_SCAN = 5000
 )
 
 var ErrCompactionInterupted = errors.New("compaction was interupted")
@@ -102,7 +102,7 @@ func (bc *BoltCache) InsertTTL(key string, value []byte, ttl time.Duration) erro
 	bse := bc.NewStoreEntry(key, value, ttl)
 	_, valueBytes := bse.Encode()
 
-	return bc.BoltStore.InsertBatch(key, valueBytes)
+	return bc.BoltStore.Insert(key, valueBytes)
 }
 
 func (bc *BoltCache) InsertBatch(key string, value []byte) error {

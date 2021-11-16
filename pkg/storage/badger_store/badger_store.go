@@ -23,11 +23,11 @@ func NewBadgerStore(path string, logger log.Logger) (*BadgerStore, error) {
 
 	// Tuning ideas from https://github.com/dgraph-io/badger/issues/1304#issuecomment-630078745
 	// Default 5
-	opts = opts.WithNumMemtables(2)
+	opts = opts.WithNumMemtables(1)
 	// Default 5
-	opts = opts.WithNumLevelZeroTables(3)
+	opts = opts.WithNumLevelZeroTables(1)
 	// Default 10
-	opts = opts.WithNumLevelZeroTablesStall(6)
+	opts = opts.WithNumLevelZeroTablesStall(2)
 	opts = opts.WithLogger(loggerWithWarning)
 	db, err := badger.Open(opts)
 	if err != nil {
