@@ -14,6 +14,7 @@ func (ur UserReq) GetUUID(logger log.Logger, mc *McClient) (newLogger log.Logger
 	if ur.UUID != "" {
 		return logger.With("uuid", ur.UUID), ur.UUID, nil
 	}
+	// We weren't given a Username though..!
 	if ur.Username == "" {
 		logger.Errorf("No UUID/Username was supplied: %v", ur)
 		return logger, "", errors.New("no UUID/Username given")

@@ -8,6 +8,7 @@ import (
 
 	"github.com/minotar/imgd/pkg/mcclient"
 	"github.com/minotar/imgd/pkg/mcclient/mcuser"
+	"github.com/minotar/imgd/pkg/minecraft"
 	"github.com/minotar/imgd/pkg/util/log"
 	"github.com/minotar/imgd/pkg/util/route_helpers"
 )
@@ -18,17 +19,29 @@ type SkinProcessor func(log.Logger, mcuser.TextureIO) http.HandlerFunc
 type SkinWrapper func(SkinProcessor) http.HandlerFunc
 
 // Requires "uuid" or "username" vars
-func NewSkinWrapper(logger log.Logger, mc *mcclient.McClient, useEtags bool, cacheControlTTL time.Duration) SkinWrapper {
+func NewSkinWrapper(logger log.Logger, mc *mcclient.McClient, useEtags bool, redirectUsernames bool, cacheControlTTL time.Duration) SkinWrapper {
 	return func(processFunc SkinProcessor) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 
 			userReq := route_helpers.MuxToUserReq(r)
+
+			// Todo: Instead set headers based on lookup results
+			w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", int(cacheControlTTL.Seconds())))
+
+			if redirectUsernames && userReq.Username != "" {
+				// Redirect Usernames is enabled, and a Username was given
+				logger, uuid, err := userReq.GetUUID(logger, mc)
+				if err != nil {
+					logger.Debugf("Redirecting username to Steve UUID: %v", err)
+					uuid = minecraft.SteveUUID
+				}
+
+				http.Redirect(w, r, uuid, http.StatusFound)
+				return
+			}
+
 			logger, skinIO := mc.GetSkinBufferFromReq(logger, userReq)
 			defer skinIO.Close()
-
-			//logger.Infof("Texture ID is: %s", skinIO.TextureID)
-
-			w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", int(cacheControlTTL.Seconds())))
 
 			// Todo: Technically, this ETag handling is _before_ Content* headers are set, so the 304 will be missing them
 			if useEtags {

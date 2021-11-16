@@ -4,10 +4,12 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/minotar/imgd/pkg/mcclient/mcuser"
+	"github.com/minotar/imgd/pkg/minecraft"
 	"github.com/minotar/imgd/pkg/processd/mcskin"
 	"github.com/minotar/imgd/pkg/skind"
 	"github.com/minotar/imgd/pkg/util/log"
@@ -27,6 +29,8 @@ var (
 		"Armor/Bust|Armour/Bust": mcskin.HandlerArmorBust,
 		"Armor/Body|Armour/Body": mcskin.HandlerArmorBody,
 	}
+
+	UUIDRegex = regexp.MustCompile(minecraft.ValidUUIDPlainRegex)
 )
 
 type Config struct {
@@ -34,9 +38,13 @@ type Config struct {
 	UpstreamTimeout time.Duration `yaml:"upstream_timeout"`
 	SkindURL        string        `yaml:"skind_url,omitempty"`
 	Logger          log.Logger
-	CorsAllowAll    bool
-	UseETags        bool
-	CacheControlTTL time.Duration
+	// Add open CORS headers to easch response
+	CorsAllowAll bool
+	// Return an ETag based on the texture ID
+	UseETags bool
+	// Return a 302 redirect for Username requests to their related UUID
+	RedirectUsername bool
+	CacheControlTTL  time.Duration
 }
 
 // RegisterFlags registers flag.
@@ -47,6 +55,7 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	f.StringVar(&c.SkindURL, "processd.skind-url", "http://localhost:4643/skin/", "API for skin lookups")
 	f.BoolVar(&c.CorsAllowAll, "processd.cors-allow-all", true, "Permissive CORS policy")
 	f.BoolVar(&c.UseETags, "processd.use-etags", true, "Use etags to skip re-processing")
+	f.BoolVar(&c.RedirectUsername, "processd.redirect-username", true, "Redirect username requests to the UUID variant")
 	f.DurationVar(&c.CacheControlTTL, "processd.cache-control-ttl", time.Duration(6)*time.Hour, "Cache TTL returned to clients")
 
 	c.Server.RegisterFlags(f)
@@ -71,7 +80,8 @@ func New(cfg Config) (*Processd, error) {
 	processd := &Processd{
 		Cfg: cfg,
 		Client: &http.Client{
-			Timeout: cfg.UpstreamTimeout,
+			Timeout:   cfg.UpstreamTimeout,
+			Transport: http.DefaultTransport,
 		},
 		UserAgent:     "minotar/imgd/processd (https://github.com/minotar/imgd) - default",
 		SkindURL:      cfg.SkindURL,
@@ -112,7 +122,7 @@ func (p *Processd) SkinLookupWrapper(processFunc skind.SkinProcessor) http.Handl
 		if err != nil {
 			//return nil, fmt.Errorf("unable to create request: %v", err)
 			//Use Steve and call original process logic?
-			logger.Errorf("It broken: %v", err)
+			logger.Errorf("Failed to create HTTP Req: %v", err)
 			handleSkinLookupError(w, r, logger, processFunc)
 			return
 		}
@@ -125,20 +135,46 @@ func (p *Processd) SkinLookupWrapper(processFunc skind.SkinProcessor) http.Handl
 		}
 		//req.Header.Set("X-Request-ID", "magic-to-use-existing-or-add-new")
 
-		resp, err := p.Client.Do(skinReq)
+		var resp *http.Response
+		if p.Cfg.RedirectUsername && userReq.UUID == "" {
+			// It's a username request, so we can listen for a redirect
+			resp, err = p.Client.Transport.RoundTrip(skinReq)
+		} else {
+			resp, err = p.Client.Do(skinReq)
+		}
 		if err != nil {
 			//return nil, fmt.Errorf("unable to GET URL: %v", err)
 			//Use Steve and call original process logic?
-			logger.Errorf("It broken: %v", err)
+			logger.Errorf("GET failed: %v", err)
 			handleSkinLookupError(w, r, logger, processFunc)
 			return
 		}
 		// The processFunc *MUST* close the resp.Body via the TextureIO object
 		//defer resp.Body.Close()
 
-		// Todo: Add handling for non-200/304 response codes, add handing for skind errors (API error vs. non-username)
-
+		// Todo: Could we grab the cachecontrol from response and use that for basis of the TTL here?
 		w.Header().Add("Cache-Control", fmt.Sprintf("public, max-age=%d", int(p.Cfg.CacheControlTTL.Seconds())))
+
+		if p.Cfg.RedirectUsername && userReq.UUID == "" {
+			redirect, err := resp.Location()
+			if err != nil {
+				logger.Debug("skin server response did not have a Location header, will process as normal")
+			} else {
+				uuid := UUIDRegex.FindString(redirect.Path)
+				if uuid == "" {
+					logger.Warnf("UUID not found in %s", redirect.Path)
+				} else {
+					if resource, ok := mux.Vars(r)["resource"]; ok {
+						redirectPath := "/" + resource + "/" + uuid
+						http.Redirect(w, r, redirectPath, http.StatusFound)
+						return
+					}
+					logger.Warnf("Unable to decode resource for redirect: %s", redirect.Path)
+				}
+			}
+		}
+
+		// Todo: Add handling for non-200/304 response codes, add handing for skind errors (API error vs. non-username)
 
 		if p.Cfg.UseETags {
 			respETag := resp.Header.Get("ETag")

@@ -52,6 +52,7 @@ func NewMcClient(cfg *Config) *McClient {
 	mc := &minecraft.Minecraft{
 		Client: &http.Client{
 			Timeout: minecraftCfg.RequestTimeout,
+			// Transport is set below
 		},
 		Cfg: minecraftCfg,
 	}

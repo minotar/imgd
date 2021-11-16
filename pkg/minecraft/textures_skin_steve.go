@@ -13,6 +13,9 @@ import (
 
 const SteveHash = "98903c1609352e11552dca79eb1ce3d6"
 
+// UUID for MHF_Steve
+const SteveUUID = "c06f89064c8a49119c29ea1dbd1aab82"
+
 func (s *Skin) FetchSteve() error {
 	bytes, err := GetSteveBytes()
 	if err != nil {
