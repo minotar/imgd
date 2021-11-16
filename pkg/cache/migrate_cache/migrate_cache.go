@@ -250,18 +250,19 @@ func firstOrSeek(c *bolt.Cursor, keyMarker string) (k, v []byte) {
 var ErrCompactionFinished = errors.New("compaction has finished")
 
 func (mc *MigrateCache) Migrate() {
+	logger := mc.Logger.With("operation", "migration")
 
 	// keymarker can be an empty string
 	migrateCompleted, keyMarker := mc.GetMigrationStatus()
 	if migrateCompleted {
-		mc.Logger.Info("Migration reports it has already completed")
+		logger.Info("Migration reports it has already completed")
 		return
 	}
 
 	var scannedCount, errorCount int
 
 	dbLength := int(mc.OldCache.Len())
-	logger := mc.Logger.With("boltLength", dbLength)
+	logger = logger.With("boltLength", dbLength)
 	logger.Info("Starting migration from Bolt -> Badger")
 	start := time.Now()
 
@@ -308,14 +309,23 @@ func (mc *MigrateCache) Migrate() {
 		"duration", dur,
 	)
 	logger.Info("Key Migration finished")
+
+	// Now trigger the compaction
+	mc.NewCache.Start()
 }
 
 func (mc *MigrateCache) Start() {
 	mc.Logger.Info("starting MigrateCache")
-	mc.NewCache.Start()
 	if mc.performMigration {
 		mc.Logger.Info("Migration is enabled - starting")
 		go mc.Migrate()
+	} else {
+		// Delay the compaction starting
+		// Running compaction and massive inserts concurrently can cause issues
+		go func() {
+			time.Sleep(time.Minute * time.Duration(30))
+			mc.NewCache.Start()
+		}()
 	}
 }
 
