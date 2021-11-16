@@ -20,7 +20,7 @@ func (s *Skind) routes() {
 	s.Server.HTTP.Path("/healthcheck").Handler(HealthcheckHandler(s.McClient))
 	s.Server.HTTP.Path("/dbsize").Handler(SizecheckHandler(s.McClient))
 
-	skinWrapper := NewSkinWrapper(s.Cfg.Logger, s.McClient, s.Cfg.UseETags, s.Cfg.CacheControlTTL)
+	skinWrapper := NewSkinWrapper(s.Cfg.Logger, s.McClient, s.Cfg.UseETags, s.Cfg.RedirectUsername, s.Cfg.CacheControlTTL)
 	RegisterSkinRoutes(s.Server.HTTP, skinWrapper)
 }
 

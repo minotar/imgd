@@ -15,12 +15,16 @@ import (
 )
 
 type Config struct {
-	Server          server.Config   `yaml:"server,omitempty"`
-	McClient        mcclient.Config `yaml:"mcclient,omitempty"`
-	Logger          log.Logger
-	CorsAllowAll    bool
-	UseETags        bool
-	CacheControlTTL time.Duration
+	Server   server.Config   `yaml:"server,omitempty"`
+	McClient mcclient.Config `yaml:"mcclient,omitempty"`
+	Logger   log.Logger
+	// Add open CORS headers to easch response
+	CorsAllowAll bool
+	// Return an ETag based on the texture ID
+	UseETags bool
+	// Return a 302 redirect for Username requests to their related UUID
+	RedirectUsername bool
+	CacheControlTTL  time.Duration
 }
 
 // RegisterFlags registers flag.
@@ -29,6 +33,7 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 
 	f.BoolVar(&c.CorsAllowAll, "imgd.cors-allow-all", true, "Permissive CORS policy")
 	f.BoolVar(&c.UseETags, "imgd.use-etags", true, "Use etags to skip re-processing")
+	f.BoolVar(&c.RedirectUsername, "imgd.redirect-username", true, "Redirect username requests to the UUID variant")
 	f.DurationVar(&c.CacheControlTTL, "imgd.cache-control-ttl", time.Duration(6)*time.Hour, "Cache TTL returned to clients")
 
 	c.Server.RegisterFlags(f)
