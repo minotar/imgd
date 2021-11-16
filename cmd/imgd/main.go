@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"go.uber.org/zap"
 
 	"github.com/prometheus/common/version"
 
@@ -32,7 +31,7 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 
 func main() {
 
-	mainLogger, _ := zap.NewDevelopment()
+	mainLogger, _ := log.NewZapProd()
 	defer mainLogger.Sync() // flushes buffer, if any
 	logger := log.NewZapLogger(mainLogger)
 
