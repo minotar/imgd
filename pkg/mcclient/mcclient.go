@@ -20,7 +20,8 @@ type McClient struct {
 		UserData cache.Cache
 		Textures cache.Cache
 	}
-	API *minecraft.Minecraft
+	API             *minecraft.Minecraft
+	TexturesBaseURL string
 }
 
 // Todo: I need to be providing logging and request context in here
@@ -42,7 +43,12 @@ func (mc *McClient) GetSkinBufferFromReq(logger log.Logger, userReq UserReq) (lo
 
 	// We use the SkinPath (which is either just the hash, or a full URL if the base URL changes)
 	textureKey := mcUser.Textures.SkinPath
-	textureURL := mcUser.Textures.SkinURL()
+	var textureURL string
+	if mc.TexturesBaseURL == "" {
+		textureURL = mcUser.Textures.SkinURL()
+	} else {
+		textureURL = mcUser.Textures.CustomSkinURL(mc.TexturesBaseURL)
+	}
 
 	textureIO, err := mc.GetTexture(logger, textureKey, textureURL)
 
