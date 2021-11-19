@@ -12,10 +12,11 @@ import (
 )
 
 type Config struct {
-	UpstreamTimeout  time.Duration  `yaml:"upstream_timeout"`
-	UserAgent        string         `yaml:"useragent"`
-	SessionServerURL string         `yaml:"sessionserver_url"`
-	ProfileURL       string         `yaml:"profile_url"`
+	UpstreamTimeout  time.Duration `yaml:"upstream_timeout"`
+	UserAgent        string        `yaml:"useragent"`
+	SessionServerURL string        `yaml:"sessionserver_url"`
+	ProfileURL       string        `yaml:"profile_url"`
+	TexturesBaseURL  string
 	CacheUUID        *config.Config `yaml:"cache_uuid"`
 	CacheUserData    *config.Config `yaml:"cache_userdata"`
 	CacheTextures    *config.Config `yaml:"cache_textures"`
@@ -32,6 +33,7 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	f.StringVar(&c.UserAgent, "mcclient.useragent", "minotar/imgd (https://github.com/minotar/imgd) - default", "UserAgent for Minecraft API Client")
 	f.StringVar(&c.SessionServerURL, "mcclient.sessionserver-url", "https://sessionserver.mojang.com/session/minecraft/profile/", "API for UUID -> Texture Properties")
 	f.StringVar(&c.ProfileURL, "mcclient.profile-url", "https://api.mojang.com/users/profiles/minecraft/", "API for Username -> UUID lookups")
+	f.StringVar(&c.TexturesBaseURL, "mcclient.textures-url", "", "Optional Textures base URL")
 	c.CacheUUID.RegisterFlags(f, "UUID")
 	c.CacheUserData.RegisterFlags(f, "UserData")
 	c.CacheTextures.RegisterFlags(f, "Textures")
@@ -72,6 +74,7 @@ func NewMcClient(cfg *Config) *McClient {
 	)
 
 	return &McClient{
-		API: mc,
+		API:             mc,
+		TexturesBaseURL: cfg.TexturesBaseURL,
 	}
 }

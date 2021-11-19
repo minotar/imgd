@@ -64,12 +64,17 @@ type Textures struct {
 	TexturesMcNet bool
 }
 
-// Used to get a fully qualified URL for the Skin
-func (t Textures) SkinURL() string {
+// Used to get a fully qualified URL for the Skin with a custom Textures server
+func (t Textures) CustomSkinURL(base string) string {
 	if t.TexturesMcNet {
-		return TexturesBaseURL + t.SkinPath
+		return base + t.SkinPath
 	}
 	return t.SkinPath
+}
+
+// Used to get a fully qualified URL for the Skin
+func (t Textures) SkinURL() string {
+	return t.CustomSkinURL(TexturesBaseURL)
 }
 
 // After having made an API call, this can be used to create a textures object
