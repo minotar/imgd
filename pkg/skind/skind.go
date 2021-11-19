@@ -71,7 +71,9 @@ func New(cfg Config) (*Skind, error) {
 	if err != nil {
 		cfg.Logger.Panicf("Unable to create cache Textures: %v", err)
 	}
-	cacheTextures.Start()
+	if cacheTextures != nil {
+		cacheTextures.Start()
+	}
 
 	skind := &Skind{
 		Cfg:      cfg,

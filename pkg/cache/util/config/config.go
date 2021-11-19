@@ -52,6 +52,8 @@ func NewCache(cfg *Config) (cache.Cache, error) {
 		cfg.MigrateCacheConfig.BoltCacheConfig = cfg.BoltCacheConfig
 		cfg.MigrateCacheConfig.BadgerCacheConfig = cfg.BadgerCacheConfig
 		return migrate_cache.NewMigrateCache(&cfg.MigrateCacheConfig)
+	case "none":
+		return nil, nil
 	default:
 		//return bolt_cache.NewBoltCache(&cfg.BoltCacheConfig)
 		return nil, fmt.Errorf("no cache was specififed")

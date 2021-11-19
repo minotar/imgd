@@ -71,6 +71,7 @@ func (mc *McClient) RequestTexture(logger log.Logger, textureKey string, texture
 	respBody, err := mc.API.ApiRequestCtx(ctx, textureURL)
 
 	if err != nil {
+		logger.Warnf("Texture fetch failed: %v", err)
 		status.MetricTextureFetchError()
 		return
 	}
