@@ -74,7 +74,9 @@ func New(cfg Config) (*Imgd, error) {
 	if err != nil {
 		cfg.Logger.Panicf("Unable to create cache Textures: %v", err)
 	}
-	cacheTextures.Start()
+	if cacheTextures != nil {
+		cacheTextures.Start()
+	}
 
 	imgd := &Imgd{
 		Cfg:           cfg,
