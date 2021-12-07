@@ -51,7 +51,10 @@ func SizecheckHandler(mc *mcclient.McClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uuidSize := caches.UUID.Size()
 		userdataSize := caches.UserData.Size()
-		texturesSize := caches.Textures.Size()
+		var texturesSize uint64
+		if caches.Textures != nil {
+			texturesSize = caches.Textures.Size()
+		}
 
 		w.WriteHeader(200)
 		fmt.Fprintf(w, "UUID: %d\nUserdata: %d\nTextures: %d\n", uuidSize, userdataSize, texturesSize)
@@ -82,8 +85,11 @@ func HealthcheckHandler(mc *mcclient.McClient) http.HandlerFunc {
 		msg, err2 := checkCache(caches.UserData)
 		message += msg + "\n"
 
-		msg, err3 := checkCache(caches.Textures)
-		message += msg + "\n"
+		var err3 error
+		if caches.Textures != nil {
+			msg, err3 = checkCache(caches.Textures)
+			message += msg + "\n"
+		}
 
 		if err1 != nil || err2 != nil || err3 != nil {
 			w.WriteHeader(503)
