@@ -41,7 +41,8 @@ func DashedRedirectUUIDHandler() http.Handler {
 
 func SubRouteDashedRedirect(m *mux.Router, counter *prometheus.CounterVec) {
 	handler := promhttp.InstrumentHandlerCounter(counter, DashedRedirectUUIDHandler())
-	m.Path(DashPath + "{?:.{0,8}}").Handler(handler).Name("dashedRedirect")
+	// Covers /XXXX.XXX (4 digit width and extension)
+	m.Path(DashPath + "{?:.{0,9}}").Handler(handler).Name("dashedRedirect")
 }
 
 // var "username" or "uuid" _MUST_ be present

@@ -94,7 +94,7 @@ local heatmapPanel = grafana.heatmapPanel;
 
     mcclientGetSessionProfileHeatmap:
         heatmapPanel.new(
-            'McClient GetAPIProfile Heatmap',
+            'McClient GetSessionProfile Heatmap',
             datasource='$datasource',
             color_mode='opacity',
             dataFormat='tsbuckets',
