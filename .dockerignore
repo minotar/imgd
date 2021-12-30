@@ -15,10 +15,14 @@
 /cmd/cacheconv/cacheconv-debug
 /cmd/cacheconv/cacheconv.exe
 
+/cmd/*/Dockerfile
+
 docs/
 debug/
+_legacy/
 
 .gitignore
+.dockerignore
 AUTHORS
 README.md
 
