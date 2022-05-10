@@ -391,14 +391,18 @@ func fastDraw(dst *image.NRGBA, src *image.NRGBA, x, y int) {
 	maxY := bounds.Max.Y
 	maxX := bounds.Max.X * 4
 
+	srcColor := [4]float32{}
+	dstColor := [4]float32{}
+	finalColor := [4]uint8{}
+
 	pointer := dst.PixOffset(x, y)
 	for row := 0; row < maxY; row += 1 {
 		for i := 0; i < maxX; i += 4 {
 			srcPx := row*src.Stride + i
 			dstPx := row*dst.Stride + i + pointer
 
-			srcColor := colorToFloat(src, srcPx)
-			dstColor := colorToFloat(dst, dstPx)
+			uintToFloat(src, srcPx, &srcColor)
+			uintToFloat(dst, dstPx, &dstColor)
 
 			// Blend
 			sR := srcColor[0]
@@ -416,7 +420,7 @@ func fastDraw(dst *image.NRGBA, src *image.NRGBA, x, y int) {
 			dstColor[2] = (sB * sA) + (dB * (1.0 - sA))
 			dstColor[3] = 1.0 // Alpha Func (sA * 1.0) + (dA * 0.0)
 
-			finalColor := floatToColor(dstColor)
+			floatToUint(&dstColor, &finalColor)
 			dst.Pix[dstPx+0] = finalColor[0]
 			dst.Pix[dstPx+1] = finalColor[1]
 			dst.Pix[dstPx+2] = finalColor[2]
@@ -426,23 +430,18 @@ func fastDraw(dst *image.NRGBA, src *image.NRGBA, x, y int) {
 	}
 }
 
-func colorToFloat(data *image.NRGBA, offset int) []float32 {
-	r := float32(data.Pix[offset]) / 255.0
-	g := float32(data.Pix[offset+1]) / 255.0
-	b := float32(data.Pix[offset+2]) / 255.0
-	a := float32(data.Pix[offset+3]) / 255.0
-
-	return []float32{r, g, b, a}
+func uintToFloat(data *image.NRGBA, offset int, color *[4]float32) {
+	color[0] = float32(data.Pix[offset]) / 255.0
+	color[1] = float32(data.Pix[offset+1]) / 255.0
+	color[2] = float32(data.Pix[offset+2]) / 255.0
+	color[3] = float32(data.Pix[offset+3]) / 255.0
 }
 
-func floatToColor(color []float32) []uint8 {
-	r := uint8(color[0] * 255)
-	g := uint8(color[1] * 255)
-	b := uint8(color[2] * 255)
-	a := uint8(color[3] * 255)
-	return []uint8{
-		r, g, b, a,
-	}
+func floatToUint(color *[4]float32, final *[4]uint8) {
+	final[0] = uint8(color[0] * 255)
+	final[1] = uint8(color[1] * 255)
+	final[2] = uint8(color[2] * 255)
+	final[3] = uint8(color[3] * 255)
 }
 
 func skewVertical(src *image.NRGBA, degrees float64) *image.NRGBA {
