@@ -396,13 +396,52 @@ func fastDraw(dst *image.NRGBA, src *image.NRGBA, x, y int) {
 		for i := 0; i < maxX; i += 4 {
 			srcPx := row*src.Stride + i
 			dstPx := row*dst.Stride + i + pointer
-			if src.Pix[srcPx+3] != 0 {
-				dst.Pix[dstPx+0] = src.Pix[srcPx+0]
-				dst.Pix[dstPx+1] = src.Pix[srcPx+1]
-				dst.Pix[dstPx+2] = src.Pix[srcPx+2]
-				dst.Pix[dstPx+3] = 0xFF
-			}
+
+			srcColor := colorToFloat(src, srcPx)
+			dstColor := colorToFloat(dst, dstPx)
+
+			// Blend
+			sR := srcColor[0]
+			sG := srcColor[1]
+			sB := srcColor[2]
+			sA := srcColor[3]
+
+			dR := dstColor[0]
+			dG := dstColor[1]
+			dB := dstColor[2]
+			// dA := dstColor[3]
+
+			dstColor[0] = (sR * sA) + (dR * (1.0 - sA))
+			dstColor[1] = (sG * sA) + (dG * (1.0 - sA))
+			dstColor[2] = (sB * sA) + (dB * (1.0 - sA))
+			dstColor[3] = 1.0 // Alpha Func (sA * 1.0) + (dA * 0.0)
+
+			finalColor := floatToColor(dstColor)
+			dst.Pix[dstPx+0] = finalColor[0]
+			dst.Pix[dstPx+1] = finalColor[1]
+			dst.Pix[dstPx+2] = finalColor[2]
+			dst.Pix[dstPx+3] = finalColor[3]
+
 		}
+	}
+}
+
+func colorToFloat(data *image.NRGBA, offset int) []float32 {
+	r := float32(data.Pix[offset]) / 255.0
+	g := float32(data.Pix[offset+1]) / 255.0
+	b := float32(data.Pix[offset+2]) / 255.0
+	a := float32(data.Pix[offset+3]) / 255.0
+
+	return []float32{r, g, b, a}
+}
+
+func floatToColor(color []float32) []uint8 {
+	r := uint8(color[0] * 255)
+	g := uint8(color[1] * 255)
+	b := uint8(color[2] * 255)
+	a := uint8(color[3] * 255)
+	return []uint8{
+		r, g, b, a,
 	}
 }
 
