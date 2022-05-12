@@ -522,6 +522,7 @@ func fastDraw(dst *image.NRGBA, src *image.NRGBA, x, y int) {
 	maxY := bounds.Max.Y
 	maxX := bounds.Max.X * 4
 
+	// Consider switch to uints https://github.com/minotar/imgd/pull/214#discussion_r869854923
 	srcColor := [4]float32{}
 	dstColor := [4]float32{}
 	finalColor := [4]uint8{}

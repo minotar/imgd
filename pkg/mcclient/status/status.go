@@ -10,16 +10,16 @@ import (
 const (
 	day = 24 * time.Hour
 
-	uuidTTL = 60 * day
+	uuidTTL = 30 * day
 	// Detect sooner if a username has changed hands?
 	//uuidFresh        = 30 * day
 	uuidUnknownTTL   = 14 * day
 	uuidRateLimitTTL = 2 * time.Hour
 	uuidErrorTTL     = 1 * time.Hour
 
-	userTTL = 60 * day
+	userTTL = 30 * day
 	// Detect sooner when a skin changes
-	UserFreshTTL     = 2 * time.Hour
+	UserFreshTTL     = 12 * time.Hour
 	userUnknownTTL   = 7 * day
 	userRateLimitTTL = 1 * time.Hour
 	userErrorTTL     = 30 * time.Minute
