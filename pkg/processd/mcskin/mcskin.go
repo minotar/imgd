@@ -397,7 +397,7 @@ func (skin *McSkin) renderLowerArmor() *image.NRGBA {
 		rl2Img := imaging.Crop(skin.Image, image.Rect(Rl2X, Rl2Y, Rl2X+RlWidth, Rl2Y+RlHeight))
 		skin.removeAlpha(rl2Img)
 
-		return skin.drawLower(lowerArmorBodyImg, ll2Img, rl2Img)
+		return skin.drawLower(lowerArmorBodyImg, rl2Img, ll2Img)
 	}
 	return lowerArmorBodyImg
 }
