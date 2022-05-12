@@ -2,22 +2,29 @@
 
 imgd is a simple avatar serving system. You're probably looking for [Minotar.net](https://github.com/minotar/minotar.net)
 
+`imgd` is a single binary for quickly getting up and running with skins + processed avatars.
+
+We also provide `skind` (just skins) and `processd` (just processing). You should then configure `processd` to point at your instance(s) or `skind`.
+
 ## How to install?
-Installation is simple - however it requires an installation of [Go](http://golang.org). Follow the instructions below for a comprehensive, step by step installation.
-```bash
-$ git clone https://github.com/minotar/imgd
-$ cd imgd
+Installation is simple - however it requires an installation of [Go](http://golang.org). Ensure you are set up there before trying these commands.
 
-$ export GOPATH=`pwd`
-$ go get
 
-$ go build
-```
-After you run `go build`, golang should automatically generate you an executable file (named `imgd`). Executing the file is simple: simply run:
 ```bash
-$ ./imgd
+git clone https://github.com/minotar/imgd
+cd imgd
+
+make imgd
 ```
-There you have it! Go visit your installation at *your-ip*:8000 to view it in action. If you wish to change the address the server listens on, you can do so by editing `config.gcfg` (it's like an `ini` file).
+
+This should compile a binary to `./cmd/imgd/imgd` which can then be used for serving your images.
+
+Try `./cmd/imgd/imgd --help` to see the options. You can also pass ENV vars (uppercasing and replacing `-`/`.` with `_`).
+
+```bash
+
+IMGD_SERVER_HTTP_LISTEN_PORT=8080 ./cmd/imgd/imgd
+```
 
 ## Thanks
 Big thanks to [lukegb](https://github.com/lukegb) for porting the old version of this script from PHP to Go.

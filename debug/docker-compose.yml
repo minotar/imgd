@@ -1,0 +1,72 @@
+version: "3"
+
+networks:
+  minotar:
+
+services:
+  skind:
+    image: minotar/skind:latest-dev
+    build:
+      context: ../
+      dockerfile: cmd/skind/Dockerfile
+    command:
+      - "--server.http-listen-port=4643"
+      - "--cache.uuid.backend=badger"
+      - "--cache.uuid.badger-path=/skind/badger_cache_uuid/"
+      - "--cache.userdata.backend=badger"
+      - "--cache.userdata.badger-path=/skind/badger_cache_usertdata/"
+      - "--cache.textures.backend=bolt"
+      - "--cache.textures.bolt-path=/skind/badger_cache_textures.db"
+    ports:
+      - "4643:4643"
+    networks:
+      - minotar
+
+  processd:
+    image: minotar/processd:latest-dev
+    build:
+      context: ../
+      dockerfile: cmd/processd/Dockerfile
+    command:
+      - "--server.http-listen-port=8080"
+      - "--processd.skind-url=http://skind:4643/skin/"
+
+    ports:
+      - "8080:8080"
+    networks:
+      - minotar
+
+  prometheus:
+    image: prom/prometheus:v2.30.3
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - minotar
+
+  grafana:
+    image: grafana/grafana:master
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana-ds.yml:/etc/grafana/provisioning/datasources/prometheus.yml
+      - ./jsonnet.yml:/etc/grafana/provisioning/dashboards/jsonnet.yml
+      - ./../dashboards/out:/etc/grafana/provisioning/dashboards_out/
+    networks:
+      - minotar
+    depends_on:
+      - prometheus
+
+  # docker-compose -f debug/docker-compose.yml --profile generate-metrics up
+  load-gen:
+    image: loadimpact/k6:master
+    volumes:
+      - ./k6-script.js:/script.js
+    command: ["run", "--vus=5", "--duration=900s", "/script.js"]
+    networks:
+      - minotar
+    depends_on:
+      - skind
+    profiles: ["generate-metrics"]
+
