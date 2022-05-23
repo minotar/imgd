@@ -28,13 +28,23 @@ func getMcSkin() (*mcskin.McSkin, error) {
 }
 
 func writeMcSkin(mcSkin *mcskin.McSkin, filename string) error {
-	file, err := os.Create(filename)
+	filePNG, err := os.Create(filename + ".png")
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer filePNG.Close()
 
-	return mcSkin.WritePNG(file)
+	err = mcSkin.WritePNG(filePNG)
+	if err != nil {
+		return err
+	}
+
+	fileSVG, err := os.Create(filename + ".svg")
+	if err != nil {
+		return err
+	}
+	defer fileSVG.Close()
+	return mcSkin.WriteSVG(fileSVG)
 }
 
 func TestRenderBody(t *testing.T) {
@@ -43,7 +53,7 @@ func TestRenderBody(t *testing.T) {
 		t.Fatalf("Unable to get mcSkin: %s", err)
 	}
 	mcSkin.GetBody()
-	writeMcSkin(mcSkin, "test_render_body.png")
+	writeMcSkin(mcSkin, "test_render_body")
 }
 
 func TestRenderArmorBody(t *testing.T) {
@@ -52,5 +62,18 @@ func TestRenderArmorBody(t *testing.T) {
 		t.Fatalf("Unable to get mcSkin: %s", err)
 	}
 	mcSkin.GetArmorBody()
-	writeMcSkin(mcSkin, "test_render_armor_body.png")
+	writeMcSkin(mcSkin, "test_render_armor_body")
+}
+
+func BenchmarkRenderArmorBody(b *testing.B) {
+	mcSkin, err := getMcSkin()
+	if err != nil {
+		b.Fatalf("Unable to get mcSkin: %s", err)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		mcSkin.GetArmorBody()
+		mcSkin.Processed = nil
+	}
 }
