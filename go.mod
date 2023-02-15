@@ -19,7 +19,7 @@ require (
 	github.com/mediocregopher/radix.v2 v0.0.0-20181115013041-b67df6e626f9
 	github.com/minotar/imgd/pkg/minecraft v0.0.0-00010101000000-000000000000
 	github.com/oschwald/geoip2-golang v1.5.0 // indirect
-	github.com/prometheus/client_golang v1.11.0
+	github.com/prometheus/client_golang v1.11.1
 	github.com/prometheus/common v0.26.0
 	github.com/spf13/pflag v1.0.5
 	github.com/weaveworks/common v0.0.0-20210506120931-f2676019da11
