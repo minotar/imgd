@@ -56,7 +56,12 @@ type Textures struct {
 	// It will either be just the "hash" (part after the TexturesBaseURL) or a full URL
 	SkinPath string
 	//SkinSlim bool (for "alex" support)
-	//CapePath string
+
+	// CapePath is similar to SkinPath - either just the hash or a full URL
+	CapePath string
+
+	// HasCape indicates whether the player has a cape
+	HasCape bool
 
 	// TexturesMcNet is true when the SkinPath is just the part after the TexturesBaseURL
 	// the Protobuf expresses this as an enum to support other values
@@ -77,6 +82,19 @@ func (t Textures) SkinURL() string {
 	return t.CustomSkinURL(TexturesBaseURL)
 }
 
+// Used to get a fully qualified URL for the Cape with a custom Textures server
+func (t Textures) CustomCapeURL(base string) string {
+	if t.TexturesMcNet && t.HasCape {
+		return base + t.CapePath
+	}
+	return t.CapePath
+}
+
+// Used to get a fully qualified URL for the Cape
+func (t Textures) CapeURL() string {
+	return t.CustomCapeURL(TexturesBaseURL)
+}
+
 // After having made an API call, this can be used to create a textures object
 func NewTexturesFromSessionProfile(sessionProfile minecraft.SessionProfileResponse) (t Textures, err error) {
 	profileTextureProperty, err := minecraft.DecodeTextureProperty(sessionProfile)
@@ -93,7 +111,17 @@ func NewTexturesFromSessionProfile(sessionProfile minecraft.SessionProfileRespon
 		t.SkinPath = profileTextureProperty.Textures.Skin.URL
 	}
 
-	// Other logic here for the Model / Slim skin, Capes etc.
+	// Handle Cape if it exists
+	if profileTextureProperty.Textures.Cape.URL != "" {
+		t.HasCape = true
+		if strings.HasPrefix(profileTextureProperty.Textures.Cape.URL, TexturesBaseURL) {
+			t.CapePath = strings.TrimPrefix(profileTextureProperty.Textures.Cape.URL, TexturesBaseURL)
+		} else {
+			t.CapePath = profileTextureProperty.Textures.Cape.URL
+		}
+	}
+
+	// Other logic here for the Model / Slim skin, etc.
 
 	return t, nil
 }

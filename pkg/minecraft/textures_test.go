@@ -309,7 +309,7 @@ func TestTextures(t *testing.T) {
 			cape, err := mcTest.FetchCapeUUID("2f3665cc5e29439bbd14cb6d3a6313a7")
 
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "FetchWithSessionProfile failed: FetchWithTextureProperty failed: unable to Fetch Texture: no URL for CAPE")
+			So(err, ShouldEqual, ErrNoCape)
 			So(cape, ShouldResemble, Cape{Texture{Mc: mcTest}})
 			So(cape.Hash, ShouldBeBlank)
 		})

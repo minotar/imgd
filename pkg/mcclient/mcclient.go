@@ -60,6 +60,40 @@ func (mc *McClient) GetSkinBufferFromReq(logger log.Logger, userReq UserReq) (lo
 	return logger, textureIO
 }
 
+// GetCapeBufferFromReq returns the cape texture for a user request
+// Remember to close the mcuser.TextureIO.ReadCloser!
+func (mc *McClient) GetCapeBufferFromReq(logger log.Logger, userReq UserReq) (log.Logger, mcuser.TextureIO, bool) {
+	logger, mcUser, err := mc.GetMcUserFromReq(logger, userReq)
+	if err != nil {
+		logger.Debugf("User not found: %v", err)
+		return logger, mcuser.TextureIO{}, false
+	}
+
+	// Check if the user has a cape
+	if !mcUser.Textures.HasCape || mcUser.Textures.CapePath == "" {
+		logger.Debugf("User has no cape")
+		return logger, mcuser.TextureIO{}, false
+	}
+
+	// We use the CapePath (which is either just the hash, or a full URL if the base URL changes)
+	textureKey := mcUser.Textures.CapePath
+	var textureURL string
+	if mc.TexturesBaseURL == "" {
+		textureURL = mcUser.Textures.CapeURL()
+	} else {
+		textureURL = mcUser.Textures.CustomCapeURL(mc.TexturesBaseURL)
+	}
+
+	textureIO, err := mc.GetTexture(logger, textureKey, textureURL)
+
+	if err != nil {
+		logger.Debugf("Failed to get cape texture: %v", err)
+		return logger, mcuser.TextureIO{}, false
+	}
+
+	return logger, textureIO, true
+}
+
 func (mc *McClient) GetMcUserFromReq(logger log.Logger, userReq UserReq) (log.Logger, mcuser.McUser, error) {
 	logger, uuid, err := userReq.GetUUID(logger, mc)
 	if err != nil {
