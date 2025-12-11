@@ -23,3 +23,7 @@ dashboards/out
 
 # IDE
 .vscode/
+
+# Debug
+/debug.ps1
+/data/

@@ -22,6 +22,8 @@ func (s *Skind) routes() {
 
 	skinWrapper := NewSkinWrapper(s.Cfg.Logger, s.McClient, s.Cfg.UseETags, s.Cfg.RedirectUsername, s.Cfg.CacheControlTTL)
 	RegisterSkinRoutes(s.Server.HTTP, skinWrapper)
+	capeWrapper := NewCapeWrapper(s.Cfg.Logger, s.McClient, s.Cfg.UseETags, s.Cfg.RedirectUsername, s.Cfg.CacheControlTTL)
+	RegisterCapeRoutes(s.Server.HTTP, capeWrapper)
 }
 
 func RegisterSkinRoutes(m *mux.Router, skinWrapper SkinWrapper) {
@@ -44,6 +46,21 @@ func RegisterSkinRoutes(m *mux.Router, skinWrapper SkinWrapper) {
 	downloadSR.Path(route_helpers.UUIDPath + optionalPNG).Handler(promhttp.InstrumentHandlerCounter(uuidCounter, downloadSkinHandler)).Name("download")
 	downloadSR.Path(route_helpers.UsernamePath + optionalPNG).Handler(promhttp.InstrumentHandlerCounter(usernameCounter, downloadSkinHandler)).Name("download")
 	route_helpers.SubRouteDashedRedirect(downloadSR, dashedCounter)
+}
+
+func RegisterCapeRoutes(m *mux.Router, capeWrapper CapeWrapper) {
+
+	optionalPNG := "{?:(?:\\.png)?}"
+	uuidCounter := requestedUserType.MustCurryWith(prometheus.Labels{"type": "UUID"})
+	dashedCounter := requestedUserType.MustCurryWith(prometheus.Labels{"type": "DashedUUID"})
+	usernameCounter := requestedUserType.MustCurryWith(prometheus.Labels{"type": "Username"})
+
+	capePageHandler := capeWrapper(CapePageProcessor)
+
+	capeSR := m.PathPrefix("/cape/").Subrouter()
+	capeSR.Path(route_helpers.UUIDPath + optionalPNG).Handler(promhttp.InstrumentHandlerCounter(uuidCounter, capePageHandler)).Name("cape")
+	capeSR.Path(route_helpers.UsernamePath + optionalPNG).Handler(promhttp.InstrumentHandlerCounter(usernameCounter, capePageHandler)).Name("cape")
+	route_helpers.SubRouteDashedRedirect(capeSR, dashedCounter)
 }
 
 func SizecheckHandler(mc *mcclient.McClient) http.HandlerFunc {

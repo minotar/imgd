@@ -28,5 +28,6 @@ message McUserProto {
 
     //bool SkinSlim = 8
     string SkinPath = 9;
-    //string CapePath = 10;
+    string CapePath = 10;
+    bool HasCape = 11;
 }

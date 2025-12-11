@@ -77,6 +77,8 @@ func decodeMcUserProtobuf(protoBytes []byte) (McUser, error) {
 		},
 		Textures: Textures{
 			SkinPath: pb.SkinPath,
+			CapePath: pb.CapePath,
+			HasCape:  pb.HasCape,
 		},
 	}
 
@@ -95,6 +97,8 @@ func (u McUser) EncodeProtobuf() ([]byte, error) {
 		Username: u.Username,
 		UUID:     u.UUID,
 		SkinPath: u.Textures.SkinPath,
+		CapePath: u.Textures.CapePath,
+		HasCape:  u.Textures.HasCape,
 	}
 
 	if u.Textures.TexturesMcNet {
