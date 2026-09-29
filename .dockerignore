@@ -1,0 +1,9 @@
+.git
+.agents
+.codex
+.vscode
+cmd/imgd/imgd
+cmd/imgd/imgd.exe
+data/
+*.db
+*.db.*

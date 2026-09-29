@@ -24,6 +24,29 @@ variables prefixed with `IMGD_`, uppercasing and replacing `-` and `.` with `_`.
 For example, `--imgd.redirect-username=false` is
 `IMGD_IMGD_REDIRECT_USERNAME=false`.
 
+## Docker
+
+Build and run with a named volume to preserve the caches:
+
+```sh
+docker build -t imgd .
+docker run --rm --name imgd -p 8080:8080 -v imgd-data:/data imgd
+```
+
+Open `http://localhost:8080/`. The image runs as a non-root user (UID/GID 10001),
+listens on port 8080, and stores its three Bolt caches in `/data`. If you bind
+mount a host directory instead, make it writable by UID 10001.
+
+Pass configuration through Docker's `-e` option or append flags to the image
+name, for example:
+
+```sh
+docker run --rm -p 8080:8080 -v imgd-data:/data imgd --imgd.redirect-username=false
+```
+
+Stop the running container before reusing its cache volume in another container
+or with `imgd cacheconv`.
+
 ## Frontend
 
 The site lives in `pkg/frontend/static/`. Edit its files and run `make` to rebuild
