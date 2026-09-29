@@ -13,21 +13,21 @@ func TestProfiles(t *testing.T) {
 	Convey("Test GetAPIProfile", t, func() {
 
 		Convey("clone1018 should match d9135e082f2244c89cb0bee234155292", func() {
-			apiProfile, err := mcProd.GetAPIProfile("clone1018")
+			apiProfile, err := mcTest.GetAPIProfile("clone1018")
 
 			So(err, ShouldBeNil)
 			So(apiProfile.UUID, ShouldEqual, "d9135e082f2244c89cb0bee234155292")
 		})
 
 		Convey("CLone1018 should equal clone1018", func() {
-			apiProfile, err := mcProd.GetAPIProfile("CLone1018")
+			apiProfile, err := mcTest.GetAPIProfile("CLone1018")
 
 			So(err, ShouldBeNil)
 			So(apiProfile.Username, ShouldEqual, "clone1018")
 		})
 
 		Convey("skmkj88200aklk should gracefully error", func() {
-			apiProfile, err := mcProd.GetAPIProfile("skmkj88200aklk")
+			apiProfile, err := mcTest.GetAPIProfile("skmkj88200aklk")
 
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldEqual, "unable to GetAPIProfile: user not found")
@@ -35,7 +35,7 @@ func TestProfiles(t *testing.T) {
 		})
 
 		Convey("bad_string/ should cause an HTTP error", func() {
-			apiProfile, err := mcProd.GetAPIProfile("bad_string/")
+			apiProfile, err := mcTest.GetAPIProfile("bad_string/")
 
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldEqual, "unable to GetAPIProfile: minecraft HTTP GET got unexpected: 404 Not Found")
@@ -44,19 +44,19 @@ func TestProfiles(t *testing.T) {
 
 	})
 
-	// Must be careful to not request same profile from session server more than once per ~30 seconds
+	// Session profiles are served by the local Minecraft fixture.
 	Convey("Test GetSessionProfile", t, func() {
 
 		Convey("5c115ca73efd41178213a0aff8ef11e0 should equal LukeHandle", func() {
 			// LukeHandle
-			sessionProfile, err := mcProd.GetSessionProfile("5c115ca73efd41178213a0aff8ef11e0")
+			sessionProfile, err := mcTest.GetSessionProfile("5c115ca73efd41178213a0aff8ef11e0")
 
 			So(err, ShouldBeNil)
 			So(sessionProfile.Username, ShouldEqual, "LukeHandle")
 		})
 
 		Convey("bad_string/ should cause an HTTP error", func() {
-			sessionProfile, err := mcProd.GetSessionProfile("00000000000000000000000000000000")
+			sessionProfile, err := mcTest.GetSessionProfile("ffffffffffffffffffffffffffffffff")
 
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldEqual, "unable to GetSessionProfile: user not found")
@@ -71,35 +71,35 @@ func TestProfiles(t *testing.T) {
 	Convey("Test NormalizePlayerForUUID", t, func() {
 
 		Convey("clone1018 should match d9135e082f2244c89cb0bee234155292", func() {
-			playerUUID, err := mcProd.NormalizePlayerForUUID("clone1018")
+			playerUUID, err := mcTest.NormalizePlayerForUUID("clone1018")
 
 			So(err, ShouldBeNil)
 			So(playerUUID, ShouldEqual, "d9135e082f2244c89cb0bee234155292")
 		})
 
 		Convey("CLone1018 should match d9135e082f2244c89cb0bee234155292", func() {
-			playerUUID, err := mcProd.NormalizePlayerForUUID("clone1018")
+			playerUUID, err := mcTest.NormalizePlayerForUUID("clone1018")
 
 			So(err, ShouldBeNil)
 			So(playerUUID, ShouldEqual, "d9135e082f2244c89cb0bee234155292")
 		})
 
 		Convey("d9135e08-2f22-44c8-9cb0-bee234155292 should match d9135e082f2244c89cb0bee234155292", func() {
-			playerUUID, err := mcProd.NormalizePlayerForUUID("d9135e082f2244c89cb0bee234155292")
+			playerUUID, err := mcTest.NormalizePlayerForUUID("d9135e082f2244c89cb0bee234155292")
 
 			So(err, ShouldBeNil)
 			So(playerUUID, ShouldEqual, "d9135e082f2244c89cb0bee234155292")
 		})
 
 		Convey("d9135e082f2244c89cb0bee234155292 should match d9135e082f2244c89cb0bee234155292", func() {
-			playerUUID, err := mcProd.NormalizePlayerForUUID("d9135e082f2244c89cb0bee234155292")
+			playerUUID, err := mcTest.NormalizePlayerForUUID("d9135e082f2244c89cb0bee234155292")
 
 			So(err, ShouldBeNil)
 			So(playerUUID, ShouldEqual, "d9135e082f2244c89cb0bee234155292")
 		})
 
 		Convey("skmkj88200aklk should gracefully error", func() {
-			playerUUID, err := mcProd.NormalizePlayerForUUID("skmkj88200aklk")
+			playerUUID, err := mcTest.NormalizePlayerForUUID("skmkj88200aklk")
 
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldEqual, "unable to GetAPIProfile: user not found")
@@ -107,7 +107,7 @@ func TestProfiles(t *testing.T) {
 		})
 
 		Convey("TooLongForAUsername should gracefully error", func() {
-			playerUUID, err := mcProd.NormalizePlayerForUUID("TooLongForAUsername")
+			playerUUID, err := mcTest.NormalizePlayerForUUID("TooLongForAUsername")
 
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldEqual, "unable to NormalizePlayerForUUID due to invalid Username/UUID")

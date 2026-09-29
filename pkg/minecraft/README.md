@@ -1,27 +1,7 @@
-# Minecraft Go API [![Build Status](https://travis-ci.org/minotar/minecraft.png)](https://travis-ci.org/minotar/minecraft)
+# Minecraft client
 
-~~~ go
-package main
+This package implements the Minecraft profile and texture HTTP client used by
+imgd. It belongs to the root Go module; run its tests with
+`go test ./pkg/minecraft/...` from the repository root.
 
-import "github.com/minotar/minecraft"
-
-func main() {
-  uuid, _ := minecraft.GetUUID("clone1018")
-
-  skin, _ := minecraft.FetchSkinUUID(uuid)
-}
-~~~
-
-Install the package (**go 1.1** and greater is required):
-~~~
-go get github.com/minotar/minecraft
-~~~
-
-## Features
-* User fetching using the Minecraft API
-* Skin fetching using AmazonS3
-* Almost no actual functionality!
-
-
-## License
-This is free and unencumbered software released into the public domain.
+`mockminecraft` supplies local HTTP fixtures for tests.

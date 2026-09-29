@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>The Miner's Avatar &mdash; Minotar</title>
+    <link rel="stylesheet" href="/assets/tachyons.min.css" />
+    <link href="/assets/raleway.css" rel="stylesheet">
+    <meta name="description" content="Minotar is an insanely fast service for turning your Minecraft skin into an Avatar. Easily embeddable and usable for your site, blog or plugin.">
+    <meta name="author" content="Axxim, LLC">
+    <link rel="shortcut icon" href="/favicon.ico">
+
+    <style>
+        .sans-serif {
+            font-family: Raleway, sans-serif;
+        }
+
+        .min-vh-50 {
+            min-height: 50vh;
+        }
+
+        .list {
+            padding-left: 10px;
+        }
+
+        ::selection {
+            background: rgba(255, 223, 223, 0.4);
+        }
+        img {
+            image-rendering: pixelated;
+        }
+        img::selection {
+            background: transparent;
+        }
+        pre::selection, pre ::selection {
+            background: rgba(97, 97, 97, 0.4);
+        }
+    </style>
+
+    <script defer src="/assets/site.js"></script>
+</head>
+
+<body class="sans-serif">
+    <div class="pa4 red bg-near-black min-vh-50 flex items-center">
+        <div class="mw8 center h-100">
+            <div>
+                <h1 class="f-subheadline f-headline-ns fw8 mt0 mb0">Minotar</h1>
+                <p class="f3 f2-ns fw6 mt1 mb5">An insanely fast and simple Minecraft avatar API</p>
+
+                <div class="flex flex-row pa2 br1 bg-dark-gray">
+                    <div class="mr3">
+                        <img class="grow db br1 br3-l" src="/avatar/d9135e082f2244c89cb0bee234155292/64" alt="The Avatar of clone1018" title="clone1018">
+                    </div>
+                    <div class="mr3">
+                        <img class="grow db br1 br3-l" src="/avatar/5c115ca73efd41178213a0aff8ef11e0/64" alt="The Avatar of LukeHandle" title="LukeHandle">
+                    </div>
+                    <div class="mr3 dn db-ns">
+                        <img class="grow db br1 br3-l" src="/avatar/connor4312/64" alt="The Avatar of connor4312" title="connor4312">
+                    </div>
+                    <div class="mr3">
+                        <img class="grow db br1 br3-l" src="/avatar/2f3665cc5e29439bbd14cb6d3a6313a7/64" alt="The Avatar of lukegb" title="lukegb">
+                    </div>
+                    <div class="mr3">
+                        <img class="grow db br1 br3-l" src="/avatar/48a0a7e4d5594873a617dc189f76a8a1/64" alt="The Avatar of citricsquid" title="citricsquid">
+                    </div>
+                    <div class="mr3">
+                        <img class="grow db br1 br3-l" src="/avatar/e5eea5f735c444a28af9b2c867ade454/64" alt="The Avatar of KamalN" title="KamalN">
+                    </div>
+                    <div class="mr3">
+                        <img class="grow db br1 br3-l" src="/avatar/069a79f444e94726a5befca90e38aaf5/64" alt="The Avatar of Notch" title="Notch">
+                    </div>
+                    <div class="mr3 dn db-ns">
+                        <img class="grow db br1 br3-l" src="/avatar/0916866379734076877df789dd30340b/64" alt="The Avatar of Banxsi" title="Banxsi">
+                    </div>
+                    <div class="mr3 dn db-ns">
+                        <img class="grow db br1 br3-l" src="/avatar/472cdef3cef147a0a44a2ab7f5ce07f6/64" alt="The Avatar of externo6" title="externo6">
+                    </div>
+                    <div class="mr3 dn db-ns">
+                        <img class="grow db br1 br3-l" src="/avatar/0c035b597e1a42b0b31610c9343d34dd/64" alt="The Avatar of drupal" title="drupal">
+                    </div>
+                    <div class="">
+                        <img class="grow db br1 br3-l" src="/avatar/7d043c7389524696bfba571c05b6aec0/64" alt="The Avatar of ez" title="ez">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="pa4 mw8 center lh-copy mb5">
+        <div class="mb4 cf">
+            <div class="pr3-l w-100 w-100-l fl">
+                <h2>Username and UUID support!</h2>
+
+                <p>Just send us a Username or UUID. The UUID can either be plain or dashed (though we will redirect to plain).</p>
+                <ul class="list">
+                    <li><span class="blue">LukeHandle</span> <span class="b green">&check;<span class="dn di-ns"> OK</span></span></li>
+                    <li><span class="blue">5c115ca7-3efd-4117-8213-a0aff8ef11e0</span> <span class="b light-green">&Tilde;<span class="dn di-ns"> REDIRECTS &DoubleRightArrow;</span></span></li>
+                    <li><span class="blue">5c115ca73efd41178213a0aff8ef11e0</span> <span class="b dark-green">&check;<span class="dn di-ns"> GREAT</span></span></li>
+                </ul>
+                <p><span class="i">Usernames may be deprecated in the future and are more susceptible to rate limits.</span></p>
+                <p class="pl2 bl bw1 b--light-red b">Replace <span class="blue">user</span> with the Username/UUID in the below examples</p>
+
+            </div>
+        </div>
+
+        <div class="mb4 cf">
+            <div class="pr3-l w-100 w-75-l fl">
+                <h2>Simple API</h2>
+
+                <p>For basic usage, provide a username or UUID in the
+                    <span class="blue">user</span> field:</p>
+                <pre class="pa3 bg-washed-red overflow-scroll"><span data-origin></span>/avatar/<span class="blue">user</span></pre>
+                <p>You can also set a size. We use pixels and only need the
+                    <span class="red">width</span>. Just add it to the end.</p>
+                <pre class="pa3 bg-washed-red overflow-scroll"><span data-origin></span>/avatar/<span class="blue">user</span>/<span class="red">100</span></pre>
+                <p>And because some services require an extension, we've added simple support for it. Just add
+                    <span class="green">.png</span> to the end.</p>
+                <pre class="pa3 bg-washed-red overflow-scroll"><span data-origin></span>/avatar/<span class="blue">user</span><span class="green">.png</span>
+<span data-origin></span>/avatar/<span class="blue">user</span>/<span class="red">100</span><span class="green">.png</span></pre>
+            </div>
+            <div class="mt4-l w-100 w-25-l fl tc tr-l">
+                <img class="dib ba br1 b--washed-red pa2" src="/avatar/d9135e082f2244c89cb0bee234155292/128" alt="The Avatar of clone1018" title="clone1018's Avatar">
+            </div>
+        </div>
+
+        <div class="mb4 cf">
+            <div class="pr3-l w-100 w-75-l fl">
+                <h2>Avatar With Helm</h2>
+
+                <p>Sometimes you want to display a helm too, that's fine with this endpoint:</p>
+                <pre class="pa3 bg-washed-red overflow-scroll"><span data-origin></span>/helm/<span class="blue">user</span>/<span class="red">100</span><span class="green">.png</span></pre>
+            </div>
+            <div class="mt4-l w-100 w-25-l fl tc tr-l">
+                <img class="dib ba br1 b--washed-red pa2" src="/helm/5c115ca73efd41178213a0aff8ef11e0/128" alt="The Helmet of LukeHandle" title="LukeHandle's Helmet">
+            </div>
+        </div>
+
+        <div class="mb4 cf">
+            <div class="pr3-l w-100 w-75-l fl">
+                <h2>Isometric Head</h2>
+
+                <p>A cube head for a cube game.</p>
+                <pre class="pa3 bg-washed-red overflow-scroll"><span data-origin></span>/cube/<span class="blue">user</span>/<span class="red">100</span><span class="green">.png</span></pre>
+            </div>
+            <div class="mt4-l w-100 w-25-l fl tc tr-l">
+                <img class="dib ba br1 b--washed-red pa2" src="/cube/48a0a7e4d5594873a617dc189f76a8a1/128" alt="The Cube Avatar of citricsquid" title="citricsquid's Cube Avatar">
+            </div>
+        </div>
+
+        <div class="mb4 cf">
+            <div class="pr3-l w-100 w-75-l fl">
+                <h2>Body</h2>
+
+                <p>A full frontal.</p>
+                <pre class="pa3 bg-washed-red overflow-scroll"><span data-origin></span>/body/<span class="blue">user</span>/<span class="red">100</span><span class="green">.png</span></pre>
+                <p>
+                    <small class="b">New!</small> An armored full frontal.</p>
+                <pre class="pa3 bg-washed-red overflow-scroll"><span data-origin></span>/armor/body/<span class="blue">user</span>/<span class="red">100</span><span class="green">.png</span></pre>
+            </div>
+            <div class="mt4-l w-100 w-25-l fl">
+                <div class="flex flex-row center justify-center justify-end-l">
+                    <img class="dib ba br1 b--washed-red pa2 mr1" src="/body/472cdef3cef147a0a44a2ab7f5ce07f6/100" alt="The Body of externo6" title="externo6's Body">
+                    <img class="dib ba br1 b--washed-red pa2" src="/armor/body/472cdef3cef147a0a44a2ab7f5ce07f6/100" alt="The Armor Body of externo6" title="externo6's Armor Body">
+                </div>
+            </div>
+        </div>
+
+        <div class="mb4 cf">
+            <div class="pr3-l w-100 w-75-l fl">
+                <h2>Bust</h2>
+
+                <p>If you prefer the bust.</p>
+                <pre class="pa3 bg-washed-red overflow-scroll"><span data-origin></span>/bust/<span class="blue">user</span>/<span class="red">100</span><span class="green">.png</span></pre>
+                <p>
+                    <small class="b">New!</small> If you like to protect your bust.</p>
+                <pre class="pa3 bg-washed-red overflow-scroll"><span data-origin></span>/armor/bust/<span class="blue">user</span>/<span class="red">100</span><span class="green">.png</span></pre>
+            </div>
+            <div class="mt4-l w-100 w-25-l fl">
+                <div class="flex flex-row center justify-center justify-end-l">
+                    <img class="db ba br1 b--washed-red pa2 mr1" src="/bust/0916866379734076877df789dd30340b/75" alt="The Bust of Banxsi" title="Banxsi's Bust">
+                    <img class="db ba br1 b--washed-red pa2" src="/armor/bust/0916866379734076877df789dd30340b/75" alt="The Armor Bust of Banxsi" title="Banxsi's Armor Bust">
+                </div>
+            </div>
+        </div>
+
+        <div class="mb4 cf">
+            <div class="pr3-l w-100 w-75-l fl">
+                <h2>User's Skin</h2>
+
+                <p>You can even use Minotar's API to get a users skin.
+                    <em>We're adding more soon!</em>
+                </p>
+                <pre class="pa3 bg-washed-red overflow-scroll"><span data-origin></span>/skin/<span class="blue">user</span></pre>
+                <p>You can also set the browser to download the image by using:</p>
+                <pre class="pa3 bg-washed-red overflow-scroll"><span data-origin></span>/download/<span class="blue">user</span></pre>
+            </div>
+            <div class="mt4-l w-100 w-25-l fl tc tr-l">
+                <img class="dib ba br1 b--washed-red pa2" src="/skin/2f3665cc5e29439bbd14cb6d3a6313a7" style="width:196px" alt="The Skin of lukegb" title="lukegb's Skin">
+            </div>
+        </div>
+
+        <div class="mb4 cf">
+            <div class="pr3-l w-100 w-75-l fl">
+                <h2>Default Skin</h2>
+
+                <p>Need Steve? Use "<span class="blue b">MHF_Steve</span>" as the username:</p>
+                <pre class="pa3 bg-washed-red overflow-scroll"><span data-origin></span>/skin/<span class="blue">MHF_Steve</span></pre>
+            </div>
+            <div class="mt4-l w-100 w-25-l fl tc tr-l">
+                <img class="dib ba br1 b--washed-red pa2" src="/skin/c06f89064c8a49119c29ea1dbd1aab82" style="width:196px" alt="The Skin of MHF_Steve" title="MHF_Steve's Skin">
+            </div>
+        </div>
+    </div>
+    <footer class="bg-dark-gray">
+        <div class="mw8 center pv4 ph3 flex flex-wrap-reverse justify-between washed-red">
+            <div>
+                <h2 class="f2 fw6">Minotar</h2>
+
+                <p>Copyright 2026 &mdash;
+                    <a href="http://axxim.net/" class="link washed-red underline dim">Axxim, LLC</a>
+                </p>
+                <p>Open source on
+                    <a href="https://github.com/minotar/imgd" class="link washed-red underline dim">GitHub
+                        <svg class="h1" xmlns="http://www.w3.org/2000/svg" fill="currentColor" fill-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="1.414" clip-rule="evenodd" viewBox="0 0 16 16"><path d="M8 0a8 8 0 0 0-8 8 8 8 0 0 0 5.47 7.59c.4.075.547-.172.547-.385 0-.19-.007-.693-.01-1.36-2.226.483-2.695-1.073-2.695-1.073-.364-.924-.89-1.17-.89-1.17-.725-.496.056-.486.056-.486.803.056 1.225.824 1.225.824.714 1.223 1.873.87 2.33.665.072-.517.278-.87.507-1.07-1.777-.2-3.644-.888-3.644-3.953 0-.873.31-1.587.823-2.147-.083-.202-.358-1.015.077-2.117 0 0 .672-.215 2.2.82a7.68 7.68 0 0 1 2.003-.27c.68.004 1.364.092 2.003.27 1.527-1.035 2.198-.82 2.198-.82.437 1.102.163 1.915.08 2.117.513.56.823 1.274.823 2.147 0 3.073-1.87 3.75-3.653 3.947.287.246.543.735.543 1.48 0 1.07-.01 1.933-.01 2.195 0 .215.144.463.55.385A8 8 0 0 0 8 0"/></svg>
+                    </a>
+                </p>
+                <p>
+                    <a href="https://infrastry.ai/" class="link washed-red dim dib" style="display: inline-flex; align-items: center; gap: 0.375rem;">
+                        <img src="/assets/infrastry-mark.svg" alt="" width="16" height="16" style="image-rendering: auto;">
+                        <span>Hosted on <strong class="fw6">Infrastry</strong></span>
+                    </a>
+                </p>
+            </div>
+            <div>
+                <h3 class="f3 fw6 pt2">Plugins</h3>
+
+                <ul class="list pl0 lh-copy">
+                    <li class="pb2">
+                        <a class="link dim washed-red bb" href="/addons/ipb/minotar.xml">IP.Board Plugin</a>
+                    </li>
+                    <li class="pb2">
+                        <a class="link dim washed-red bb" href="http://wordpress.org/extend/plugins/minotar-minecraft-avatars/">WordPress Plugin</a>
+                    </li>
+                    <li>
+                        <a class="link dim washed-red bb" href="https://www.phpbb.com/customise/db/extension/minotar_minecraft_avatars_%28minotar.net_api%29/">phpBB Forum Extension</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </footer>
+</body>
+
+</html>

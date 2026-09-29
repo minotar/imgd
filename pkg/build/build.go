@@ -2,12 +2,9 @@ package build
 
 import "github.com/prometheus/common/version"
 
-// Version information passed to Prometheus version package.
-// Package path as used by linker changes based on vendoring being used or not,
-// so it's easier just to use stable Loki path, and pass it to
-// Prometheus in the code.
+// Build metadata can be set with go build -ldflags -X.
 var (
-	Version   string
+	Version   = "dev"
 	Revision  string
 	Branch    string
 	BuildUser string

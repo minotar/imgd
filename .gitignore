@@ -1,25 +1,3 @@
-
-/cmd/skind/skind
-/cmd/skind/skind-debug
-/cmd/skind/skind.exe
-
-/cmd/processd/processd
-/cmd/processd/processd-debug
-/cmd/processd/processd.exe
-
 /cmd/imgd/imgd
-/cmd/imgd/imgd-debug
 /cmd/imgd/imgd.exe
-
-/cmd/cacheconv/cacheconv
-/cmd/cacheconv/cacheconv-debug
-/cmd/cacheconv/cacheconv.exe
-
-/src
-
-# Grafana / jsonnet dashboard
-dashboards/vendor
-dashboards/out
-
-# IDE
 .vscode/

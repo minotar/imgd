@@ -134,6 +134,10 @@ func ReturnMux() *http.ServeMux {
 	mux.HandleFunc("/users/profiles/minecraft/", func(w http.ResponseWriter, r *http.Request) {
 		username := strings.TrimPrefix(r.URL.Path, "/users/profiles/minecraft/")
 		username = strings.ToLower(username)
+		if strings.Contains(username, "/") {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 		if _, exists := APIProfiles[username]; exists {
 			fmt.Fprintf(w, APIProfiles[username])
 		} else {

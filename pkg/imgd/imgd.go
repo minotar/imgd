@@ -2,23 +2,23 @@ package imgd
 
 import (
 	"flag"
+	"fmt"
+	"sync"
 	"time"
 
+	"github.com/minotar/imgd/pkg/cache"
 	cache_config "github.com/minotar/imgd/pkg/cache/util/config"
 	"github.com/minotar/imgd/pkg/mcclient"
-	"github.com/minotar/imgd/pkg/processd"
-	"github.com/minotar/imgd/pkg/skind"
+	"github.com/minotar/imgd/pkg/render"
+	"github.com/minotar/imgd/pkg/skin"
 	"github.com/minotar/imgd/pkg/util/log"
-	"github.com/minotar/imgd/pkg/util/route_helpers"
-
-	"github.com/weaveworks/common/server"
 )
 
 type Config struct {
-	Server   server.Config   `yaml:"server,omitempty"`
+	Server   ServerConfig    `yaml:"server,omitempty"`
 	McClient mcclient.Config `yaml:"mcclient,omitempty"`
 	Logger   log.Logger
-	// Add open CORS headers to easch response
+	// Add open CORS headers to each response
 	CorsAllowAll bool
 	// Return an ETag based on the texture ID
 	UseETags bool
@@ -29,8 +29,6 @@ type Config struct {
 
 // RegisterFlags registers flag.
 func (c *Config) RegisterFlags(f *flag.FlagSet) {
-	//c.Server.ExcludeRequestInLog = true
-
 	f.BoolVar(&c.CorsAllowAll, "imgd.cors-allow-all", true, "Permissive CORS policy")
 	f.BoolVar(&c.UseETags, "imgd.use-etags", true, "Use etags to skip re-processing")
 	f.BoolVar(&c.RedirectUsername, "imgd.redirect-username", true, "Redirect username requests to the UUID variant")
@@ -44,79 +42,64 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 type Imgd struct {
 	Cfg Config
 
-	Server        *server.Server
+	closeOnce     sync.Once
+	caches        []cache.Cache
 	McClient      *mcclient.McClient
-	ProcessRoutes map[string]skind.SkinProcessor
+	ProcessRoutes map[string]skin.SkinProcessor
 }
 
 func New(cfg Config) (*Imgd, error) {
-	// Set namespace for all metrics
-	cfg.Server.MetricsNamespace = "imgd"
-	// Set the GRPC to localhost only
-	cfg.Server.GRPCListenAddress = "127.0.0.4"
-
-	cfg.McClient.CacheUUID.Logger = cfg.Logger
-	cacheUUID, err := cache_config.NewCache(cfg.McClient.CacheUUID)
-	if err != nil {
-		cfg.Logger.Panicf("Unable to create cache UUID: %v", err)
+	if cfg.Logger == nil {
+		cfg.Logger = log.NewBuiltinLogger(1)
 	}
-	cacheUUID.Start()
-
-	cfg.McClient.CacheUserData.Logger = cfg.Logger
-	cacheUserData, _ := cache_config.NewCache(cfg.McClient.CacheUserData)
-	if err != nil {
-		cfg.Logger.Panicf("Unable to create cache UserData: %v", err)
-	}
-	cacheUserData.Start()
-
-	cfg.McClient.CacheTextures.Logger = cfg.Logger
-	cacheTextures, _ := cache_config.NewCache(cfg.McClient.CacheTextures)
-	if err != nil {
-		cfg.Logger.Panicf("Unable to create cache Textures: %v", err)
-	}
-	if cacheTextures != nil {
-		cacheTextures.Start()
+	var caches []cache.Cache
+	for index, config := range []*cache_config.Config{cfg.McClient.CacheUUID, cfg.McClient.CacheUserData, cfg.McClient.CacheTextures} {
+		var c cache.Cache
+		var err error
+		if config == nil {
+			err = fmt.Errorf("missing cache configuration")
+		} else {
+			config.Logger = cfg.Logger
+			c, err = cache_config.NewCache(config)
+			if err == nil && c == nil && index < 2 {
+				err = fmt.Errorf("UUID and user data caches cannot be disabled")
+			}
+		}
+		if err != nil {
+			for _, opened := range caches {
+				if opened != nil {
+					opened.Close()
+				}
+			}
+			return nil, fmt.Errorf("initialize cache %d: %w", index, err)
+		}
+		if c != nil {
+			c.Start()
+		}
+		caches = append(caches, c)
 	}
 
 	imgd := &Imgd{
 		Cfg:           cfg,
+		caches:        caches,
 		McClient:      mcclient.NewMcClient(&cfg.McClient),
-		ProcessRoutes: processd.DefaultProcessRoutes,
+		ProcessRoutes: render.DefaultProcessRoutes,
 	}
 
-	imgd.McClient.Caches.UUID = cacheUUID
-	imgd.McClient.Caches.UserData = cacheUserData
-	imgd.McClient.Caches.Textures = cacheTextures
+	imgd.McClient.Caches.UUID = caches[0]
+	imgd.McClient.Caches.UserData = caches[1]
+	imgd.McClient.Caches.Textures = caches[2]
 
 	return imgd, nil
 }
 
-func (i *Imgd) Run() error {
-	//t.Server.HTTP.Handle("/services", http.HandlerFunc(t.servicesHandler))
-	if err := i.initServer(); err != nil {
-		return err
-	}
-	// init other bits
-
-	return i.Server.Run()
-
-	//return nil
-}
-
-func (i *Imgd) initServer() error {
-	serv, err := server.New(i.Cfg.Server)
-	if err != nil {
-		return err
-	}
-
-	//serv.HTTP.Use(route_helpers.LoggingMiddleware(i.Cfg.Logger))
-
-	if i.Cfg.CorsAllowAll {
-		serv.HTTP.Use(route_helpers.CorsHandler)
-	}
-
-	i.Server = serv
-	i.routes()
-	return nil
-
+// Close releases the caches owned by the application.
+func (i *Imgd) Close() {
+	i.closeOnce.Do(func() {
+		for _, c := range i.caches {
+			if c != nil {
+				c.Close()
+			}
+		}
+	})
 }

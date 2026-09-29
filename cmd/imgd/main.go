@@ -30,6 +30,11 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 }
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "cacheconv" {
+		os.Args = append(os.Args[:1], os.Args[2:]...)
+		runCacheConversion()
+		return
+	}
 
 	mainLogger, _ := log.NewZapProd()
 	defer mainLogger.Sync() // flushes buffer, if any
@@ -51,6 +56,7 @@ func main() {
 	s, err := imgd.New(config.Config)
 	if err != nil {
 		logger.Errorf("Error initialising imgd: %v", err)
+		os.Exit(1)
 	}
 
 	logger.Infof("Starting imgd %s", version.Info())

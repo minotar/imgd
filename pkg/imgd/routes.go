@@ -1,19 +1,36 @@
 package imgd
 
 import (
+	"net/http"
+	_ "net/http/pprof"
+
 	"github.com/felixge/fgprof"
-	"github.com/minotar/imgd/pkg/processd"
-	"github.com/minotar/imgd/pkg/skind"
+	"github.com/gorilla/mux"
+	"github.com/minotar/imgd/pkg/frontend"
+	"github.com/minotar/imgd/pkg/render"
+	"github.com/minotar/imgd/pkg/skin"
+	"github.com/minotar/imgd/pkg/util/route_helpers"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// routes registers all the routes
-func (i *Imgd) routes() {
-	i.Server.HTTP.Path("/debug/fgprof").Handler(fgprof.Handler())
-	i.Server.HTTP.Path("/healthcheck").Handler(skind.HealthcheckHandler(i.McClient))
-	i.Server.HTTP.Path("/dbsize").Handler(skind.SizecheckHandler(i.McClient))
+// Handler serves every public endpoint without opening a listener.
+func (i *Imgd) Handler() http.Handler {
+	router := mux.NewRouter()
+	if i.Cfg.CorsAllowAll {
+		router.Use(route_helpers.CorsHandler)
+	}
+	if i.Cfg.Server.RegisterInstrumentation {
+		router.Handle("/metrics", promhttp.Handler())
+		router.PathPrefix("/debug/pprof").Handler(http.DefaultServeMux)
+	}
+	router.Path("/debug/fgprof").Handler(fgprof.Handler())
+	router.Path("/healthcheck").Handler(skin.HealthcheckHandler(i.McClient))
+	router.Path("/dbsize").Handler(skin.SizecheckHandler(i.McClient))
 
-	skinWrapper := skind.NewSkinWrapper(i.Cfg.Logger, i.McClient, i.Cfg.UseETags, i.Cfg.RedirectUsername, i.Cfg.CacheControlTTL)
+	skinWrapper := skin.NewSkinWrapper(i.Cfg.Logger, i.McClient, i.Cfg.UseETags, i.Cfg.RedirectUsername, i.Cfg.CacheControlTTL)
 
-	skind.RegisterSkinRoutes(i.Server.HTTP, skinWrapper)
-	processd.RegisterProcessingRoutes(i.Server.HTTP, skinWrapper, i.ProcessRoutes)
+	skin.RegisterSkinRoutes(router, skinWrapper)
+	render.RegisterProcessingRoutes(router, skinWrapper, i.ProcessRoutes)
+	router.PathPrefix("/").Handler(frontend.Handler())
+	return router
 }
